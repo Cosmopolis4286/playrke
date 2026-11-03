@@ -42,9 +42,12 @@ require_env() {
 }
 
 for key in APP_ENV APP_DEBUG APP_KEY APP_URL FRONTEND_URL APP_DOMAIN ACME_EMAIL \
-    DB_ROOT_PASSWORD DB_DATABASE DB_USERNAME DB_PASSWORD REDIS_PASSWORD \
-    REVERB_APP_ID REVERB_APP_KEY REVERB_APP_SECRET \
-    TURNSTILE_SITE_KEY TURNSTILE_SECRET_KEY SESSION_SECURE_COOKIE LOG_LEVEL; do
+    DB_HOST DB_ROOT_PASSWORD DB_DATABASE DB_USERNAME DB_PASSWORD \
+    REDIS_HOST REDIS_PASSWORD CACHE_STORE QUEUE_CONNECTION SESSION_DRIVER \
+    REVERB_HOST REVERB_APP_ID REVERB_APP_KEY REVERB_APP_SECRET \
+    VITE_API_URL VITE_REVERB_APP_KEY VITE_REVERB_HOST VITE_REVERB_PORT VITE_REVERB_SCHEME \
+    VITE_TURNSTILE_SITE_KEY TURNSTILE_SITE_KEY TURNSTILE_SECRET_KEY \
+    SESSION_SECURE_COOKIE LOG_LEVEL; do
     require_env "$key"
 done
 
@@ -54,6 +57,17 @@ done
 [[ "$(env_value APP_KEY)" == base64:* ]] || fail "APP_KEY debe ser una clave Laravel con prefijo base64:."
 [[ "$(env_value APP_URL)" == https://* ]] || fail "APP_URL debe usar HTTPS."
 [[ "$(env_value FRONTEND_URL)" == https://* ]] || fail "FRONTEND_URL debe usar HTTPS."
+[[ "$(env_value VITE_API_URL)" == https://* ]] || fail "VITE_API_URL debe usar HTTPS."
+[[ "$(env_value VITE_REVERB_SCHEME)" == "https" ]] || fail "VITE_REVERB_SCHEME debe ser https."
+[[ "$(env_value VITE_REVERB_PORT)" == "443" ]] || fail "VITE_REVERB_PORT debe ser 443."
+[[ "$(env_value DB_HOST)" == "mysql" ]] || fail "DB_HOST debe ser mysql en la red interna."
+[[ "$(env_value REDIS_HOST)" == "redis" ]] || fail "REDIS_HOST debe ser redis en la red interna."
+[[ "$(env_value CACHE_STORE)" == "redis" ]] || fail "CACHE_STORE debe ser redis."
+[[ "$(env_value QUEUE_CONNECTION)" == "redis" ]] || fail "QUEUE_CONNECTION debe ser redis."
+[[ "$(env_value SESSION_DRIVER)" == "redis" ]] || fail "SESSION_DRIVER debe ser redis."
+[[ "$(env_value REVERB_HOST)" == "reverb" ]] || fail "REVERB_HOST debe ser reverb para la comunicación interna."
+[[ "$(env_value VITE_REVERB_APP_KEY)" == "$(env_value REVERB_APP_KEY)" ]] || fail "VITE_REVERB_APP_KEY debe coincidir con REVERB_APP_KEY."
+[[ "$(env_value VITE_TURNSTILE_SITE_KEY)" == "$(env_value TURNSTILE_SITE_KEY)" ]] || fail "VITE_TURNSTILE_SITE_KEY debe coincidir con TURNSTILE_SITE_KEY."
 
 # Evita que el archivo de secretos quede legible para otros usuarios del host.
 chmod 600 "$ENV_FILE"
@@ -64,7 +78,7 @@ log "Validando la configuración efectiva de Docker Compose..."
 "${COMPOSE[@]}" config --quiet
 
 log "Construyendo la imagen de producción..."
-"${COMPOSE[@]}" build php
+"${COMPOSE[@]}" build php nginx
 
 log "Iniciando y esperando MySQL y Redis..."
 "${COMPOSE[@]}" up -d --wait --wait-timeout 180 mysql redis
