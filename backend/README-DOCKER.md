@@ -19,7 +19,7 @@ Traefik no debe enviar tráfico HTTP directamente a PHP-FPM: PHP-FPM habla FastC
 ## Requisitos
 
 - Docker Engine.
-- Docker Compose v2 (comando docker compose, no el binario antiguo docker-compose).
+- Docker Compose v2.20 o superior (comando docker compose, no el binario antiguo docker-compose).
 - Dominio apuntando al servidor y puertos TCP 80/443 disponibles.
 - Memoria, almacenamiento y copias de seguridad dimensionados para producción.
 
@@ -46,7 +46,14 @@ Edita .env.prod. Como mínimo, establece valores reales para:
 | DB_ROOT_PASSWORD, DB_PASSWORD | Contraseñas únicas y robustas |
 | REDIS_HOST | redis |
 | REDIS_PASSWORD | Secreto robusto |
+| CACHE_STORE, QUEUE_CONNECTION, SESSION_DRIVER | redis |
+| REVERB_HOST | reverb (comunicación interna) |
 | REVERB_APP_ID, REVERB_APP_KEY, REVERB_APP_SECRET | Valores únicos y secretos |
+| VITE_API_URL | URL HTTPS de la API, por ejemplo https://dominio/api |
+| VITE_REVERB_APP_KEY | Debe coincidir con REVERB_APP_KEY |
+| VITE_REVERB_HOST | Host público WebSocket, por ejemplo ws.dominio |
+| VITE_REVERB_PORT, VITE_REVERB_SCHEME | 443 y https |
+| VITE_TURNSTILE_SITE_KEY | Debe coincidir con TURNSTILE_SITE_KEY |
 | SESSION_SECURE_COOKIE | true |
 | TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY | Credenciales reales de Cloudflare Turnstile |
 | LOG_LEVEL | Nivel adecuado para producción, por ejemplo error |
@@ -64,7 +71,7 @@ Configura además las variables del resto de integraciones que utilice tu entorn
 
 ## 2. Validar y desplegar
 
-El script valida variables críticas, comprueba la configuración de Compose, espera a MySQL/Redis, ejecuta las migraciones una sola vez y luego inicia el stack:
+El script valida variables críticas, comprueba la configuración de Compose, construye los assets públicos del frontend con los valores VITE_* de producción, espera a MySQL/Redis, ejecuta las migraciones una sola vez y luego inicia el stack.
 
 ~~~bash
 chmod +x deploy.sh
