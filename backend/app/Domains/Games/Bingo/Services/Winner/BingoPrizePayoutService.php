@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domains\Games\Bingo\Services\Winner;
 
-use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
+use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Services\Games\GamePrizeService;
 
