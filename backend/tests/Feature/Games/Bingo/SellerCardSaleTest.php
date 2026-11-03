@@ -391,6 +391,9 @@ class SellerCardSaleTest extends TestCase
             [(string) $this->sellerA->id],
             $scope->actorNetworkUserIds($this->sellerA->id),
         );
+
+        // Los roles ajenos a la jerarquía no obtienen alcance implícito.
+        $this->assertSame([], $scope->actorNetworkUserIds($this->creator->id));
     }
 
     /** @test */
