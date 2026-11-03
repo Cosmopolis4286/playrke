@@ -142,6 +142,72 @@ class BingoWinnerDetectionServiceTest extends TestCase
         ]);
     }
 
+    public function test_pending_payment_carton_cannot_be_claimed_manually_or_atomically() : void
+    {
+        $user = User::factory()->create();
+        ['room' => $room, 'round' => $round, 'pattern' => $pattern, 'card' => $card] =
+            $this->makeRoomWithCard($this->winningCardNumbers(), $user, 'DEMO');
+
+        $this->drawWinningLine($room, $round);
+        $lastDrawId = (int) BingoDraw::where('round_id', $round->id)->orderByDesc('created_at')->value('id');
+
+        BingoCardPayment::create([
+            'payment_method' => 'mobile_payment',
+            'description' => 'Comprobante pendiente de revisión',
+            'room_id' => $room->id,
+            'seller_user_id' => $user->id,
+            'user_id' => $user->id,
+            'currency_id' => $card->currency_id,
+            'card_lot_id' => $card->card_lot_id,
+            'payment_amount' => 1,
+            'payment_proof' => 'private/receipts/bingo/test.jpg',
+            'payment_status' => 'PENDING',
+        ]);
+
+        $manualResult = app(BingoWinnerDetectionService::class)
+            ->checkWinnerForUser($room->fresh(), (int) $user->id);
+
+        $atomicResult = app(BingoDrawService::class)->claimCardWin(
+            $room,
+            $round,
+            $pattern,
+            (string) $card->id,
+            $lastDrawId,
+        );
+
+        $this->assertNull($manualResult);
+        $this->assertNull($atomicResult);
+        $this->assertSame(BingoCard::STATUS_ACTIVE, (int) $card->fresh()->status);
+        $this->assertDatabaseCount('bingo_card_prizes', 0);
+    }
+
+    public function test_draws_from_a_finished_round_cannot_complete_the_active_round() : void
+    {
+        $user = User::factory()->create();
+        ['room' => $room, 'round' => $previousRound] =
+            $this->makeRoomWithCard($this->winningCardNumbers(), $user, 'DEMO');
+
+        $activeRound = BingoRound::create([
+            'room_id' => $room->id,
+            'room_config_id' => $room->config->id,
+            'round' => 2,
+            'prize_type' => 'PCT',
+            'bingo_pattern_id' => $previousRound->bingo_pattern_id,
+            'status' => 'ACTIVE',
+        ]);
+
+        $previousRound->update(['status' => 'FINISHED']);
+        $this->drawWinningLine($room, $previousRound);
+
+        $result = app(BingoWinnerDetectionService::class)
+            ->checkWinnerForUser($room->fresh(), (int) $user->id);
+
+        $this->assertNull($result);
+        $this->assertSame('ACTIVE', $activeRound->fresh()->status);
+        $this->assertSame(BingoCard::STATUS_ACTIVE, (int) BingoCard::first()->status);
+        $this->assertDatabaseCount('bingo_card_prizes', 0);
+    }
+
     private function drawWinningLine(BingoRoom $room, BingoRound $round) : void
     {
         foreach (['1', '16', '31', '46', '61'] as $chip) {
