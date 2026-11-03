@@ -59,7 +59,7 @@ class BingoCardPrizePayment extends BaseModel
 
     public function externalPlayer() : BelongsTo
     {
-        return $this->belongsTo(ExternalPlayer::class, 'external_player_id');
+        return $this->belongsTo(ExternalPlayer::class, 'external_player_id')->withTrashed();
     }
 
     public function getPaymentMethodDescriptionAttribute() : string

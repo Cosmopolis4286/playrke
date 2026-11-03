@@ -334,6 +334,10 @@ final class BingoGameService
 
         $query = \App\Domains\Games\Bingo\Models\Card\BingoCard::query()
             ->whereIn('status', $validStatuses)
+            // Excluir cartones externos del room_user compartido con el vendedor.
+            ->whereNotIn('id', \App\Models\Roles\Player\External\ExternalPlayerParticipation::withTrashed()
+                ->where('participable_type', \App\Domains\Games\Bingo\Models\Card\BingoCard::class)
+                ->selectRaw('JSON_UNQUOTE(participable_id)'))
             ->with(['currency', 'cardLot', 'roomUser'])
             ->orderBy('serial_number');
 

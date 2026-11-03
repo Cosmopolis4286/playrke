@@ -10,6 +10,7 @@ use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Models\BaseModel;
 use App\Models\Currency;
 use App\Models\Roles\Player\External\ExternalPlayer;
+use App\Models\Roles\Player\External\ExternalPlayerParticipation;
 use App\Models\User;
 use App\Services\Games\GamePrizeContract;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -80,7 +81,7 @@ class BingoCardPrize extends BaseModel implements GamePrizeContract
             'external_player_id' => $this->external_player_id,
             // Los premios de compradores externos se entregan fuera de la wallet;
             // nunca atribuir el pago al vendedor/creador del cartón.
-            'user_id' => $this->external_player_id ? null : $this->creator_user_id,
+            'user_id' => $this->hasExternalBeneficiary() ? null : $this->creator_user_id,
             'currency_id' => $this->currency_id,
             'payment_amount' => $this->local_amount,
             'payment_proof' => $movementId ? 'system_auto' : null,
@@ -120,7 +121,7 @@ class BingoCardPrize extends BaseModel implements GamePrizeContract
 
     public function externalPlayer() : BelongsTo
     {
-        return $this->belongsTo(ExternalPlayer::class, 'external_player_id');
+        return $this->belongsTo(ExternalPlayer::class, 'external_player_id')->withTrashed();
     }
 
     public function generateVerificationCode() : string
@@ -134,6 +135,11 @@ class BingoCardPrize extends BaseModel implements GamePrizeContract
     public function getCurrencyId() : string
     {
         return (string) $this->currency_id;
+    }
+
+    public function getExternalPlayerId() : ?string
+    {
+        return $this->external_player_id ? (string) $this->external_player_id : null;
     }
 
     public function getFormattedLocalAmount() : string
@@ -181,6 +187,21 @@ class BingoCardPrize extends BaseModel implements GamePrizeContract
     public function hasCompletedPayment() : bool
     {
         return $this->payments()->where('payment_status', 'completed')->exists();
+    }
+
+    /** Detecta beneficiarios resueltos y participaciones históricas ambiguas. */
+    public function hasExternalBeneficiary() : bool
+    {
+        if ($this->external_player_id) {
+            return true;
+        }
+        if (! $this->winning_card_id) {
+            return false;
+        }
+        return ExternalPlayerParticipation::withTrashed()
+            ->where('participable_type', BingoCard::class)
+            ->whereRaw('JSON_UNQUOTE(participable_id) = ?', [(string) $this->winning_card_id])
+            ->exists();
     }
 
     public function isActive() : bool

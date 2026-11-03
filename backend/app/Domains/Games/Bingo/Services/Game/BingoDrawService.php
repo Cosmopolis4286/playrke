@@ -24,6 +24,7 @@ use App\Domains\Platform\WinEvent\Services\WinEventService;
 use App\Exceptions\Domain\ExchangeRate\ExchangeRateException;
 use App\Models\GameParticipation;
 use App\Models\Games\Common\Utils\GameStatus;
+use App\Models\Roles\Player\External\ExternalPlayerParticipation;
 use App\Models\User;
 use App\Services\ExchangeRate\CurrencyExchangeRateService;
 use App\Services\Games\GameCompletionService;
@@ -166,19 +167,39 @@ final class BingoDrawService
                 return null;
             }
 
-            $externalPlayerIds = $payments->pluck('external_player_id')->filter()->unique()->values();
+            $externalPlayerIds = $payments->pluck('external_player_id')->filter()->map(fn ($id) => (string) $id)->unique()->values();
+            // La participación conserva la titularidad cuando pagos históricos
+            // no guardaron external_player_id.
+            $participationIds = ExternalPlayerParticipation::withTrashed()
+                ->where('participable_type', BingoCard::class)
+                ->whereRaw('JSON_UNQUOTE(participable_id) = ?', [(string) $card->id])
+                ->pluck('external_player_id')
+                ->map(fn ($id) => (string) $id)
+                ->unique()
+                ->values();
+            $externalPlayerIds = $externalPlayerIds->merge($participationIds)->unique()->values();
+
+            if ($externalPlayerIds->count() > 1) {
+                Log::error('[BingoDrawService] Cartón asociado a múltiples compradores externos; reclamo bloqueado', [
+                    'card_id' => (string) $card->id,
+                    'external_player_ids' => $externalPlayerIds->all(),
+                ]);
+                return null;
+            }
+
             $hasExternalPlayer = $externalPlayerIds->isNotEmpty();
-            $externalPlayerId = $externalPlayerIds->count() === 1 ? (string) $externalPlayerIds->first() : null;
+            $externalPlayerId = $hasExternalPlayer ? (string) $externalPlayerIds->first() : null;
             $externalPlayer = $externalPlayerId
-                ? \App\Models\Roles\Player\External\ExternalPlayer::find($externalPlayerId)
+                ? \App\Models\Roles\Player\External\ExternalPlayer::withTrashed()->find($externalPlayerId)
                 : null;
 
             // Un room_user compartido identifica al vendedor, no al comprador.
             // No publicar ni registrar al vendedor como ganador económico.
             $userId = $hasExternalPlayer ? null : ($card->roomUser?->user_id ?? $card->creator_user_id);
             $user = $hasExternalPlayer ? null : ($card->roomUser?->user ?? User::find($userId));
+            // El nombre real del comprador externo no se difunde en la sala.
             $userName = $hasExternalPlayer
-                ? (trim(($externalPlayer?->first_name ?? '') . ' ' . ($externalPlayer?->last_name ?? '')) ?: 'Comprador externo')
+                ? 'Comprador externo'
                 : ($user?->username ?? ('Jugador #' . $userId));
 
             // Si el cartón ya es WINNER, el premio fue creado en un intento anterior
@@ -203,8 +224,21 @@ final class BingoDrawService
                     return null;
                 }
 
-                // Solo reintentar el pago si no está ya completado/cancelado.
-                if ($existing->isClaimed() || $existing->isCancelled()) {
+                // Completar titularidad y retener premios externos históricos.
+                if ($externalPlayerId !== null) {
+                    if (! $existing->external_player_id) {
+                        $existing->external_player_id = $externalPlayerId;
+                    }
+                    if ($existing->hasCompletedPayment() || $existing->isClaimed()) {
+                        $existing->markAsDisputed();
+                    } elseif ($existing->isWaiting() || $existing->isProcessing()) {
+                        $existing->prize_status = 'suspended';
+                    }
+                    $existing->save();
+                }
+
+                // Solo reintentar premios internos no disputados.
+                if ($existing->isClaimed() || $existing->isCancelled() || $existing->isDisputed()) {
                     return null;
                 }
 
@@ -221,6 +255,7 @@ final class BingoDrawService
                 return [
                     'winnerData' => [
                         'user_id' => $userId !== null ? (int) $userId : null,
+                        'external_player_id' => $externalPlayerId,
                         'user_name' => $userName,
                         'card_id' => (string) $card->id,
                         'card_serial' => $card->serial_number,
@@ -302,6 +337,7 @@ final class BingoDrawService
             return [
                 'winnerData' => [
                     'user_id' => $userId !== null ? (int) $userId : null,
+                    'external_player_id' => $externalPlayerId,
                     'user_name' => $userName,
                     'card_id' => (string) $card->id,
                     'card_serial' => $card->serial_number,
@@ -333,7 +369,8 @@ final class BingoDrawService
                 $this->auditLogger->log($room, BingoRoomAuditLogger::EVENT_PRIZE_CREATED, 'system', 'Premio creado para cartón ganador', [
                     'card_prize_id' => (string) $cardPrize->id,
                     'winning_card_id' => $winnerData['card_id'],
-                    'user_id' => (string) $winnerData['user_id'],
+                    'user_id' => $winnerData['user_id'] !== null ? (string) $winnerData['user_id'] : null,
+                    'external_player_id' => $winnerData['external_player_id'] ?? null,
                     'round_id' => (string) $round->id,
                     'usd_amount' => $cardPrize->usd_amount,
                     'pattern' => $winnerData['pattern'],
@@ -365,26 +402,30 @@ final class BingoDrawService
 
             $cardPrize->loadMissing('currency');
 
-            // reportMoney en try/catch: un error aquí NO debe bloquear el payout.
-            // Si lanza (ej. servicio de eventos caído), el premio igualmente se acredita
-            // y el fallo queda en el log para reconciliación manual.
-            try {
-                $this->winEventService->reportMoney(
-                    userId: $broadcastWinner['winnerId'] ? (string) $broadcastWinner['winnerId'] : null,
-                    winnerNameOverride: $broadcastWinner['winnerId'] ? null : $broadcastWinner['winnerName'],
-                    gameSlug: 'bingo',
-                    gameName: 'Bingo',
-                    amountUsd: $broadcastWinner['prize'],
-                    amountLocal: (float) $cardPrize->local_amount,
-                    currencyId: $cardPrize->currency_id,
-                    sourceReference: (string) $cardPrize->id,
-                    metadata: ['room_id' => (string) $cardPrize->room_id, 'pattern' => $broadcastWinner['pattern']],
-                );
-            } catch (Throwable $e) {
-                Log::error('[BingoDrawService] Error al registrar win event — payout continúa', [
-                    'card_prize_id' => $cardPrize->id,
-                    'error' => $e->getMessage(),
-                ]);
+            // Los compradores externos no tienen una cuenta pública de usuario:
+            // no publicar ganancias atribuibles al vendedor ni exponer datos personales.
+            if ($winnerData['user_id'] !== null) {
+                try {
+                    $this->winEventService->reportMoney(
+                        userId: (string) $winnerData['user_id'],
+                        winnerNameOverride: null,
+                        gameSlug: 'bingo',
+                        gameName: 'Bingo',
+                        amountUsd: $broadcastWinner['prize'],
+                        amountLocal: (float) $cardPrize->local_amount,
+                        currencyId: $cardPrize->currency_id,
+                        sourceReference: (string) $cardPrize->id,
+                        metadata: [
+                            'room_id' => (string) $cardPrize->room_id,
+                            'pattern' => $broadcastWinner['pattern'],
+                        ],
+                    );
+                } catch (Throwable $e) {
+                    Log::error('[BingoDrawService] Error al registrar win event — payout continúa', [
+                        'card_prize_id' => $cardPrize->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
             $this->prizePayoutService->payout($cardPrize);
