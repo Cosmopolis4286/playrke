@@ -32,8 +32,8 @@ services:
   # ─── PHP-FPM ───────────────────────────────────────────────────────────────
   php:
     build:
-      context: .
-      dockerfile: Dockerfile.prod
+      context: ..
+      dockerfile: backend/Dockerfile.prod
       target: production
       args:
         VITE_API_URL: ${VITE_API_URL}
@@ -66,8 +66,8 @@ services:
   # ─── Nginx — HTTP hacia el navegador y FastCGI hacia PHP-FPM ───────────────
   nginx:
     build:
-      context: .
-      dockerfile: Dockerfile.prod
+      context: ..
+      dockerfile: backend/Dockerfile.prod
       target: web
       args:
         VITE_API_URL: ${VITE_API_URL}
@@ -140,8 +140,8 @@ services:
   # ─── Reverb — WebSocket ────────────────────────────────────────────────────
   reverb:
     build:
-      context: .
-      dockerfile: Dockerfile.prod
+      context: ..
+      dockerfile: backend/Dockerfile.prod
       target: production
     container_name: playrke_reverb
     command: ["php", "artisan", "reverb:start", "--port=8080", "--host=0.0.0.0"]
@@ -164,8 +164,8 @@ services:
   # ─── Queue Worker ──────────────────────────────────────────────────────────
   queue:
     build:
-      context: .
-      dockerfile: Dockerfile.prod
+      context: ..
+      dockerfile: backend/Dockerfile.prod
       target: production
     container_name: playrke_queue
     command: ["php", "artisan", "queue:work", "--queue=default,bingo-draw", "--sleep=3", "--tries=3", "--timeout=600", "--max-time=3600"]
@@ -182,8 +182,8 @@ services:
   # ─── Bingo refunds — worker aislado para no bloquear los sorteos ───────────
   bingo-refunds:
     build:
-      context: .
-      dockerfile: Dockerfile.prod
+      context: ..
+      dockerfile: backend/Dockerfile.prod
       target: production
     container_name: playrke_bingo_refunds
     command: ["php", "artisan", "queue:work", "--queue=bingo-refunds", "--sleep=3", "--tries=3", "--timeout=120", "--max-time=3600"]
@@ -200,8 +200,8 @@ services:
   # ─── Scheduler ─────────────────────────────────────────────────────────────
   scheduler:
     build:
-      context: .
-      dockerfile: Dockerfile.prod
+      context: ..
+      dockerfile: backend/Dockerfile.prod
       target: production
     container_name: playrke_scheduler
     command: ["sh", "-c", "while true; do php artisan schedule:run; sleep 60; done"]
