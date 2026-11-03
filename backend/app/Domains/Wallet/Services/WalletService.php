@@ -1377,58 +1377,63 @@ final class WalletService
         ?string $notes = null,
         ?string $withdrawalPin = null,
     ) : Wallet {
-        $withdrawalMovement = null;
+        $this->assertPositiveAmount($amount);
         $userId = (string) $wallet->user_id;
 
-        // PIN de retiro: verificado ANTES que cualquier otro check —
-        // ninguna validación de negocio (velocity, límites, saldo) debe
-        // ejecutarse hasta confirmar que quien pide el retiro conoce la
-        // segunda credencial, incluida la wallet bloqueada (no revelar ese
-        // estado a quien no probó el PIN).
+        // El PIN se verifica antes de revelar estados de wallet o destinos.
         $this->assertWithdrawalPin($wallet, $withdrawalPin);
 
-        // Checks antifraude y límites ANTES de abrir la transacción
-        $this->fraudService->checkWithdrawalVelocity($userId);
+        // Evita doble clic/reintentos inmediatos. Los límites y la velocidad
+        // se vuelven a comprobar dentro del lock de wallet para cerrar carreras.
         $this->fraudService->checkDoubleSubmit((string) $wallet->id, $amount, WalletMovement::TYPE_WITHDRAWAL);
-        $kycLevel = (int) ($wallet->user?->kyc_level ?? 0);
-        $this->walletLimitService->assertWithinLimits($wallet, $amount, $kycLevel);
 
+        $withdrawalMovement = null;
         $wallet = DB::transaction(function() use ($wallet, $amount, $directoryId, $directoryType, $notes, $userId, &$withdrawalMovement) {
-            // Serializar TODAS las solicitudes de retiro de esta wallet. El
-            // modelo recibido por el controller puede estar desactualizado:
-            // nunca validar saldo ni operaciones pendientes sin releerlo bajo lock.
-            $lockedWallet = Wallet::query()
-                ->whereKey($wallet->id)
+            // Serializa todas las solicitudes de retiro de esta wallet. La
+            // lectura previa del controller nunca es autoridad para saldo,
+            // estado ni existencia de otra solicitud pendiente.
+            $lockedWallet = Wallet::where('id', (string) $wallet->id)
                 ->lockForUpdate()
+                ->with(['user', 'currency'])
                 ->firstOrFail();
 
-            if ((string) $lockedWallet->user_id !== $userId || (string) Auth::id() !== $userId) {
-                throw WalletDomainException::withdrawalDirectoryInvalid();
-            }
+            // La velocidad antifraude es por usuario (no por wallet). El lock
+            // del usuario evita que retiros concurrentes desde dos monedas
+            // distintas excedan juntos el máximo diario.
+            $lockedUser = User::where('id', $userId)->lockForUpdate()->firstOrFail();
 
-            if ($lockedWallet->isBlocked() || ! $lockedWallet->isActive()) {
+            if ($lockedWallet->isBlocked()) {
                 throw WalletDomainException::walletBlocked();
             }
 
-            // El ID y tipo enviados por el cliente no son prueba de titularidad.
-            // Bloqueamos y resolvemos el destino dentro de la misma transacción.
-            $this->assertOwnedActiveWithdrawalDirectory($lockedWallet, $directoryId, $directoryType, $userId);
+            $this->assertOwnedActiveWithdrawalDirectory($lockedWallet, $directoryId, $directoryType);
 
             if ($this->getPendingOperation((string) $lockedWallet->id, WalletMovement::TYPE_WITHDRAWAL)) {
                 throw WalletDomainException::withdrawalAlreadyPending();
             }
+
+            // Invalidar las cachés DESPUÉS de obtener el lock: una solicitud
+            // concurrente que espere aquí debe ver los movimientos ya
+            // confirmados por la solicitud anterior antes de validar límites.
+            $this->walletLimitService->invalidateWithdrawalSums((string) $lockedWallet->id);
+            $this->fraudService->invalidateVelocity($userId, WalletMovement::TYPE_WITHDRAWAL);
+            $this->fraudService->checkWithdrawalVelocity($userId);
+
+            $kycLevel = (int) ($lockedUser->kyc_level ?? 0);
+            $this->walletLimitService->assertWithinLimits($lockedWallet, $amount, $kycLevel);
 
             if (! $lockedWallet->hasSufficientBalance($amount)) {
                 throw WalletDomainException::insufficientBalanceForWithdrawal();
             }
 
             $balanceBefore = (float) $lockedWallet->balance;
+            $walletId = (string) $lockedWallet->id;
 
-            $this->walletRepository->decrementBalance((string) $lockedWallet->id, $amount);
+            $this->walletRepository->decrementBalance($walletId, $amount);
             $lockedWallet->refresh();
 
             $withdrawalMovement = $this->movementRepository->record([
-                'wallet_id' => (string) $lockedWallet->id,
+                'wallet_id' => $walletId,
                 'user_id' => (string) $lockedWallet->user_id,
                 'type' => WalletMovement::TYPE_WITHDRAWAL,
                 'status' => WalletMovement::STATUS_PENDING,
@@ -1445,10 +1450,6 @@ final class WalletService
             return $lockedWallet;
         });
 
-        // Fuera de la transacción (ya hizo commit): sin esto, un segundo
-        // retiro dentro de la misma ventana de caché de withdrawalSums()
-        // vería las sumas previas a este retiro y podría exceder los
-        // límites diario/semanal/mensual (ver invalidateWithdrawalSums()).
         $this->walletLimitService->invalidateWithdrawalSums((string) $wallet->id);
         $this->fraudService->invalidateVelocity((string) $wallet->user_id, WalletMovement::TYPE_WITHDRAWAL);
 
@@ -1562,14 +1563,31 @@ final class WalletService
         return $wallet;
     }
 
-    /**
-     * Obtiene una wallet del usuario autenticado por su ID (uso interno / admin).
-     *
-     * Siempre se llama dentro de un DB::transaction() (deposit/withdraw/recordCardPurchase)
-     * — lockForUpdate() evita que dos operaciones concurrentes sobre la misma wallet
-     * (p.ej. dos compras de cartones a la vez) lean el mismo balance antes de que la
-     * primera haga commit, lo que permitiría dejar el balance en negativo.
-     */
+    private function assertOwnedActiveWithdrawalDirectory(Wallet $wallet, string $directoryId, string $directoryType) : void
+    {
+        $query = match ($directoryType) {
+            'pago_movil' => PagoMovil::query(),
+            'pix' => PixKey::query(),
+            'binance' => BinanceAccount::query(),
+            default => null,
+        };
+
+        if ($query === null) {
+            throw WalletDomainException::withdrawalDirectoryInvalid();
+        }
+
+        $directory = $query
+            ->where('id', $directoryId)
+            ->where('user_id', (string) $wallet->user_id)
+            ->where('status', 'ACTIVE')
+            ->lockForUpdate()
+            ->first();
+
+        if (! $directory) {
+            throw WalletDomainException::withdrawalDirectoryInvalid();
+        }
+    }
+
     /**
      * Defensa de última línea en cada método de crédito/débito del núcleo
      * (recordPrize, recordRefund, recordCryptoDeposit, recordMarketplaceCredit,
@@ -1582,40 +1600,6 @@ final class WalletService
      * incrementBalance() correspondiente simplemente no se ejecuta,
      * dejando un movimiento fantasma que rompe la cuadratura del ledger).
      */
-    /**
-     * Verifica que el destino de retiro exista, esté activo y pertenezca al
-     * usuario autenticado. Se ejecuta dentro de la transacción que bloquea
-     * la wallet para impedir IDOR y cambios concurrentes del directorio.
-     */
-    private function assertOwnedActiveWithdrawalDirectory(Wallet $wallet, string $directoryId, string $directoryType, string $userId) : void
-    {
-        $directory = match ($directoryType) {
-            'pago_movil' => PagoMovil::query()
-                ->whereKey($directoryId)
-                ->where('user_id', $userId)
-                ->where('status', 'ACTIVE')
-                ->lockForUpdate()
-                ->first(),
-            'pix' => PixKey::query()
-                ->whereKey($directoryId)
-                ->where('user_id', $userId)
-                ->where('status', 'ACTIVE')
-                ->lockForUpdate()
-                ->first(),
-            'binance' => BinanceAccount::query()
-                ->whereKey($directoryId)
-                ->where('user_id', $userId)
-                ->where('status', 'ACTIVE')
-                ->lockForUpdate()
-                ->first(),
-            default => null,
-        };
-
-        if (! $directory) {
-            throw WalletDomainException::withdrawalDirectoryInvalid();
-        }
-    }
-
     private function assertPositiveAmount(float $amount) : void
     {
         if ($amount <= 0) {
@@ -1847,6 +1831,14 @@ final class WalletService
         );
     }
 
+    /**
+     * Obtiene una wallet del usuario autenticado por su ID (uso interno / admin).
+     *
+     * Siempre se llama dentro de un DB::transaction() (deposit/withdraw/recordCardPurchase)
+     * — lockForUpdate() evita que dos operaciones concurrentes sobre la misma wallet
+     * (p.ej. dos compras de cartones a la vez) lean el mismo balance antes de que la
+     * primera haga commit, lo que permitiría dejar el balance en negativo.
+     */
     private function findOwnedWallet(string $walletId) : Wallet
     {
         $wallet = Wallet::with(['currency', 'user'])->lockForUpdate()->findOrFail($walletId);
@@ -1857,6 +1849,13 @@ final class WalletService
 
         return $wallet;
     }
+
+    /**
+     * El destino enviado por el cliente debe existir, estar activo y pertenecer
+     * al dueño de la wallet. Se consulta bajo lock para evitar que se desactive
+     * o reasigne mientras se registra la solicitud.
+     */
+
 
     private function getBinanceDirectories(string $userId) : array
     {

@@ -167,7 +167,8 @@ jobs:
             exit 0
           fi
           cd backend
-          ./vendor/bin/pint --test "${FILES[@]}"
+          ./vendor/bin/pint "${FILES[@]}"
+          git diff --color=never -- "${FILES[@]}"
 
   backend-assets:
     name: Frontend build / tests / typecheck
