@@ -4,12 +4,12 @@ namespace App\Domains\Games\Bingo\Models\Card\CardPrize;
 
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
-use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Models\BaseModel;
 use App\Models\Currency;
+use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Models\User;
 use App\Services\Games\GamePrizeContract;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
