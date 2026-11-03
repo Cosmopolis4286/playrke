@@ -946,6 +946,36 @@ class SellerCardSaleTest extends TestCase
     }
 
     /** @test */
+    public function offline_external_player_refund_opens_a_delivery_reconciliation_item() : void
+    {
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+
+        $lot = BingoCardLot::firstOrFail();
+        $this->assertSame('offline', $lot->financial_breakdown['channel']);
+
+        $job = new \\App\\Domains\\Games\\Bingo\\Jobs\\BingoCardLotRefundJob(
+            (string) $lot->id,
+            (string) $this->roomR1->id,
+        );
+        $job->handle(
+            app(\\App\\Domains\\Wallet\\Services\\WalletService::class),
+            app(\\App\\Domains\\Games\\Bingo\\Services\\Room\\BingoRoomAuditLogger::class),
+        );
+
+        $item = \\App\\Models\\Platform\\FinancialReconciliationItem::where('lot_id', $lot->id)
+            ->where('type', \\App\\Models\\Platform\\FinancialReconciliationItem::TYPE_EXTERNAL_PLAYER_REFUND_PENDING)
+            ->first();
+
+        $this->assertNotNull($item, 'La devolución física al comprador debe quedar en conciliación.');
+        $this->assertSame('OPEN', $item->status);
+        $this->assertEqualsWithDelta((float) $lot->sale_amount, (float) $item->amount, 0.001);
+        $this->assertSame((string) $this->sellerA->id, (string) $item->details['seller_user_id']);
+        $this->assertNotEmpty($item->details['external_player_id']);
+        $this->assertTrue($item->details['delivery_confirmation_required']);
+        $this->assertSame('REFUNDED', $lot->fresh()->status);
+    }
+
+    /** @test */
     public function rejecting_the_payment_notifies_the_seller_to_refund_the_buyer() : void
     {
         \Illuminate\Support\Facades\Queue::fake();
