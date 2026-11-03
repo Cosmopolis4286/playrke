@@ -241,7 +241,12 @@ class SellerBingoReportScopeTest extends TestCase
             'room_id' => $this->roomHash($this->roomR1),
         ]);
 
-        // F y el comprador pertenecen a la misma agencia; los vendedores directos de C quedan fuera.
+        // A es vendedor directo de C, pero no puede consultar compradores captados por la agencia.
+        $this->actingAs($this->sellerA)->getJson('/external-players/check?' . $query)
+            ->assertOk()
+            ->assertJson(['exists' => false, 'player' => null]);
+
+        // F y el comprador pertenecen a la misma agencia y sí pueden reutilizarlo.
         $this->actingAs($this->sellerF)->getJson('/external-players/check?' . $query)
             ->assertOk()
             ->assertJson(['exists' => true]);
