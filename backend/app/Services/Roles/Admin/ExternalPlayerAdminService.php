@@ -471,6 +471,27 @@ final class ExternalPlayerAdminService
         return $query;
     }
 
+    /**
+     * Fuente de verdad del historial: una fila por premio, aunque todavía no
+     * exista un registro de pago porque la entrega externa está retenida.
+     * El fallback por payments conserva premios históricos anteriores a la
+     * columna external_player_id.
+     */
+    private function externalPlayerPrizesQuery(ExternalPlayer $player) : Builder
+    {
+        return BingoCardPrize::query()
+            ->where(function(Builder $query) use ($player) {
+                $query->where('external_player_id', (string) $player->id)
+                    ->orWhereHas('payments', fn (Builder $payments) => $payments
+                        ->withTrashed()
+                        ->where('external_player_id', (string) $player->id));
+            })
+            ->with(['payments' => fn (Builder $payments) => $payments
+                ->withTrashed()
+                ->where('external_player_id', (string) $player->id)
+                ->latest('created_at')]);
+    }
+
     private function mapAuditRow(Audit $audit) : array
     {
         return [
@@ -558,27 +579,6 @@ final class ExternalPlayerAdminService
             ->limit(self::RECENT_ACTIVITY_LIMIT)
             ->get()
             ->map(fn (BingoCardPrize $prize) => $this->mapPrizeRow($prize));
-    }
-
-    /**
-     * Fuente de verdad del historial: una fila por premio, aunque todavía no
-     * exista un registro de pago porque la entrega externa está retenida.
-     * El fallback por payments conserva premios históricos anteriores a la
-     * columna external_player_id.
-     */
-    private function externalPlayerPrizesQuery(ExternalPlayer $player) : Builder
-    {
-        return BingoCardPrize::query()
-            ->where(function(Builder $query) use ($player) {
-                $query->where('external_player_id', (string) $player->id)
-                    ->orWhereHas('payments', fn (Builder $payments) => $payments
-                        ->withTrashed()
-                        ->where('external_player_id', (string) $player->id));
-            })
-            ->with(['payments' => fn (Builder $payments) => $payments
-                ->withTrashed()
-                ->where('external_player_id', (string) $player->id)
-                ->latest('created_at')]);
     }
 
     /**
