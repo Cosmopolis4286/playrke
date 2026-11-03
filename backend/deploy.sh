@@ -102,13 +102,15 @@ log "Iniciando y esperando MySQL y Redis..."
 "${COMPOSE[@]}" up -d --wait --wait-timeout 180 mysql redis
 
 log "Ejecutando migraciones una sola vez antes de iniciar workers..."
-"${COMPOSE[@]}" run --rm --no-deps --entrypoint php php artisan migrate --force --no-interaction
+"${COMPOSE[@]}" run --rm --no-deps --entrypoint sh php -c 'php artisan package:discover --ansi && php artisan migrate --force --no-interaction'
 
 log "Iniciando la aplicación, Reverb, workers, scheduler y proxy..."
 "${COMPOSE[@]}" up -d --build --remove-orphans --wait --wait-timeout 300
 
-log "Generando cachés Laravel con el entorno de producción ya cargado..."
-"${COMPOSE[@]}" exec -T php php artisan optimize
+log "Generando cachés Laravel con el entorno de producción ya cargado en cada servicio..."
+for service in php reverb queue bingo-refunds scheduler; do
+    "${COMPOSE[@]}" exec -T "$service" php artisan optimize
+done
 "${COMPOSE[@]}" exec -T php php artisan storage:link
 
 log "Reiniciando procesos persistentes para que lean la configuración actual..."
