@@ -140,7 +140,9 @@ class BingoCard extends Model
     {
         return $query
             ->whereHas('cardLot', fn ($lot) => $lot->where('status', 'ACTIVE'))
-            ->whereDoesntHave('cardLot.payments', fn ($payment) => $payment->where('payment_status', '!=', 'APPROVED'));
+            ->whereDoesntHave('cardLot.payments', fn ($payment) => $payment
+                ->withTrashed()
+                ->where('payment_status', '!=', 'APPROVED'));
     }
 
     public function scopeValidated($query)
