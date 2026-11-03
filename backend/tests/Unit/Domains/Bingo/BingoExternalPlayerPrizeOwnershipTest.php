@@ -21,10 +21,9 @@ class BingoExternalPlayerPrizeOwnershipTest extends TestCase
 
     public function test_external_buyer_prize_is_not_sent_to_sellers_wallet() : void
     {
-        // GamePrizeService es final; una WalletService simulada permite
-        // comprobar que la ruta externa no intenta llegar al pago de wallet.
-        $walletService = Mockery::mock(WalletService::class);
-        $walletService->shouldNotReceive('recordPrize');
+        // WalletService es final y no debe utilizarse en esta ruta; se crea
+        // sin constructor para que cualquier acceso accidental falle.
+        $walletService = (new \\ReflectionClass(WalletService::class))->newInstanceWithoutConstructor();
         $gamePrizeService = new GamePrizeService($walletService);
 
         $auditLogger = Mockery::mock(BingoRoomAuditLogger::class);
