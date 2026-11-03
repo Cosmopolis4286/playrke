@@ -197,8 +197,9 @@ final class BingoDrawService
             // No publicar ni registrar al vendedor como ganador económico.
             $userId = $hasExternalPlayer ? null : ($card->roomUser?->user_id ?? $card->creator_user_id);
             $user = $hasExternalPlayer ? null : ($card->roomUser?->user ?? User::find($userId));
+            // El nombre real del comprador externo no se difunde en la sala.
             $userName = $hasExternalPlayer
-                ? (trim(($externalPlayer?->first_name ?? '') . ' ' . ($externalPlayer?->last_name ?? '')) ?: 'Comprador externo')
+                ? 'Comprador externo'
                 : ($user?->username ?? ('Jugador #' . $userId));
 
             // Si el cartón ya es WINNER, el premio fue creado en un intento anterior
