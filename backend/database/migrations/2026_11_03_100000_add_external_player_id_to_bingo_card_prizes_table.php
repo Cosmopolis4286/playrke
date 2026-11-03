@@ -20,7 +20,6 @@ return new class extends Migration
         Schema::table('bingo_card_prizes', function(Blueprint $table) {
             $table->foreignSnowflake('external_player_id')
                 ->nullable()
-                ->after('seller_type')
                 ->constrained('external_players')
                 ->cascadeOnUpdate()
                 ->nullOnDelete()
