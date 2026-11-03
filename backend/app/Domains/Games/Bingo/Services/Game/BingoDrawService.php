@@ -127,7 +127,10 @@ final class BingoDrawService
                 return null;
             }
 
-            $payments = BingoCardPayment::where('card_lot_id', (string) $cardLotId)
+            // Los pagos soft-deleted también cuentan: borrar lógicamente un
+            // comprobante PENDING/REJECTED no puede convertirlo en una venta válida.
+            $payments = BingoCardPayment::withTrashed()
+                ->where('card_lot_id', (string) $cardLotId)
                 ->orderBy('id')
                 ->lockForUpdate()
                 ->get();
