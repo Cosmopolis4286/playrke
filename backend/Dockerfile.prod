@@ -154,10 +154,12 @@ ENV VITE_API_URL=${VITE_API_URL} \
     VITE_REVERB_SCHEME=${VITE_REVERB_SCHEME} \
     VITE_TURNSTILE_SITE_KEY=${VITE_TURNSTILE_SITE_KEY}
 
-RUN if [ -f package.json ] && grep -q '"build"' package.json; then \
+RUN apk add --no-cache nodejs npm \
+ && if [ -f package.json ] && grep -q '"build"' package.json && [ -n "$VITE_API_URL" ]; then \
         npm install -g pnpm@10.25.0 && pnpm run build; \
     fi \
- && rm -rf node_modules /workspace/node_modules
+ && rm -rf node_modules /workspace/node_modules \
+ && apk del nodejs npm
 
 # La caché de Laravel se genera en runtime, después de cargar .env.prod.
 RUN rm -rf \
