@@ -106,14 +106,14 @@ class BingoCardPrize extends BaseModel implements GamePrizeContract
         return $this->belongsTo(User::class, 'creator_user_id')->withTrashed();
     }
 
-    public function externalPlayer() : BelongsTo
-    {
-        return $this->belongsTo(ExternalPlayer::class, 'external_player_id');
-    }
-
     public function currency() : BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency_id');
+    }
+
+    public function externalPlayer() : BelongsTo
+    {
+        return $this->belongsTo(ExternalPlayer::class, 'external_player_id');
     }
 
     public function deactivate() : bool
