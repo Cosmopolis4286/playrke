@@ -1,205 +1,122 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Production deployment script for PlayRKE
+# Despliegue de producción de PlayRKE.
+# Ejecutar desde cualquier directorio: ./deploy.sh
+set -Eeuo pipefail
 
-set -e
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
-echo "🚀 Starting PlayRKE Production Deployment..."
+ENV_FILE="$SCRIPT_DIR/.env.prod"
+COMPOSE_FILE="$SCRIPT_DIR/docker-compose.prod.yml"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+log() { printf '\n[PlayRKE] %s\n' "$*"; }
+fail() { printf '\n[ERROR] %s\n' "$*" >&2; exit 1; }
 
-# Function to print colored output
-print_status() {
-    echo -e "${GREEN}[INFO]${NC} $1"
+[[ -f "$ENV_FILE" ]] || fail "Falta backend/.env.prod. Créalo y configura secretos reales antes de desplegar."
+[[ -f "$COMPOSE_FILE" ]] || fail "No se encontró docker-compose.prod.yml."
+
+command -v docker >/dev/null 2>&1 || fail "Docker no está instalado."
+docker info >/dev/null 2>&1 || fail "El daemon de Docker no está disponible."
+docker compose version >/dev/null 2>&1 || fail "Se requiere Docker Compose v2 (comando: docker compose)."
+
+# Lee valores sin ejecutar ni hacer source del archivo .env.
+# Así evitamos ejecutar accidentalmente contenido arbitrario del archivo.
+env_value() {
+    local key="$1"
+    local line value
+    line="$(grep -E "^[[:space:]]*${key}=" "$ENV_FILE" | tail -n 1 || true)"
+    [[ -n "$line" ]] || return 1
+    value="${line#*=}"
+    value="${value%$'\r'}"
+    value="${value#\"}"; value="${value%\"}"
+    value="${value#\'}"; value="${value%\'}"
+    [[ -n "$value" ]] || return 1
+    [[ "$value" != *"CHANGE_ME"* && "$value" != *"yourdomain.com"* && "$value" != *"example.com"* ]] || return 1
+    printf '%s' "$value"
 }
 
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+require_env() {
+    local key="$1"
+    env_value "$key" >/dev/null || fail "La variable $key falta, está vacía o conserva un valor de ejemplo en .env.prod."
 }
 
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+require_min_length() {
+    local key="$1" minimum="$2" value
+    value="$(env_value "$key")"
+    (( ${#value} >= minimum )) || fail "La variable $key debe tener al menos $minimum caracteres."
 }
 
-# Check if Docker is running
-if ! docker info > /dev/null 2>&1; then
-    print_error "Docker is not running. Please start Docker first."
-    exit 1
-fi
+for key in APP_ENV APP_DEBUG APP_KEY APP_URL FRONTEND_URL APP_DOMAIN ACME_EMAIL \
+    DB_CONNECTION DB_HOST DB_PORT DB_ROOT_PASSWORD DB_DATABASE DB_USERNAME DB_PASSWORD \
+    REDIS_HOST REDIS_PORT REDIS_PASSWORD CACHE_STORE QUEUE_CONNECTION SESSION_DRIVER \
+    BROADCAST_CONNECTION FILESYSTEM_DISK REVERB_HOST REVERB_PORT REVERB_SCHEME \
+    REVERB_APP_ID REVERB_APP_KEY REVERB_APP_SECRET \
+    VITE_API_URL VITE_REVERB_APP_KEY VITE_REVERB_HOST VITE_REVERB_PORT VITE_REVERB_SCHEME \
+    VITE_TURNSTILE_SITE_KEY TURNSTILE_SITE_KEY TURNSTILE_SECRET_KEY \
+    SESSION_SECURE_COOKIE LOG_LEVEL; do
+    require_env "$key"
+done
 
-# Check if docker-compose is available
-if ! command -v docker-compose &> /dev/null; then
-    print_error "docker-compose is not installed or not in PATH."
-    exit 1
-fi
+[[ "$(env_value APP_ENV)" == "production" ]] || fail "APP_ENV debe ser production."
+[[ "$(env_value APP_DEBUG)" == "false" ]] || fail "APP_DEBUG debe ser false."
+[[ "$(env_value SESSION_SECURE_COOKIE)" == "true" ]] || fail "SESSION_SECURE_COOKIE debe ser true."
+[[ "$(env_value DB_CONNECTION)" == "mysql" ]] || fail "DB_CONNECTION debe ser mysql."
+[[ "$(env_value DB_PORT)" == "3306" ]] || fail "DB_PORT debe ser 3306."
+[[ "$(env_value BROADCAST_CONNECTION)" == "reverb" ]] || fail "BROADCAST_CONNECTION debe ser reverb."
+[[ "$(env_value FILESYSTEM_DISK)" == "public" ]] || fail "FILESYSTEM_DISK debe ser public."
+[[ "$(env_value APP_KEY)" == base64:* ]] || fail "APP_KEY debe ser una clave Laravel con prefijo base64:."
+[[ "$(env_value APP_URL)" == https://* ]] || fail "APP_URL debe usar HTTPS."
+[[ "$(env_value FRONTEND_URL)" == https://* ]] || fail "FRONTEND_URL debe usar HTTPS."
+[[ "$(env_value VITE_API_URL)" == https://* ]] || fail "VITE_API_URL debe usar HTTPS."
+[[ "$(env_value VITE_REVERB_SCHEME)" == "https" ]] || fail "VITE_REVERB_SCHEME debe ser https."
+[[ "$(env_value VITE_REVERB_PORT)" == "443" ]] || fail "VITE_REVERB_PORT debe ser 443."
+[[ "$(env_value DB_HOST)" == "mysql" ]] || fail "DB_HOST debe ser mysql en la red interna."
+[[ "$(env_value REDIS_HOST)" == "redis" ]] || fail "REDIS_HOST debe ser redis en la red interna."
+[[ "$(env_value CACHE_STORE)" == "redis" ]] || fail "CACHE_STORE debe ser redis."
+[[ "$(env_value QUEUE_CONNECTION)" == "redis" ]] || fail "QUEUE_CONNECTION debe ser redis."
+[[ "$(env_value SESSION_DRIVER)" == "redis" ]] || fail "SESSION_DRIVER debe ser redis."
+[[ "$(env_value REVERB_HOST)" == "reverb" ]] || fail "REVERB_HOST debe ser reverb para la comunicación interna."
+[[ "$(env_value REVERB_PORT)" == "8080" ]] || fail "REVERB_PORT debe ser 8080 en la red interna."
+[[ "$(env_value VITE_REVERB_APP_KEY)" == "$(env_value REVERB_APP_KEY)" ]] || fail "VITE_REVERB_APP_KEY debe coincidir con REVERB_APP_KEY."
+[[ "$(env_value VITE_TURNSTILE_SITE_KEY)" == "$(env_value TURNSTILE_SITE_KEY)" ]] || fail "VITE_TURNSTILE_SITE_KEY debe coincidir con TURNSTILE_SITE_KEY."
 
-# Create .env.production if it doesn't exist
-if [ ! -f .env.production ]; then
-    print_warning ".env.production not found. Creating from template..."
-    cat > .env.production << EOF
-################################
-# APPLICATION
-################################
+require_min_length APP_KEY 48
+require_min_length DB_ROOT_PASSWORD 32
+require_min_length DB_PASSWORD 32
+require_min_length REDIS_PASSWORD 32
+require_min_length REVERB_APP_SECRET 32
 
-APP_NAME="PlayRKE"
-APP_ENV=production
-APP_KEY=base64:FcQxhyCbxAt3FBAveGKcqDewGqGhjenOWyW4aFWFLP4=
-APP_DEBUG=false
-APP_URL=https://yourdomain.com
-APP_TIMEZONE=America/Caracas
+# Evita que el archivo de secretos quede legible para otros usuarios del host.
+chmod 600 "$ENV_FILE"
 
-APP_LOCALE=en
-APP_FALLBACK_LOCALE=en
-APP_FAKER_LOCALE=en_US
+COMPOSE=(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE")
 
-################################
-# FRONTEND
-################################
+log "Validando la configuración efectiva de Docker Compose..."
+"${COMPOSE[@]}" config --quiet
 
-FRONTEND_URL=https://yourdomain.com
-VITE_API_URL=https://yourdomain.com/api
-VITE_APP_NAME="\${APP_NAME}"
+log "Construyendo la imagen de producción..."
+"${COMPOSE[@]}" build php nginx
 
-################################
-# SECURITY / SESSION
-################################
+log "Iniciando y esperando MySQL y Redis..."
+"${COMPOSE[@]}" up -d --wait --wait-timeout 180 mysql redis
 
-SESSION_DRIVER=redis
-SESSION_LIFETIME=120
-SESSION_ENCRYPT=true
-SESSION_PATH=/
-SESSION_DOMAIN=yourdomain.com
-SESSION_SECURE_COOKIE=true
-SESSION_SAME_SITE=lax
+log "Ejecutando migraciones una sola vez antes de iniciar workers..."
+"${COMPOSE[@]}" run --rm --no-deps --entrypoint sh php -c 'php artisan package:discover --ansi && php artisan migrate --force --no-interaction'
 
-SANCTUM_STATEFUL_DOMAINS=yourdomain.com,www.yourdomain.com
+log "Iniciando la aplicación, Reverb, workers, scheduler y proxy..."
+"${COMPOSE[@]}" up -d --build --remove-orphans --wait --wait-timeout 300
 
-################################
-# DATABASE
-################################
+log "Generando cachés Laravel con el entorno de producción ya cargado en cada servicio..."
+for service in php reverb queue bingo-refunds scheduler; do
+    "${COMPOSE[@]}" exec -T "$service" php artisan optimize
+done
+"${COMPOSE[@]}" exec -T php php artisan storage:link
 
-DB_CONNECTION=mysql
-DB_HOST=mysql
-DB_PORT=3306
-DB_DATABASE=playrke
-DB_USERNAME=playrke_user
-DB_PASSWORD=playrke_password
+log "Reiniciando procesos persistentes para que lean la configuración actual..."
+"${COMPOSE[@]}" restart queue bingo-refunds scheduler reverb
 
-################################
-# CACHE / QUEUE
-################################
+log "Estado final de los servicios:"
+"${COMPOSE[@]}" ps
 
-CACHE_STORE=redis
-CACHE_PREFIX=playrke_cache
-QUEUE_CONNECTION=redis
-
-################################
-# LOGGING
-################################
-
-LOG_CHANNEL=stack
-LOG_STACK=daily
-LOG_LEVEL=error
-
-################################
-# REDIS
-################################
-
-REDIS_CLIENT=phpredis
-REDIS_HOST=redis
-REDIS_PASSWORD=null
-REDIS_PORT=6379
-
-################################
-# FILESYSTEM
-################################
-
-FILESYSTEM_DISK=public
-
-################################
-# MAIL
-################################
-
-MAIL_MAILER=smtp
-MAIL_HOST=your-smtp-host.com
-MAIL_PORT=587
-MAIL_USERNAME=your-email@yourdomain.com
-MAIL_PASSWORD=your-email-password
-MAIL_ENCRYPTION=tls
-MAIL_FROM_ADDRESS="noreply@yourdomain.com"
-MAIL_FROM_NAME="\${APP_NAME}"
-
-################################
-# BROADCASTING (Reverb)
-################################
-
-BROADCAST_DRIVER=reverb
-BROADCAST_CONNECTION=reverb
-
-REVERB_APP_ID=543291
-REVERB_APP_KEY=EQ8iBLJ2ncDCSvT2U0HFUrZsT2NNxCht
-REVERB_APP_SECRET=3IpJ0KQkurqefr7034MIWQ3VjMlM7y5L
-
-REVERB_HOST=reverb
-REVERB_PORT=8080
-REVERB_SCHEME=https
-
-REVERB_SERVER_HOST=0.0.0.0
-REVERB_SERVER_PORT=8080
-
-VITE_REVERB_APP_KEY="\${REVERB_APP_KEY}"
-VITE_REVERB_HOST="\${REVERB_HOST}"
-VITE_REVERB_PORT="\${REVERB_PORT}"
-VITE_REVERB_SCHEME="\${REVERB_SCHEME}"
-EOF
-    print_warning "Please update .env.production with your actual domain and credentials before running again."
-    exit 1
-fi
-
-# Make entrypoint script executable
-chmod +x docker/entrypoint.sh
-
-# Stop existing containers if they exist
-print_status "Stopping existing containers..."
-docker-compose -f docker-compose.prod.yml down --remove-orphans || true
-
-# Build and start services
-print_status "Building and starting production containers..."
-docker-compose -f docker-compose.prod.yml up --build -d
-
-# Wait for services to be ready
-print_status "Waiting for services to be ready..."
-sleep 30
-
-# Run database migrations
-print_status "Running database migrations..."
-docker-compose -f docker-compose.prod.yml exec php php artisan migrate --force
-
-# Clear and cache configurations
-print_status "Optimizing application..."
-docker-compose -f docker-compose.prod.yml exec php php artisan config:clear
-docker-compose -f docker-compose.prod.yml exec php php artisan config:cache
-docker-compose -f docker-compose.prod.yml exec php php artisan route:clear
-docker-compose -f docker-compose.prod.yml exec php php artisan route:cache
-docker-compose -f docker-compose.prod.yml exec php php artisan view:clear
-docker-compose -f docker-compose.prod.yml exec php php artisan view:cache
-
-# Create storage link
-print_status "Creating storage symbolic link..."
-docker-compose -f docker-compose.prod.yml exec php php artisan storage:link
-
-# Show running containers
-print_status "Deployment completed successfully! 🎉"
-echo ""
-echo "Running containers:"
-docker-compose -f docker-compose.prod.yml ps
-
-echo ""
-print_status "Application is now running in production mode!"
-echo "🌐 Your app should be available at: http://localhost"
-echo "📊 Check logs with: docker-compose -f docker-compose.prod.yml logs -f"
-echo "🛑 Stop with: docker-compose -f docker-compose.prod.yml down"
+log "Despliegue completado. Revisa los logs y realiza una prueba funcional antes de habilitar tráfico real."

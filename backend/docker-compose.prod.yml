@@ -32,38 +32,69 @@ services:
   # ─── PHP-FPM ───────────────────────────────────────────────────────────────
   php:
     build:
-      context: .
-      dockerfile: Dockerfile.prod
+      context: ..
+      dockerfile: backend/Dockerfile.prod
+      target: production
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_APP_NAME: ${VITE_APP_NAME:-PlayRKE}
+        VITE_REVERB_APP_KEY: ${VITE_REVERB_APP_KEY}
+        VITE_REVERB_HOST: ${VITE_REVERB_HOST}
+        VITE_REVERB_PORT: ${VITE_REVERB_PORT:-443}
+        VITE_REVERB_SCHEME: ${VITE_REVERB_SCHEME:-https}
+        VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY}
     container_name: playrke_php
     env_file: .env.prod
     volumes:
-      - storage_public:/var/www/storage/app/public
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.php.rule=Host(`${APP_DOMAIN}`)"
-      - "traefik.http.routers.php.entrypoints=websecure"
-      - "traefik.http.routers.php.tls.certresolver=letsencrypt"
-      - "traefik.http.services.php.loadbalancer.server.port=9000"
+      - storage_public:/workspace/backend/storage/app/public
     depends_on:
       mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
-    # A diferencia de docker-compose.dev.yml (donde nginx resuelve el
-    # upstream "php" de forma estática y por eso NECESITA esperar a
-    # service_healthy), aquí Traefik descubre el servicio dinámicamente vía
-    # el socket de Docker y reintenta con backoff propio — no sufre el mismo
-    # crash irrecuperable. El healthcheck igual se agrega para que
-    # `docker compose ps`/orquestadores externos puedan distinguir "contenedor
-    # corriendo" de "php-fpm realmente aceptando conexiones en :9000" (útil en
-    # despliegues/rollouts, y deja la puerta abierta a futuros
-    # `depends_on: php: condition: service_healthy` en otros servicios).
+    # Healthcheck FastCGI para que Nginx espere a que PHP-FPM acepte conexiones.
     healthcheck:
       test: ["CMD", "nc", "-z", "127.0.0.1", "9000"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 60s
+    networks:
+      - playrke_network
+    restart: unless-stopped
+
+  # ─── Nginx — HTTP hacia el navegador y FastCGI hacia PHP-FPM ───────────────
+  nginx:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile.prod
+      target: web
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_APP_NAME: ${VITE_APP_NAME:-PlayRKE}
+        VITE_REVERB_APP_KEY: ${VITE_REVERB_APP_KEY}
+        VITE_REVERB_HOST: ${VITE_REVERB_HOST}
+        VITE_REVERB_PORT: ${VITE_REVERB_PORT:-443}
+        VITE_REVERB_SCHEME: ${VITE_REVERB_SCHEME:-https}
+        VITE_TURNSTILE_SITE_KEY: ${VITE_TURNSTILE_SITE_KEY}
+    container_name: playrke_nginx
+    volumes:
+      - storage_public:/var/www/public/storage:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.nginx.entrypoints=websecure"
+      - "traefik.http.routers.nginx.tls.certresolver=letsencrypt"
+      - "traefik.http.services.nginx.loadbalancer.server.port=8080"
+    depends_on:
+      php:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/up"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - playrke_network
     restart: unless-stopped
@@ -109,11 +140,14 @@ services:
   # ─── Reverb — WebSocket ────────────────────────────────────────────────────
   reverb:
     build:
-      context: .
-      dockerfile: Dockerfile.prod
+      context: ..
+      dockerfile: backend/Dockerfile.prod
+      target: production
     container_name: playrke_reverb
     command: ["php", "artisan", "reverb:start", "--port=8080", "--host=0.0.0.0"]
     env_file: .env.prod
+    volumes:
+      - storage_public:/workspace/backend/storage/app/public
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.reverb.rule=Host(`ws.${APP_DOMAIN}`)"
@@ -132,11 +166,14 @@ services:
   # ─── Queue Worker ──────────────────────────────────────────────────────────
   queue:
     build:
-      context: .
-      dockerfile: Dockerfile.prod
+      context: ..
+      dockerfile: backend/Dockerfile.prod
+      target: production
     container_name: playrke_queue
     command: ["php", "artisan", "queue:work", "--queue=default,bingo-draw", "--sleep=3", "--tries=3", "--timeout=600", "--max-time=3600"]
     env_file: .env.prod
+    volumes:
+      - storage_public:/workspace/backend/storage/app/public
     depends_on:
       mysql:
         condition: service_healthy
@@ -149,11 +186,14 @@ services:
   # ─── Bingo refunds — worker aislado para no bloquear los sorteos ───────────
   bingo-refunds:
     build:
-      context: .
-      dockerfile: Dockerfile.prod
+      context: ..
+      dockerfile: backend/Dockerfile.prod
+      target: production
     container_name: playrke_bingo_refunds
     command: ["php", "artisan", "queue:work", "--queue=bingo-refunds", "--sleep=3", "--tries=3", "--timeout=120", "--max-time=3600"]
     env_file: .env.prod
+    volumes:
+      - storage_public:/workspace/backend/storage/app/public
     depends_on:
       mysql:
         condition: service_healthy
@@ -166,11 +206,14 @@ services:
   # ─── Scheduler ─────────────────────────────────────────────────────────────
   scheduler:
     build:
-      context: .
-      dockerfile: Dockerfile.prod
+      context: ..
+      dockerfile: backend/Dockerfile.prod
+      target: production
     container_name: playrke_scheduler
     command: ["sh", "-c", "while true; do php artisan schedule:run; sleep 60; done"]
     env_file: .env.prod
+    volumes:
+      - storage_public:/workspace/backend/storage/app/public
     depends_on:
       mysql:
         condition: service_healthy
