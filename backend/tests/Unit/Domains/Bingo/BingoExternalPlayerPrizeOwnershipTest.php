@@ -7,6 +7,7 @@ use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Domains\Games\Bingo\Services\Winner\BingoPrizePayoutService;
 use App\Domains\Wallet\Services\WalletService;
 use App\Services\Games\GamePrizeService;
+use ReflectionClass;
 use Tests\TestCase;
 
 class BingoExternalPlayerPrizeOwnershipTest extends TestCase
