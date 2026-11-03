@@ -40,10 +40,7 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
             // Los premios que agotaron intentos no se modifican automáticamente:
             // podrían requerir conciliación si el worker cayó en una ventana ambigua.
             $exhausted = BingoCardPrize::whereIn('prize_status', ['waiting', 'processing'])
-                ->whereRaw(
-                    '(SELECT COUNT(*) FROM bingo_card_prize_payments WHERE bingo_card_prize_payments.card_prize_id = bingo_card_prizes.id AND bingo_card_prize_payments.deleted_at IS NULL) >= ?',
-                    [PrizePayoutRetryPolicy::MAX_ATTEMPTS],
-                )
+                ->has('payments', '>=', PrizePayoutRetryPolicy::MAX_ATTEMPTS)
                 ->count();
 
             if ($exhausted > 0) {
@@ -60,14 +57,10 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
             // chunkById(50): evita cargar toda la tabla en memoria si hay muchos
             // premios pendientes tras un incidente prolongado.
             //
-            // whereRaw con subquery en lugar de withCount+having: HAVING sin GROUP BY
-            // es SQL inválido en MySQL ONLY_FULL_GROUP_BY (default desde 5.7) y
-            // silenciosamente devuelve cero filas — nunca reintentaría ningún premio.
+            // has() aplica el scope SoftDeletes de la relación payments y evita
+            // depender de una columna deleted_at codificada manualmente en SQL.
             BingoCardPrize::whereIn('prize_status', ['waiting', 'processing'])
-                ->whereRaw(
-                    '(SELECT COUNT(*) FROM bingo_card_prize_payments WHERE bingo_card_prize_payments.card_prize_id = bingo_card_prizes.id AND bingo_card_prize_payments.deleted_at IS NULL) < ?',
-                    [PrizePayoutRetryPolicy::MAX_ATTEMPTS],
-                )
+                ->has('payments', '<', PrizePayoutRetryPolicy::MAX_ATTEMPTS)
                 ->chunkById(50, function($chunk) use ($payoutService, &$retried, &$skipped) {
                     foreach ($chunk as $cardPrize) {
                         // Cargar solo el último payment de cada modelo individualmente:
