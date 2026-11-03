@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3'
+import axios from 'axios'
 import { getRoute } from '@js/routes/triviaRoutes'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { showToast } from '@js/utils/toast'
@@ -30,6 +31,23 @@ const props = defineProps<{
 
 const disputeForm = useForm({ reason: '' })
 const disputingWinnerId = ref<string | null>(null)
+const startingRoom = ref(false)
+
+async function startRoom() {
+  if (startingRoom.value || props.room.status !== 'waiting') return
+  startingRoom.value = true
+  try {
+    const { data } = await axios.post(`/trivia-game/room/${props.room.id}/start`)
+    if (!data?.success || !data?.game_id) {
+      throw new Error(data?.message || 'No se pudo iniciar la partida.')
+    }
+    window.location.href = `/trivia/play/${data.game_id}`
+  } catch (error: any) {
+    showToast(error?.response?.data?.message || error?.message || 'No se pudo iniciar la partida.', 'error')
+  } finally {
+    startingRoom.value = false
+  }
+}
 
 function openDispute(winnerId: string) {
   disputingWinnerId.value = winnerId
@@ -43,18 +61,18 @@ function submitDispute(winnerId: string) {
       disputingWinnerId.value = null
       showToast('Premio revertido correctamente.', 'success')
     },
-    onError: () => showToast('No se pudo revertir el premio.', 'error'),
+    onError: () => showToast('No se pudo revertir el premio.', 'error')
   })
 }
 
 const prizeStatusLabel: Record<string, string> = {
   waiting: 'Esperando', processing: 'Procesando', claimed: 'Reclamado',
-  cancelled: 'Cancelado', suspended: 'Suspendido', disputed: 'En disputa',
+  cancelled: 'Cancelado', suspended: 'Suspendido', disputed: 'En disputa'
 }
 const prizeStatusColor: Record<string, string> = {
   waiting: 'bg-gray-100 text-gray-800', processing: 'bg-blue-100 text-blue-800',
   claimed: 'bg-green-100 text-green-800', cancelled: 'bg-gray-100 text-gray-800',
-  suspended: 'bg-orange-100 text-orange-800', disputed: 'bg-red-100 text-red-800',
+  suspended: 'bg-orange-100 text-orange-800', disputed: 'bg-red-100 text-red-800'
 }
 
 // Auto-refresh cada 5 segundos para ver jugadores en tiempo real
@@ -76,7 +94,7 @@ const getStatusColor = (status: string) => {
     waiting: 'bg-yellow-100 text-yellow-800',
     playing: 'bg-green-100 text-green-800',
     closed: 'bg-gray-100 text-gray-800',
-    cancelled: 'bg-red-100 text-red-800',
+    cancelled: 'bg-red-100 text-red-800'
   }
   return colors[status] || 'bg-gray-100 text-gray-800'
 }
@@ -126,6 +144,14 @@ const formatTime = (timestamp: number | null) => {
         </div>
 
         <div class="flex gap-2">
+          <button
+            v-if="room.status === 'waiting'"
+            :disabled="startingRoom"
+            @click="startRoom"
+            class="px-4 py-2 bg-emerald-600 text-white rounded-md text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+          >
+            {{ startingRoom ? 'Iniciando…' : 'Iniciar partida' }}
+          </button>
           <Link
             v-if="room.status === 'waiting'"
             :href="getRoute('roomsEdit', { id: room.id })"

@@ -63,9 +63,6 @@ Route::prefix('trivia-game')->name('trivia-games.')->middleware(['auth', 'verifi
     // Unirse a sala (nuevo sistema — solo players)
     Route::post('/room/{id}/join', [TriviaGameController::class, 'join'])->name('join');
 
-    // Iniciar partida (solo host o admin)
-    Route::post('/room/{id}/start', TriviaStartController::class)->name('room.start');
-
     // Enviar respuesta durante una partida activa
     Route::post('/game/{gameId}/answer', [TriviaAnswerController::class, 'store'])->name('game.answer');
 
@@ -75,6 +72,12 @@ Route::prefix('trivia-game')->name('trivia-games.')->middleware(['auth', 'verifi
     // Pausar/reanudar partida manualmente (solo host o admin, ver TriviaRoomPolicy::start)
     Route::post('/game/{gameId}/pause', [TriviaPauseController::class, 'pause'])->name('game.pause');
     Route::post('/game/{gameId}/resume', [TriviaPauseController::class, 'resume'])->name('game.resume');
+});
+
+// Inicio manual: host jugador o administrador. La policy del controlador
+// decide si el usuario autenticado puede iniciar esa sala concreta.
+Route::prefix('trivia-game')->name('trivia-games.')->middleware(['auth', 'verified', 'role:player,admin,superadmin'])->group(function() {
+    Route::post('/room/{id}/start', TriviaStartController::class)->name('room.start');
 });
 
 // ====================================

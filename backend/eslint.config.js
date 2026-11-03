@@ -2,6 +2,7 @@ import js from '@eslint/js'
 import vue from 'eslint-plugin-vue'
 import typescript from '@typescript-eslint/eslint-plugin'
 import typescriptParser from '@typescript-eslint/parser'
+import vueParser from 'vue-eslint-parser'
 
 export default [
   // Base JavaScript configuration
@@ -127,9 +128,17 @@ export default [
     }
   },
   
-  // Vue SFC TypeScript blocks
+  // Vue SFC: vue-eslint-parser procesa el template y delega el script a TypeScript.
+  // No se debe asignar @typescript-eslint/parser directamente al archivo .vue.
   {
     files: ['**/*.vue'],
+    languageOptions: {
+      parser: vueParser,
+      parserOptions: {
+        parser: typescriptParser,
+        extraFileExtensions: ['.vue']
+      }
+    },
     rules: {
       'vue/block-lang': ['error', {
         script: { lang: 'ts' }
