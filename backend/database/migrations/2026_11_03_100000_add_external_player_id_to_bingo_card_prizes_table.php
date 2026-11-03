@@ -22,7 +22,7 @@ return new class extends Migration
                 ->nullable()
                 ->constrained('external_players')
                 ->cascadeOnUpdate()
-                ->nullOnDelete()
+                ->restrictOnDelete()
                 ->comment('Comprador externo beneficiario del premio; nunca confundirlo con el vendedor');
 
             $table->index(
