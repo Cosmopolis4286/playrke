@@ -227,10 +227,12 @@ class SellerBingoReportScopeTest extends TestCase
     }
 
     /** @test */
-    public function external_player_is_shared_across_sellers_of_the_same_commerce() : void
+    public function agency_sellers_share_external_players_within_their_own_agency() : void
     {
         $phone = '+584149876543';
-        $this->makeExternalPlayer($this->sellerA, $this->roomR1, $phone);
+        $agencyId = DB::table('subsidiaries')->where('user_id', $this->subsidiaryS->id)->value('id');
+        $agencyColleague = $this->makeSeller($this->commerceC, (string) $agencyId);
+        $this->makeExternalPlayer($agencyColleague, $this->roomR1, $phone);
 
         $query = http_build_query([
             'phone' => $phone,
@@ -239,7 +241,7 @@ class SellerBingoReportScopeTest extends TestCase
             'room_id' => $this->roomHash($this->roomR1),
         ]);
 
-        // F es de una agencia de C: misma red comercial que A.
+        // F y el comprador pertenecen a la misma agencia; los vendedores directos de C quedan fuera.
         $this->actingAs($this->sellerF)->getJson('/external-players/check?' . $query)
             ->assertOk()
             ->assertJson(['exists' => true]);
