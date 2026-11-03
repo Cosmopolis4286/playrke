@@ -349,6 +349,82 @@ class SellerCardSaleTest extends TestCase
         $this->actingAs($this->sellerA)->get('/commissions/export')->assertOk();
     }
 
+    /** @test */
+    public function external_player_lookup_scope_follows_commerce_agency_and_seller_hierarchy() : void
+    {
+        $agencyUser = $this->makeUserWithRole('commerce');
+        $agencyId = $this->nextId();
+        $commerceId = Commerce::where('user_id', $this->commerceC->id)->value('id');
+
+        DB::table('subsidiaries')->insert([
+            'id' => $agencyId,
+            'name' => 'Agencia de prueba',
+            'commission' => 4.00,
+            'commerce_id' => $commerceId,
+            'user_id' => $agencyUser->id,
+            'country_id' => $this->country->id,
+            'currency_id' => $this->currency->id,
+            'status' => 'ACTIVE',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $agencySeller = $this->makeSeller($this->commerceC);
+        Seller::where('user_id', $agencySeller->id)->update(['subsidiary_id' => $agencyId]);
+
+        $scope = app(\\App\\Services\\Roles\\Player\\External\\ExternalPlayerLinkService::class);
+
+        // La comercializadora ve vendedores directos y de sus agencias, nunca otra red.
+        $this->assertEqualsCanonicalizing(
+            [(string) $this->commerceC->id, (string) $this->sellerA->id, (string) $agencySeller->id],
+            $scope->actorNetworkUserIds($this->commerceC->id),
+        );
+
+        // La agencia solo ve sus vendedores, no vendedores directos ni agencias hermanas.
+        $this->assertEqualsCanonicalizing(
+            [(string) $agencyUser->id, (string) $agencySeller->id],
+            $scope->actorNetworkUserIds($agencyUser->id),
+        );
+
+        // El vendedor solo ve los compradores que él mismo captó.
+        $this->assertSame(
+            [(string) $this->sellerA->id],
+            $scope->actorNetworkUserIds($this->sellerA->id),
+        );
+    }
+
+    /** @test */
+    public function agency_cannot_review_payments_even_when_its_seller_has_a_pending_sale() : void
+    {
+        $agencyUser = $this->makeUserWithRole('commerce');
+        $agencyId = $this->nextId();
+        $commerceId = Commerce::where('user_id', $this->commerceC->id)->value('id');
+
+        DB::table('subsidiaries')->insert([
+            'id' => $agencyId,
+            'name' => 'Agencia sin delegación',
+            'commission' => 4.00,
+            'commerce_id' => $commerceId,
+            'user_id' => $agencyUser->id,
+            'country_id' => $this->country->id,
+            'currency_id' => $this->currency->id,
+            'status' => 'ACTIVE',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $agencySeller = $this->makeSeller($this->commerceC);
+        Seller::where('user_id', $agencySeller->id)->update(['subsidiary_id' => $agencyId]);
+        $this->sale($agencySeller, $this->roomR1)->assertOk();
+        $payment = BingoCardPayment::where('seller_user_id', $agencySeller->id)->firstOrFail();
+
+        // La agencia no es la comercializadora propietaria del dinero y no
+        // recibe automáticamente el permiso de revisión financiera.
+        $this->actingAs($agencyUser)
+            ->postJson(route('bingo-card-payments.approve', ['payment' => $payment]))
+            ->assertForbidden();
+    }
+
     // ─── Mis comisiones ──────────────────────────────────────────────────────
 
     /**
