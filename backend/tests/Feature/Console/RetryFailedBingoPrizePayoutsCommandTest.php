@@ -3,7 +3,6 @@
 namespace Tests\Feature\Console;
 
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
-use App\Domains\Games\Bingo\Services\Winner\BingoPrizePayoutService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -35,21 +34,16 @@ class RetryFailedBingoPrizePayoutsCommandTest extends TestCase
                 ]);
             }
 
-            $payout = \Mockery::mock(BingoPrizePayoutService::class);
-            $payout->shouldReceive('payout')
-                ->once()
-                ->with(\Mockery::on(fn ($prize) => (string) $prize->id === $eligibleId))
-                ->andReturnUsing(function(BingoCardPrize $prize) : void {
-                    $prize->update(['prize_status' => 'claimed']);
-                });
-            $this->app->instance(BingoPrizePayoutService::class, $payout);
-
+            // Usa el servicio real: BingoPrizePayoutService es final y un
+            // comprador externo debe quedar suspendido, nunca acreditado
+            // automáticamente a la wallet del vendedor.
             $this->artisan('bingo:retry-failed-prize-payouts')
-                ->expectsOutputToContain('Premios acreditados: 1')
+                ->expectsOutputToContain('Premios acreditados: 0')
+                ->expectsOutputToContain('Aún pendientes: 1')
                 ->expectsOutputToContain('revisión manual por agotar intentos: 1')
                 ->assertExitCode(0);
 
-            $this->assertSame('claimed', BingoCardPrize::findOrFail($eligibleId)->prize_status);
+            $this->assertSame('suspended', BingoCardPrize::findOrFail($eligibleId)->prize_status);
             $this->assertSame('processing', BingoCardPrize::findOrFail($exhaustedId)->prize_status);
         } finally {
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
@@ -71,6 +65,7 @@ class RetryFailedBingoPrizePayoutsCommandTest extends TestCase
             'winning_card_id' => $cardId,
             'currency_id' => '970000000000000003',
             'round_id' => $roundId,
+            'external_player_id' => $status === 'waiting' ? (string) random_int(941000000000000000, 949999999999999999) : null,
             'status' => 'ACTIVE',
             'prize_type' => 'full_house',
             'winning_pattern' => 'full_house',
