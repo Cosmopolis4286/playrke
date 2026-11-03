@@ -7,6 +7,7 @@ use App\Domains\Games\Bingo\Services\Winner\BingoPrizePayoutService;
 use App\Domains\Games\Common\Services\PrizePayoutRetryPolicy;
 use App\Services\Commands\CommandService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
