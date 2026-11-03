@@ -971,6 +971,12 @@ class SellerCardSaleTest extends TestCase
         $this->assertNotEmpty($item->details['external_player_id']);
         $this->assertTrue($item->details['delivery_confirmation_required']);
         $this->assertSame('REFUNDED', $lot->fresh()->status);
+
+        // Reintentar el job no duplica la obligación de devolución.
+        $job->handle(app(WalletService::class), app(BingoRoomAuditLogger::class));
+        $this->assertSame(1, FinancialReconciliationItem::where('lot_id', $lot->id)
+            ->where('type', FinancialReconciliationItem::TYPE_EXTERNAL_PLAYER_REFUND_PENDING)
+            ->count());
     }
 
     /** @test */
