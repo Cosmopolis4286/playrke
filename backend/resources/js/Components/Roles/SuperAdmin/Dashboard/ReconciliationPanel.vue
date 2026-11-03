@@ -19,11 +19,11 @@ const emit = defineEmits<{
 }>()
 
 const ALERT_LABELS: Record<string, string> = {
-  RKE_REVERSAL_FAILED:        'RKE sin devolver',
+  RKE_REVERSAL_FAILED: 'RKE sin devolver',
   JACKPOT_REVERSAL_SHORTFALL: 'Jackpot sin devolver',
-  CREATOR_PAYOUT_FAILED:      'Pago al creador fallido',
-  LEGACY_LOT_NOT_REVERSED:    'Reembolso sin desglose',
-  EXTERNAL_PLAYER_REFUND_PENDING: 'Devolución externa pendiente',
+  CREATOR_PAYOUT_FAILED: 'Pago al creador fallido',
+  LEGACY_LOT_NOT_REVERSED: 'Reembolso sin desglose',
+  EXTERNAL_PLAYER_REFUND_PENDING: 'Devolución externa pendiente'
 }
 </script>
 
@@ -31,7 +31,7 @@ const ALERT_LABELS: Record<string, string> = {
   <div class="rc-section">
     <div class="rc-header">
       <div class="rc-header__title">
-        <div class="rc-header__icon"><i class="fas fa-scale-balanced"></i></div>
+        <div class="rc-header__icon"><i class="fas fa-scale-balanced" /></div>
         <div>
           <h2 class="rc-header__h2">
             Conciliación
@@ -41,16 +41,16 @@ const ALERT_LABELS: Record<string, string> = {
         </div>
       </div>
       <button class="rc-refresh" :class="{ 'rc-refresh--spin': loading }" :disabled="loading" @click="emit('refresh')">
-        <i class="fas fa-sync-alt"></i>
+        <i class="fas fa-sync-alt" />
       </button>
     </div>
 
-    <div v-if="error" class="rc-state rc-state--error"><i class="fas fa-exclamation-triangle"></i> {{ error }}</div>
+    <div v-if="error" class="rc-state rc-state--error"><i class="fas fa-exclamation-triangle" /> {{ error }}</div>
 
     <template v-else>
       <!-- Alertas abiertas: primero, son las que requieren acción -->
       <div v-if="alerts.length" class="rc-block">
-        <p class="rc-block__title rc-block__title--alert"><i class="fas fa-triangle-exclamation"></i> Alertas abiertas</p>
+        <p class="rc-block__title rc-block__title--alert"><i class="fas fa-triangle-exclamation" /> Alertas abiertas</p>
         <ul class="rc-list">
           <li v-for="a in alerts" :key="a.id" class="rc-item rc-item--alert">
             <div class="rc-item__info">
@@ -60,8 +60,12 @@ const ALERT_LABELS: Record<string, string> = {
             </div>
             <div class="rc-item__side">
               <p class="rc-item__amount">{{ a.symbol ?? (a.currency ?? '$') }} {{ formatUsd(a.amount) }}</p>
-              <button class="rc-btn rc-btn--ghost" :disabled="busyKey === a.id" @click="emit('resolve', a)">
-                <i class="fas fa-check"></i> Resuelta
+              <button
+                class="rc-btn rc-btn--ghost"
+                :disabled="busyKey === a.id"
+                @click="emit('resolve', a)"
+              >
+                <i class="fas fa-check" /> Resuelta
               </button>
             </div>
           </li>
@@ -70,14 +74,14 @@ const ALERT_LABELS: Record<string, string> = {
 
       <!-- Cuentas por cobrar -->
       <div class="rc-block">
-        <p class="rc-block__title"><i class="fas fa-file-invoice-dollar"></i> Por cobrar a comercios (ventas fuera de la billetera)</p>
+        <p class="rc-block__title"><i class="fas fa-file-invoice-dollar" /> Por cobrar a comercios (ventas fuera de la billetera)</p>
         <p class="rc-block__hint">
           Lo que cada comercio retuvo en efectivo y corresponde a la plataforma: RKE, bote (la plataforma paga los
           premios) y jackpot. Las comisiones de vendedor, agencia, comercializadora y creador se las queda la red.
         </p>
 
-        <div v-if="loading && !receivables.length" class="rc-state"><span class="rc-spinner"></span> Cargando…</div>
-        <div v-else-if="!receivables.length" class="rc-state rc-state--empty"><i class="fas fa-circle-check"></i> Sin deudas pendientes.</div>
+        <div v-if="loading && !receivables.length" class="rc-state"><span class="rc-spinner" /> Cargando…</div>
+        <div v-else-if="!receivables.length" class="rc-state rc-state--empty"><i class="fas fa-circle-check" /> Sin deudas pendientes.</div>
 
         <ul v-else class="rc-list">
           <li v-for="r in receivables" :key="`${r.debtor_user_id}:${r.currency_id}`" class="rc-item">
@@ -91,7 +95,7 @@ const ALERT_LABELS: Record<string, string> = {
             <div class="rc-item__side">
               <p class="rc-item__amount">{{ r.symbol }} {{ formatUsd(r.total) }} <span class="rc-item__cur">{{ r.currency }}</span></p>
               <button class="rc-btn" :disabled="busyKey === `${r.debtor_user_id}:${r.currency_id}`" @click="emit('settle', r)">
-                <i class="fas fa-hand-holding-dollar"></i> Marcar cobrado
+                <i class="fas fa-hand-holding-dollar" /> Marcar cobrado
               </button>
             </div>
           </li>
