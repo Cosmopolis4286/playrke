@@ -5,6 +5,10 @@ namespace Tests\Feature\Games\Bingo;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob;
+use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
+use App\Domains\Wallet\Services\WalletService;
+use App\Models\Platform\FinancialReconciliationItem;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Games\Common\Utils\GameStatus;
@@ -953,17 +957,11 @@ class SellerCardSaleTest extends TestCase
         $lot = BingoCardLot::firstOrFail();
         $this->assertSame('offline', $lot->financial_breakdown['channel']);
 
-        $job = new \App\Domains\\Games\\Bingo\\Jobs\\BingoCardLotRefundJob(
-            (string) $lot->id,
-            (string) $this->roomR1->id,
-        );
-        $job->handle(
-            app(\App\Domains\\Wallet\\Services\\WalletService::class),
-            app(\App\Domains\\Games\\Bingo\\Services\\Room\\BingoRoomAuditLogger::class),
-        );
+        $job = new BingoCardLotRefundJob((string) $lot->id, (string) $this->roomR1->id);
+        $job->handle(app(WalletService::class), app(BingoRoomAuditLogger::class));
 
-        $item = \App\Models\\Platform\\FinancialReconciliationItem::where('lot_id', $lot->id)
-            ->where('type', \App\Models\\Platform\\FinancialReconciliationItem::TYPE_EXTERNAL_PLAYER_REFUND_PENDING)
+        $item = FinancialReconciliationItem::where('lot_id', $lot->id)
+            ->where('type', FinancialReconciliationItem::TYPE_EXTERNAL_PLAYER_REFUND_PENDING)
             ->first();
 
         $this->assertNotNull($item, 'La devolución física al comprador debe quedar en conciliación.');
