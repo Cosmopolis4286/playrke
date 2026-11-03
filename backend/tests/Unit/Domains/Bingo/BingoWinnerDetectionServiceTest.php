@@ -69,6 +69,18 @@ class BingoWinnerDetectionServiceTest extends TestCase
      * mockear su dependencia, y verifican solo lo que le compete al gate
      * anti-cheat: si bloquea o no, y si crea/omite el flag correspondiente.
      */
+    public function test_room_is_considered_started_when_round_is_in_progress_before_scheduled_time() : void
+    {
+        $user = User::factory()->create();
+        ['room' => $room, 'round' => $round] = $this->makeRoomWithCard($this->winningCardNumbers(), $user, 'DEMO');
+
+        // Una sala iniciada manualmente puede empezar antes de unix_date.
+        $room->config->update(['unix_date' => now()->addHour()->timestamp]);
+        $round->update(['status' => 'IN_PROGRESS', 'start_time' => now()]);
+
+        $this->assertTrue($room->fresh()->hasStarted());
+    }
+
     public function test_draws_from_a_finished_round_cannot_complete_the_active_round() : void
     {
         $user = User::factory()->create();
