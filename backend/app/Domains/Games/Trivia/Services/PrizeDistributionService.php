@@ -141,10 +141,10 @@ final class PrizeDistributionService
         }
 
         // GameEngineService persists final_rank before invoking this service.
-        // Therefore final_rank cannot be used to determine whether the prize FSM
-        // was initialized. Initialize only when prize_status is still null; this
-        // preserves processing/claimed/suspended/disputed states on retries.
-        if ($participant->prize_status === null) {
+        // prize_status is NOT NULL in PostgreSQL and defaults to "waiting".
+        // An uninitialized participant is therefore identified by waiting +
+        // zero amount, not by a null status. Never reset any advanced FSM state.
+        if ($participant->isWaiting() && (float) $participant->prize_won <= 0) {
             $participant->update([
                 'final_rank' => $participant->final_rank ?? $rank,
                 'prize_won' => $amount,
