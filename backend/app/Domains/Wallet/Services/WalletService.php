@@ -1412,7 +1412,7 @@ final class WalletService
 
             // El ID y tipo enviados por el cliente no son prueba de titularidad.
             // Bloqueamos y resolvemos el destino dentro de la misma transacción.
-            $this->assertOwnedActiveWithdrawalDirectory($directoryId, $directoryType, $userId);
+            $this->assertOwnedActiveWithdrawalDirectory($lockedWallet, $directoryId, $directoryType, $userId);
 
             if ($this->getPendingOperation((string) $lockedWallet->id, WalletMovement::TYPE_WITHDRAWAL)) {
                 throw WalletDomainException::withdrawalAlreadyPending();
@@ -1915,8 +1915,22 @@ final class WalletService
      * usuario autenticado. Se ejecuta dentro de la transacción que bloquea
      * la wallet para impedir IDOR y cambios concurrentes del directorio.
      */
-    private function assertOwnedActiveWithdrawalDirectory(string $directoryId, string $directoryType, string $userId) : void
+    private function assertOwnedActiveWithdrawalDirectory(Wallet $wallet, string $directoryId, string $directoryType, string $userId) : void
     {
+        // Evitar retirar una moneda a un tipo de destino que no corresponde:
+        // VES → Pago Móvil, BRL → PIX, cripto → Binance.
+        $currencyCode = strtoupper((string) $wallet->currency()->value('iso_code'));
+        $expectedDirectoryType = match (true) {
+            in_array($currencyCode, ['VES', 'VED', 'BSS'], true) => 'pago_movil',
+            $currencyCode === 'BRL' => 'pix',
+            in_array($currencyCode, ['USDT', 'BTC', 'ETH'], true) => 'binance',
+            default => null,
+        };
+
+        if ($expectedDirectoryType === null || $directoryType !== $expectedDirectoryType) {
+            throw WalletDomainException::withdrawalDirectoryInvalid();
+        }
+
         $directory = match ($directoryType) {
             'pago_movil' => PagoMovil::query()
                 ->whereKey($directoryId)
