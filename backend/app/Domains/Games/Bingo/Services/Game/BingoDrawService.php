@@ -7,6 +7,8 @@ use App\Domains\Games\Bingo\Events\BingoGameStarted;
 use App\Domains\Games\Bingo\Events\BingoNumberCalled;
 use App\Domains\Games\Bingo\Events\BingoWinnerDeclared;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
+use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Draw\BingoDrawCode;
