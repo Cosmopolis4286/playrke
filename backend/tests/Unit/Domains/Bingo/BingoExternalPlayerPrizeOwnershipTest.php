@@ -20,8 +20,11 @@ class BingoExternalPlayerPrizeOwnershipTest extends TestCase
 
     public function test_external_buyer_prize_is_not_sent_to_sellers_wallet() : void
     {
-        $gamePrizeService = Mockery::mock(GamePrizeService::class);
-        $gamePrizeService->shouldNotReceive('payout');
+        // GamePrizeService es final; una WalletService simulada permite
+        // comprobar que la ruta externa no intenta llegar al pago de wallet.
+        $walletService = Mockery::mock(WalletService::class);
+        $walletService->shouldNotReceive('recordPrize');
+        $gamePrizeService = new GamePrizeService($walletService);
 
         $auditLogger = Mockery::mock(BingoRoomAuditLogger::class);
         $auditLogger->shouldNotReceive('log');
@@ -34,6 +37,8 @@ class BingoExternalPlayerPrizeOwnershipTest extends TestCase
             'external_player_id' => '900000000000000004',
             'prize_status' => 'suspended',
         ]);
+
+        $prize->setRelation('room', null);
 
         $service = new BingoPrizePayoutService($gamePrizeService, $auditLogger);
         $service->payout($prize);
