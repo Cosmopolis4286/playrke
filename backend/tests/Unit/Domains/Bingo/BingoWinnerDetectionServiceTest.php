@@ -69,6 +69,33 @@ class BingoWinnerDetectionServiceTest extends TestCase
      * mockear su dependencia, y verifican solo lo que le compete al gate
      * anti-cheat: si bloquea o no, y si crea/omite el flag correspondiente.
      */
+    public function test_draws_from_a_finished_round_cannot_complete_the_active_round() : void
+    {
+        $user = User::factory()->create();
+        ['room' => $room, 'round' => $previousRound] =
+            $this->makeRoomWithCard($this->winningCardNumbers(), $user, 'DEMO');
+
+        $activeRound = BingoRound::create([
+            'room_id' => $room->id,
+            'room_config_id' => $room->config->id,
+            'round' => 2,
+            'prize_type' => 'PCT',
+            'bingo_pattern_id' => $previousRound->bingo_pattern_id,
+            'status' => 'ACTIVE',
+        ]);
+
+        $previousRound->update(['status' => 'FINISHED']);
+        $this->drawWinningLine($room, $previousRound);
+
+        $result = app(BingoWinnerDetectionService::class)
+            ->checkWinnerForUser($room->fresh(), (int) $user->id);
+
+        $this->assertNull($result);
+        $this->assertSame('ACTIVE', $activeRound->fresh()->status);
+        $this->assertSame(BingoCard::STATUS_ACTIVE, (int) BingoCard::first()->status);
+        $this->assertDatabaseCount('bingo_card_prizes', 0);
+    }
+
     public function test_impossible_claim_timing_returns_null_and_creates_flag_without_touching_prizes() : void
     {
         // Umbral deliberadamente alto (60s): el overhead real de MySQL entre
@@ -180,33 +207,6 @@ class BingoWinnerDetectionServiceTest extends TestCase
         $this->assertNull($manualResult);
         $this->assertNull($atomicResult);
         $this->assertSame(BingoCard::STATUS_ACTIVE, (int) $card->fresh()->status);
-        $this->assertDatabaseCount('bingo_card_prizes', 0);
-    }
-
-    public function test_draws_from_a_finished_round_cannot_complete_the_active_round() : void
-    {
-        $user = User::factory()->create();
-        ['room' => $room, 'round' => $previousRound] =
-            $this->makeRoomWithCard($this->winningCardNumbers(), $user, 'DEMO');
-
-        $activeRound = BingoRound::create([
-            'room_id' => $room->id,
-            'room_config_id' => $room->config->id,
-            'round' => 2,
-            'prize_type' => 'PCT',
-            'bingo_pattern_id' => $previousRound->bingo_pattern_id,
-            'status' => 'ACTIVE',
-        ]);
-
-        $previousRound->update(['status' => 'FINISHED']);
-        $this->drawWinningLine($room, $previousRound);
-
-        $result = app(BingoWinnerDetectionService::class)
-            ->checkWinnerForUser($room->fresh(), (int) $user->id);
-
-        $this->assertNull($result);
-        $this->assertSame('ACTIVE', $activeRound->fresh()->status);
-        $this->assertSame(BingoCard::STATUS_ACTIVE, (int) BingoCard::first()->status);
         $this->assertDatabaseCount('bingo_card_prizes', 0);
     }
 
