@@ -953,17 +953,17 @@ class SellerCardSaleTest extends TestCase
         $lot = BingoCardLot::firstOrFail();
         $this->assertSame('offline', $lot->financial_breakdown['channel']);
 
-        $job = new \\App\\Domains\\Games\\Bingo\\Jobs\\BingoCardLotRefundJob(
+        $job = new \App\Domains\\Games\\Bingo\\Jobs\\BingoCardLotRefundJob(
             (string) $lot->id,
             (string) $this->roomR1->id,
         );
         $job->handle(
-            app(\\App\\Domains\\Wallet\\Services\\WalletService::class),
-            app(\\App\\Domains\\Games\\Bingo\\Services\\Room\\BingoRoomAuditLogger::class),
+            app(\App\Domains\\Wallet\\Services\\WalletService::class),
+            app(\App\Domains\\Games\\Bingo\\Services\\Room\\BingoRoomAuditLogger::class),
         );
 
-        $item = \\App\\Models\\Platform\\FinancialReconciliationItem::where('lot_id', $lot->id)
-            ->where('type', \\App\\Models\\Platform\\FinancialReconciliationItem::TYPE_EXTERNAL_PLAYER_REFUND_PENDING)
+        $item = \App\Models\\Platform\\FinancialReconciliationItem::where('lot_id', $lot->id)
+            ->where('type', \App\Models\\Platform\\FinancialReconciliationItem::TYPE_EXTERNAL_PLAYER_REFUND_PENDING)
             ->first();
 
         $this->assertNotNull($item, 'La devolución física al comprador debe quedar en conciliación.');
