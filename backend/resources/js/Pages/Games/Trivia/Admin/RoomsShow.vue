@@ -61,18 +61,18 @@ function submitDispute(winnerId: string) {
       disputingWinnerId.value = null
       showToast('Premio revertido correctamente.', 'success')
     },
-    onError: () => showToast('No se pudo revertir el premio.', 'error'),
+    onError: () => showToast('No se pudo revertir el premio.', 'error')
   })
 }
 
 const prizeStatusLabel: Record<string, string> = {
   waiting: 'Esperando', processing: 'Procesando', claimed: 'Reclamado',
-  cancelled: 'Cancelado', suspended: 'Suspendido', disputed: 'En disputa',
+  cancelled: 'Cancelado', suspended: 'Suspendido', disputed: 'En disputa'
 }
 const prizeStatusColor: Record<string, string> = {
   waiting: 'bg-gray-100 text-gray-800', processing: 'bg-blue-100 text-blue-800',
   claimed: 'bg-green-100 text-green-800', cancelled: 'bg-gray-100 text-gray-800',
-  suspended: 'bg-orange-100 text-orange-800', disputed: 'bg-red-100 text-red-800',
+  suspended: 'bg-orange-100 text-orange-800', disputed: 'bg-red-100 text-red-800'
 }
 
 // Auto-refresh cada 5 segundos para ver jugadores en tiempo real
@@ -94,7 +94,7 @@ const getStatusColor = (status: string) => {
     waiting: 'bg-yellow-100 text-yellow-800',
     playing: 'bg-green-100 text-green-800',
     closed: 'bg-gray-100 text-gray-800',
-    cancelled: 'bg-red-100 text-red-800',
+    cancelled: 'bg-red-100 text-red-800'
   }
   return colors[status] || 'bg-gray-100 text-gray-800'
 }
