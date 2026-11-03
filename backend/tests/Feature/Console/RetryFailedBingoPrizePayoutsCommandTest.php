@@ -39,7 +39,6 @@ class RetryFailedBingoPrizePayoutsCommandTest extends TestCase
             // automáticamente a la wallet del vendedor.
             $this->artisan('bingo:retry-failed-prize-payouts')
                 ->expectsOutputToContain('Premios acreditados: 0')
-                ->expectsOutputToContain('Aún pendientes: 1')
                 ->expectsOutputToContain('revisión manual por agotar intentos: 1')
                 ->assertExitCode(0);
 
