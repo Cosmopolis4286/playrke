@@ -1,0 +1,233 @@
+name: PlayRKE CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: playrke-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-php:
+    name: Backend PHP / PHPUnit
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: playrke_testing
+          MYSQL_USER: playrke_user
+          MYSQL_PASSWORD: playrke_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: trivia_testing
+          POSTGRES_USER: trivia
+          POSTGRES_PASSWORD: trivia
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U trivia -d trivia_testing"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:FcQxhyCbxAt3FBAveGKcqDewGqGhjenOWyW4aFWFLP4=
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: playrke_testing
+      DB_USERNAME: playrke_user
+      DB_PASSWORD: playrke_password
+      REVERB_APP_ID: test-app
+      REVERB_APP_KEY: test-key
+      REVERB_APP_SECRET: test-secret
+      FRONTEND_URL: http://localhost:3000
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: gmp, pdo_mysql, pdo_pgsql, redis
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate PHP runtime
+        run: |
+          php -v
+          php -m
+          composer --version
+          composer check-platform-reqs --working-dir=backend --no-dev || true
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: backend/vendor
+          key: ${{ runner.os }}-php84-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php84-
+
+      - name: Install PHP dependencies
+        run: composer install --working-dir=backend --no-interaction --prefer-dist --no-progress --optimize-autoloader
+
+      - name: Verify PHP platform requirements
+        run: composer check-platform-reqs --working-dir=backend
+
+      - name: Prepare isolated test environment
+        run: |
+          cat > backend/.env.testing <<'EOF'
+          APP_NAME="PlayRKE"
+          APP_ENV=testing
+          APP_KEY=base64:FcQxhyCbxAt3FBAveGKcqDewGqGhjenOWyW4aFWFLP4=
+          APP_DEBUG=true
+          APP_URL=http://localhost:8000
+          APP_TIMEZONE=America/Caracas
+          APP_LOCALE=en
+          APP_FALLBACK_LOCALE=en
+          APP_FAKER_LOCALE=en_US
+          SESSION_DRIVER=array
+          SESSION_LIFETIME=120
+          SESSION_ENCRYPT=false
+          SANCTUM_STATEFUL_DOMAINS=localhost,localhost:8000,127.0.0.1,127.0.0.1:8000
+          DB_CONNECTION=mysql
+          DB_HOST=127.0.0.1
+          DB_PORT=3306
+          DB_DATABASE=playrke_testing
+          DB_USERNAME=playrke_user
+          DB_PASSWORD=playrke_password
+          DB_TRIVIA_HOST=127.0.0.1
+          DB_TRIVIA_PORT=5432
+          DB_TRIVIA_DATABASE=trivia_testing
+          DB_TRIVIA_USERNAME=trivia
+          DB_TRIVIA_PASSWORD=trivia
+          DB_TRIVIA_SCHEMA=public
+          CACHE_STORE=array
+          QUEUE_CONNECTION=sync
+          BCRYPT_ROUNDS=4
+          LOG_CHANNEL=stack
+          LOG_STACK=single
+          LOG_LEVEL=debug
+          REDIS_CLIENT=phpredis
+          REDIS_HOST=127.0.0.1
+          REDIS_PASSWORD=null
+          REDIS_PORT=6379
+          FILESYSTEM_DISK=local
+          MAIL_MAILER=array
+          MAIL_FROM_ADDRESS="test@playrke.local"
+          MAIL_FROM_NAME="PlayRKE"
+          BROADCAST_DRIVER=log
+          BROADCAST_CONNECTION=log
+          TELESCOPE_ENABLED=false
+          EOF
+
+      - name: Run PHPUnit suite
+        working-directory: backend
+        run: php artisan test
+
+      - name: Check domain error translations
+        working-directory: backend
+        run: php artisan check:domain-error-translations
+
+      - name: Lint changed PHP files with Pint
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [[ -z "$BASE" || "$BASE" == "0000000000000000000000000000000000000000" ]]; then
+            BASE="$(git rev-parse HEAD^)"
+          fi
+          CHANGED="$(git diff --diff-filter=ACMRT --name-only "$BASE" HEAD -- 'backend/**/*.php')"
+          mapfile -t FILES < <(printf '%s\n' "$CHANGED" | sed 's#^backend/##' | grep -E '\.php$' || true)
+          if (( ${#FILES[@]} == 0 )); then
+            echo "No changed PHP files; skipping Pint."
+            exit 0
+          fi
+          cd backend
+          ./vendor/bin/pint --test "${FILES[@]}"
+
+  backend-assets:
+    name: Frontend build / tests / typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19'
+          cache: pnpm
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.25.0
+
+      - name: Install JavaScript dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Vite assets
+        run: pnpm --dir backend run build
+
+      - name: Run frontend unit tests
+        run: pnpm --dir backend run test
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Type-check Vue and TypeScript
+        run: pnpm --dir backend run typecheck
+
+      - name: Lint changed frontend files with ESLint
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [[ -z "$BASE" || "$BASE" == "0000000000000000000000000000000000000000" ]]; then
+            BASE="$(git rev-parse HEAD^)"
+          fi
+          CHANGED="$(git diff --diff-filter=ACMRT --name-only "$BASE" HEAD -- \
+            'backend/resources/js/**/*.vue' \
+            'backend/resources/js/**/*.ts' \
+            'backend/resources/js/**/*.js' \
+            'backend/vite.config.js' \
+            'backend/vite.config.ts')"
+          mapfile -t FILES < <(printf '%s\n' "$CHANGED" | sed 's#^backend/##' | grep -E '\.(vue|ts|js)$' || true)
+          if (( ${#FILES[@]} == 0 )); then
+            echo "No changed frontend files; skipping ESLint."
+            exit 0
+          fi
+          cd backend
+          pnpm exec eslint "${FILES[@]}"
