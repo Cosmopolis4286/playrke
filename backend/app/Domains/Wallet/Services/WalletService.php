@@ -1813,6 +1813,40 @@ final class WalletService
         );
     }
 
+    /**
+     * Verifica que el destino de retiro exista, esté activo y pertenezca al
+     * usuario autenticado. Se ejecuta dentro de la transacción que bloquea
+     * la wallet para impedir IDOR y cambios concurrentes del directorio.
+     */
+    private function assertOwnedActiveWithdrawalDirectory(Wallet $wallet, string $directoryId, string $directoryType, string $userId) : void
+    {
+        $directory = match ($directoryType) {
+            'pago_movil' => PagoMovil::query()
+                ->whereKey($directoryId)
+                ->where('user_id', $userId)
+                ->where('status', 'ACTIVE')
+                ->lockForUpdate()
+                ->first(),
+            'pix' => PixKey::query()
+                ->whereKey($directoryId)
+                ->where('user_id', $userId)
+                ->where('status', 'ACTIVE')
+                ->lockForUpdate()
+                ->first(),
+            'binance' => BinanceAccount::query()
+                ->whereKey($directoryId)
+                ->where('user_id', $userId)
+                ->where('status', 'ACTIVE')
+                ->lockForUpdate()
+                ->first(),
+            default => null,
+        };
+
+        if (! $directory) {
+            throw WalletDomainException::withdrawalDirectoryInvalid();
+        }
+    }
+
     private function findOwnedWallet(string $walletId) : Wallet
     {
         $wallet = Wallet::with(['currency', 'user'])->lockForUpdate()->findOrFail($walletId);
@@ -1908,40 +1942,6 @@ final class WalletService
         throw WalletDomainException::movementLockedByAnotherAdmin(
             $movement->assignedTo?->first_name ?? 'otro admin',
         );
-    }
-
-    /**
-     * Verifica que el destino de retiro exista, esté activo y pertenezca al
-     * usuario autenticado. Se ejecuta dentro de la transacción que bloquea
-     * la wallet para impedir IDOR y cambios concurrentes del directorio.
-     */
-    private function assertOwnedActiveWithdrawalDirectory(Wallet $wallet, string $directoryId, string $directoryType, string $userId) : void
-    {
-        $directory = match ($directoryType) {
-            'pago_movil' => PagoMovil::query()
-                ->whereKey($directoryId)
-                ->where('user_id', $userId)
-                ->where('status', 'ACTIVE')
-                ->lockForUpdate()
-                ->first(),
-            'pix' => PixKey::query()
-                ->whereKey($directoryId)
-                ->where('user_id', $userId)
-                ->where('status', 'ACTIVE')
-                ->lockForUpdate()
-                ->first(),
-            'binance' => BinanceAccount::query()
-                ->whereKey($directoryId)
-                ->where('user_id', $userId)
-                ->where('status', 'ACTIVE')
-                ->lockForUpdate()
-                ->first(),
-            default => null,
-        };
-
-        if (! $directory) {
-            throw WalletDomainException::withdrawalDirectoryInvalid();
-        }
     }
 
     /**
