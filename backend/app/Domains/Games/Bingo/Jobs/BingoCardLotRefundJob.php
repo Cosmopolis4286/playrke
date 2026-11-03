@@ -24,7 +24,12 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Reembolsa un único BingoCardLot (cartón comprado) a la wallet del comprador.
+ * Revierte financieramente un único BingoCardLot (cartón comprado).
+ *
+ * En ventas con wallet acredita al comprador. En ventas offline de jugadores
+ * externos, devuelve al vendedor lo que la plataforma ya había cobrado y abre
+ * una conciliación pendiente para confirmar que el vendedor entregó al jugador
+ * externo el importe completo que recibió.
  *
  * Se despacha desde BingoRoomCrudService::refundCardLotsForRoom() en lugar de
  * procesar todos los lotes inline — esto desacopla la cancelación de sala del
