@@ -123,6 +123,11 @@ class BingoCard extends Model
         return $query->where('status', self::STATUS_ACTIVE);
     }
 
+    public function scopeCustom($query)
+    {
+        return $query->where('is_custom_card', true);
+    }
+
     /**
      * Cartones válidos para participar en un sorteo.
      *
@@ -136,11 +141,6 @@ class BingoCard extends Model
         return $query
             ->whereHas('cardLot', fn ($lot) => $lot->where('status', 'ACTIVE'))
             ->whereDoesntHave('cardLot.payments', fn ($payment) => $payment->where('payment_status', '!=', 'APPROVED'));
-    }
-
-    public function scopeCustom($query)
-    {
-        return $query->where('is_custom_card', true);
     }
 
     public function scopeValidated($query)
