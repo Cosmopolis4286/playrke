@@ -33,16 +33,14 @@ final class ExternalPlayerLinkService
     }
 
     /**
-     * user_ids de la red comercial a la que pertenece el actor: el Commerce
-     * dueño del negocio + todos sus vendedores (directos y de sus agencias),
-     * vía Commerce::networkUserIds(). El actor puede ser el propio Commerce,
-     * un Seller (Seller::resolveCommerce(), directo o vía agencia) o una
-     * Subsidiary (su Commerce padre).
+     * Alcance de compradores externos según el nivel de la jerarquía:
+     * - Comercializadora: todos sus vendedores directos y de sus agencias.
+     * - Agencia: únicamente sus vendedores.
+     * - Vendedor: únicamente los compradores que él captó.
+     * - Otros usuarios: ningún comprador ajeno.
      *
-     * Un ExternalPlayer "pertenece" a la red que lo captó (seller_user_id):
-     * cualquier vendedor del mismo comercio puede reconocerlo y venderle, pero
-     * nunca otro comercio — aunque compartan una sala PUBLIC. Sin comercio
-     * resoluble, solo el propio usuario.
+     * Evita que una agencia consulte compradores de agencias hermanas y que
+     * vendedores de una misma red compartan datos personales sin necesidad.
      *
      * @return string[]
      */
@@ -54,11 +52,21 @@ final class ExternalPlayerLinkService
 
         $userId = (string) $userId;
 
-        $commerce = Commerce::where('user_id', $userId)->first()
-            ?? Seller::where('user_id', $userId)->first(['id', 'manager_user_id', 'subsidiary_id'])?->resolveCommerce()
-            ?? Subsidiary::where('user_id', $userId)->first(['id', 'commerce_id', 'user_id'])?->commerce;
+        $commerce = Commerce::where('user_id', $userId)->first();
 
-        return $commerce?->networkUserIds() ?? [$userId];
+        if ($commerce) {
+            return $commerce->networkUserIds();
+        }
+
+        $subsidiary = Subsidiary::where('user_id', $userId)->first(['id', 'user_id']);
+
+        if ($subsidiary) {
+            return $subsidiary->networkUserIds();
+        }
+
+        $seller = Seller::where('user_id', $userId)->first(['user_id']);
+
+        return $seller ? [(string) $seller->user_id] : [$userId];
     }
 
     /**
