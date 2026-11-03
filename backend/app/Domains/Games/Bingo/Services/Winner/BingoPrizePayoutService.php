@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Games\Bingo\Services\Winner;
 
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
+use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Services\Games\GamePrizeService;
 
@@ -32,6 +33,59 @@ final class BingoPrizePayoutService
 
     public function payout(BingoCardPrize $cardPrize) : void
     {
+        // Los cartones de compradores externos comparten room_user_id con el
+        // vendedor. El room user NO identifica al beneficiario económico.
+        // Resolver el dueño desde el pago original y retener el premio: no hay
+        // wallet para ExternalPlayer ni autorización para acreditar al vendedor.
+        $externalPlayerIds = BingoCardPayment::withTrashed()
+            ->where('card_lot_id', (string) $cardPrize->card_lot_id)
+            ->whereNotNull('external_player_id')
+            ->distinct()
+            ->pluck('external_player_id')
+            ->map(fn ($id) => (string) $id)
+            ->values();
+
+        if ($cardPrize->external_player_id || $externalPlayerIds->isNotEmpty()) {
+            if (! $cardPrize->external_player_id && $externalPlayerIds->count() === 1) {
+                $cardPrize->external_player_id = $externalPlayerIds->first();
+            }
+
+            if (in_array($cardPrize->prize_status, ['waiting', 'processing'], true)) {
+                $cardPrize->markAsSuspended();
+            } elseif ($cardPrize->prize_status === 'claimed') {
+                // Premio histórico posiblemente acreditado al vendedor: no
+                // revertir fondos automáticamente; requiere conciliación manual.
+                $cardPrize->markAsDisputed();
+            } else {
+                $cardPrize->save();
+            }
+
+            $cardPrize->loadMissing('room');
+            if ($cardPrize->room) {
+                $this->auditLogger->log(
+                    $cardPrize->room,
+                    BingoRoomAuditLogger::EVENT_PRIZE_PAYMENT_SUSPENDED,
+                    'system',
+                    'Premio de comprador externo retenido para verificación; no se acredita al vendedor',
+                    [
+                        'card_prize_id' => (string) $cardPrize->id,
+                        'external_player_id' => $cardPrize->external_player_id,
+                        'ambiguous_beneficiary' => $externalPlayerIds->count() > 1,
+                        'historical_payment_review' => $cardPrize->prize_status === 'disputed',
+                    ],
+                );
+            }
+
+            \Illuminate\Support\Facades\Log::warning('[BingoPrizePayoutService] Premio externo retenido sin acreditar wallet del vendedor', [
+                'card_prize_id' => (string) $cardPrize->id,
+                'external_player_id' => $cardPrize->external_player_id,
+                'external_player_matches' => $externalPlayerIds->count(),
+                'prize_status' => $cardPrize->prize_status,
+            ]);
+
+            return;
+        }
+
         // Sala DEMO: nunca se acredita (el premio nace 'cancelled' en
         // BingoDrawService; esto cubre reintentos o cambios manuales de estado).
         $cardPrize->loadMissing('room');
