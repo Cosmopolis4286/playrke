@@ -123,6 +123,21 @@ class BingoCard extends Model
         return $query->where('status', self::STATUS_ACTIVE);
     }
 
+    /**
+     * Cartones válidos para participar en un sorteo.
+     *
+     * Un lote reembolsado/inactivo no participa y cualquier pago asociado
+     * debe estar aprobado. Los lotes sin registro de pago se consideran
+     * liquidados por los canales que cobran fuera de la plataforma o wallet.
+     * Esta regla se comparte entre sorteo automático y reclamo manual.
+     */
+    public function scopeEligibleForDraw($query)
+    {
+        return $query
+            ->whereHas('cardLot', fn ($lot) => $lot->where('status', 'ACTIVE'))
+            ->whereDoesntHave('cardLot.payments', fn ($payment) => $payment->where('payment_status', '!=', 'APPROVED'));
+    }
+
     public function scopeCustom($query)
     {
         return $query->where('is_custom_card', true);
