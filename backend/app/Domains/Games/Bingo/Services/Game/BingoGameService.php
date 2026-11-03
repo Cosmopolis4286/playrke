@@ -167,9 +167,9 @@ final class BingoGameService
      * rechazado, qué premios ganó y quién se los entrega.
      *
      * Sin esto el comprador veía el link vacío (pago PENDING) o sus cartones
-     * desaparecer (pago rechazado) sin explicación, y si ganaba no sabía que
-     * el premio lo entrega su vendedor/comercio (no tiene billetera: el
-     * premio se acredita al comercio, ver BingoCardPrize::getUserId()).
+     * desaparecer (pago rechazado) sin explicación. Los premios de compradores
+     * externos se retienen para verificación y entrega manual: nunca se acreditan
+     * automáticamente a la wallet del vendedor que comparte el room_user_id.
      *
      * @return array{
      *     pending_cards: int,
