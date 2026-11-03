@@ -8,7 +8,7 @@ use App\Domains\Games\Bingo\Services\Winner\BingoPrizePayoutService;
 use App\Services\Games\GamePrizeService;
 use App\Domains\Wallet\Services\WalletService;
 use Mockery;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class BingoExternalPlayerPrizeOwnershipTest extends TestCase
 {
@@ -23,6 +23,7 @@ class BingoExternalPlayerPrizeOwnershipTest extends TestCase
     {
         // WalletService es final y no debe utilizarse en esta ruta; se crea
         // sin constructor para que cualquier acceso accidental falle.
+        /** @var WalletService $walletService */
         $walletService = (new \ReflectionClass(WalletService::class))->newInstanceWithoutConstructor();
         $gamePrizeService = new GamePrizeService($walletService);
 
