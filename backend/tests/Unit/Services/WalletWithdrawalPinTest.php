@@ -80,6 +80,34 @@ class WalletWithdrawalPinTest extends TestCase
 
     // ── requestWithdraw() — PIN configurado, feliz y fallos ──────────────────
 
+    public function test_withdraw_rejects_a_directory_owned_by_another_user() : void
+    {
+        $wallet = $this->makeWalletWithUser(1000.0, pin: '123456');
+        $otherUser = User::factory()->create();
+        $directory = BinanceAccount::create([
+            'account_type' => 'E',
+            'data_value' => 'other-user@example.local',
+            'user_id' => (string) $otherUser->id,
+            'status' => 'ACTIVE',
+        ]);
+
+        $this->expectException(WalletDomainException::class);
+        $this->expectExceptionMessage('destino de retiro seleccionado no es válido');
+
+        try {
+            $this->service->requestWithdraw(
+                $wallet,
+                50.0,
+                (string) $directory->id,
+                'binance',
+                withdrawalPin: '123456',
+            );
+        } finally {
+            $this->assertSame(1000.0, (float) $wallet->fresh()->balance);
+            $this->assertSame(0, WalletMovement::where('wallet_id', $wallet->id)->count());
+        }
+    }
+
     public function test_withdraw_with_correct_pin_succeeds() : void
     {
         $wallet = $this->makeWalletWithUser(1000.0, pin: '123456');
@@ -154,12 +182,10 @@ class WalletWithdrawalPinTest extends TestCase
 
     private function makeDirectory(Wallet $wallet) : array
     {
-        // Usar un destino persistido y propiedad del usuario: requestWithdraw()
-        // valida titularidad y estado ACTIVE dentro de la transacción.
         $directory = BinanceAccount::create([
-            'account_type' => 'B',
-            'data_value' => 'usuario-binance-' . $wallet->user_id,
-            'user_id' => $wallet->user_id,
+            'account_type' => 'E',
+            'data_value' => 'wallet-test@example.local',
+            'user_id' => (string) $wallet->user_id,
             'status' => 'ACTIVE',
         ]);
 
