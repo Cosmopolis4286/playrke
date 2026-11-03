@@ -50,7 +50,7 @@ ENV PHP_MEMORY_LIMIT=512M \
 # de las libs -dev de abajo, la librería gmp en sí debe quedar instalada en
 # runtime (docker-php-ext-install la enlaza dinámicamente contra ella).
 RUN apk add --no-cache \
-    curl bash supervisor \
+    curl bash supervisor netcat-openbsd \
     libpng libzip oniguruma icu-libs \
     freetype libjpeg-turbo libwebp \
     postgresql-libs \
@@ -168,3 +168,16 @@ EXPOSE 9000 8080
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisor.conf"]
+
+# ── Nginx — servidor HTTP público detrás de Traefik ──────────────────────────
+# Traefik habla HTTP con Nginx; Nginx habla FastCGI con PHP-FPM.
+FROM nginx:1.27-alpine AS web
+
+COPY --from=production /var/www/public /var/www/public
+COPY docker/nginx/app.conf /etc/nginx/conf.d/default.conf
+
+RUN mkdir -p /var/www/public/storage \
+ && chown -R nginx:nginx /var/www/public
+
+EXPOSE 8080
+CMD ["nginx", "-g", "daemon off;"]
