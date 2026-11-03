@@ -83,13 +83,6 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Validate PHP runtime
-        run: |
-          php -v
-          php -m
-          composer --version
-          composer check-platform-reqs --working-dir=backend --no-dev || true
-
       - name: Cache Composer dependencies
         uses: actions/cache@v4
         with:
@@ -185,16 +178,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.25.0
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.19'
           cache: pnpm
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.25.0
 
       - name: Install JavaScript dependencies
         run: pnpm install --frozen-lockfile
