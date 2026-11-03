@@ -12,6 +12,11 @@ const statusLabel: Record<string, string> = {
   completed: 'Completado',
   failed: 'Fallido',
   cancelled: 'Cancelado',
+  waiting: 'Por entregar',
+  processing: 'En revisión',
+  claimed: 'Entregado',
+  suspended: 'En revisión',
+  disputed: 'En disputa',
 }
 
 function formatStatus(status: string): string {
