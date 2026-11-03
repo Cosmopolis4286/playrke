@@ -23,7 +23,7 @@ class BingoExternalPlayerPrizeOwnershipTest extends TestCase
     {
         // WalletService es final y no debe utilizarse en esta ruta; se crea
         // sin constructor para que cualquier acceso accidental falle.
-        $walletService = (new \\ReflectionClass(WalletService::class))->newInstanceWithoutConstructor();
+        $walletService = (new \ReflectionClass(WalletService::class))->newInstanceWithoutConstructor();
         $gamePrizeService = new GamePrizeService($walletService);
 
         $auditLogger = Mockery::mock(BingoRoomAuditLogger::class);
