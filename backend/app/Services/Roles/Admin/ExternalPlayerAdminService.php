@@ -6,8 +6,9 @@ use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\Roles\Player\External\ExternalPlayerRepositoryInterface;
 use App\Contracts\Roles\Subsidiary\SubsidiaryRepositoryInterface;
 use App\Contracts\UserRepositoryInterface;
+use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
-use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrizePayment;
+use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Models\Audit;
 use App\Models\Game;
 use App\Models\Role;
@@ -158,7 +159,7 @@ final class ExternalPlayerAdminService
             'has_more_purchases' => $recentPurchases->count() >= self::RECENT_ACTIVITY_LIMIT
                 && BingoCardPayment::byExternalPlayer($player->id)->count() > self::RECENT_ACTIVITY_LIMIT,
             'has_more_prizes' => $recentPrizes->count() >= self::RECENT_ACTIVITY_LIMIT
-                && BingoCardPrizePayment::byExternalPlayer($player->id)->count() > self::RECENT_ACTIVITY_LIMIT,
+                && $this->externalPlayerPrizesQuery($player)->count() > self::RECENT_ACTIVITY_LIMIT,
             'has_more_audits' => $recentAudits->count() >= self::RECENT_ACTIVITY_LIMIT
                 && Audit::ofAuditable(ExternalPlayer::class, $player->id)->count() > self::RECENT_ACTIVITY_LIMIT,
         ];
@@ -166,12 +167,12 @@ final class ExternalPlayerAdminService
 
     public function getPlayerPrizeHistory(ExternalPlayer $player, int $page = 1) : array
     {
-        $paginator = BingoCardPrizePayment::byExternalPlayer($player->id)
+        $paginator = $this->externalPlayerPrizesQuery($player)
             ->latest('created_at')
             ->paginate(self::ACTIVITY_HISTORY_PAGE_SIZE, ['*'], 'page', $page);
 
         return [
-            'rows' => $paginator->getCollection()->map(fn (BingoCardPrizePayment $p) => $this->mapPrizeRow($p))->values(),
+            'rows' => $paginator->getCollection()->map(fn (BingoCardPrize $prize) => $this->mapPrizeRow($prize))->values(),
             'has_more' => $paginator->hasMorePages(),
             'current_page' => $paginator->currentPage(),
         ];
@@ -481,14 +482,16 @@ final class ExternalPlayerAdminService
         ];
     }
 
-    private function mapPrizeRow(BingoCardPrizePayment $payment) : array
+    private function mapPrizeRow(BingoCardPrize $prize) : array
     {
+        $payment = $prize->payments->first();
+
         return [
-            'id' => (string) $payment->id,
-            'date' => $payment->created_at?->format('d/m/Y H:i:s'),
-            'amount' => (float) $payment->payment_amount,
-            'status' => $payment->payment_status,
-            'method' => $payment->payment_method_description,
+            'id' => (string) $prize->id,
+            'date' => $prize->created_at?->format('d/m/Y H:i:s'),
+            'amount' => (float) $prize->local_amount,
+            'status' => $prize->prize_status,
+            'method' => $payment?->payment_method_description ?? 'Entrega externa',
         ];
     }
 
@@ -551,11 +554,32 @@ final class ExternalPlayerAdminService
 
     private function recentPrizes(ExternalPlayer $player) : \Illuminate\Support\Collection
     {
-        return BingoCardPrizePayment::byExternalPlayer($player->id)
+        return $this->externalPlayerPrizesQuery($player)
             ->latest('created_at')
             ->limit(self::RECENT_ACTIVITY_LIMIT)
             ->get()
-            ->map(fn (BingoCardPrizePayment $payment) => $this->mapPrizeRow($payment));
+            ->map(fn (BingoCardPrize $prize) => $this->mapPrizeRow($prize));
+    }
+
+    /**
+     * Fuente de verdad del historial: una fila por premio, aunque todavía no
+     * exista un registro de pago porque la entrega externa está retenida.
+     * El fallback por payments conserva premios históricos anteriores a la
+     * columna external_player_id.
+     */
+    private function externalPlayerPrizesQuery(ExternalPlayer $player) : Builder
+    {
+        return BingoCardPrize::query()
+            ->where(function(Builder $query) use ($player) {
+                $query->where('external_player_id', (string) $player->id)
+                    ->orWhereHas('payments', fn (Builder $payments) => $payments
+                        ->withTrashed()
+                        ->where('external_player_id', (string) $player->id));
+            })
+            ->with(['payments' => fn (Builder $payments) => $payments
+                ->withTrashed()
+                ->where('external_player_id', (string) $player->id)
+                ->latest('created_at')]);
     }
 
     /**
