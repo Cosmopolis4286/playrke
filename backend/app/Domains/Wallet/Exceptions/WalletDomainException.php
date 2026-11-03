@@ -334,6 +334,16 @@ final class WalletDomainException extends DomainException
     }
 
     /**
+     * requestWithdraw(): el destino no existe, está inactivo o no pertenece
+     * al usuario autenticado. Se responde con un mensaje genérico para no
+     * revelar si un identificador de otro usuario existe.
+     */
+    public static function withdrawalDirectoryInvalid() : self
+    {
+        return new self('El destino de retiro seleccionado no es válido. Selecciona una cuenta activa de tu propiedad.', 422);
+    }
+
+    /**
      * assertWithinLimits(): no existe WalletLimit configurado para esta
      * moneda/nivel KYC — mismo criterio de bloqueo por precaución que
      * depositLimitsNotConfigured().

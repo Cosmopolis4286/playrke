@@ -1393,34 +1393,48 @@ final class WalletService
         $kycLevel = (int) ($wallet->user?->kyc_level ?? 0);
         $this->walletLimitService->assertWithinLimits($wallet, $amount, $kycLevel);
 
-        $wallet = DB::transaction(function() use ($wallet, $amount, $directoryId, $directoryType, $notes, &$withdrawalMovement) {
-            $walletId = (string) $wallet->id;
+        $wallet = DB::transaction(function() use ($wallet, $amount, $directoryId, $directoryType, $notes, $userId, &$withdrawalMovement) {
+            // Serializar TODAS las solicitudes de retiro de esta wallet. El
+            // modelo recibido por el controller puede estar desactualizado:
+            // nunca validar saldo ni operaciones pendientes sin releerlo bajo lock.
+            $lockedWallet = Wallet::query()
+                ->whereKey($wallet->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-            if ($wallet->isBlocked()) {
+            if ((string) $lockedWallet->user_id !== $userId || (string) Auth::id() !== $userId) {
+                throw WalletDomainException::withdrawalDirectoryInvalid();
+            }
+
+            if ($lockedWallet->isBlocked() || ! $lockedWallet->isActive()) {
                 throw WalletDomainException::walletBlocked();
             }
 
-            if ($this->getPendingOperation($walletId, WalletMovement::TYPE_WITHDRAWAL)) {
+            // El ID y tipo enviados por el cliente no son prueba de titularidad.
+            // Bloqueamos y resolvemos el destino dentro de la misma transacción.
+            $this->assertOwnedActiveWithdrawalDirectory($lockedWallet, $directoryId, $directoryType, $userId);
+
+            if ($this->getPendingOperation((string) $lockedWallet->id, WalletMovement::TYPE_WITHDRAWAL)) {
                 throw WalletDomainException::withdrawalAlreadyPending();
             }
 
-            if (! $wallet->hasSufficientBalance($amount)) {
+            if (! $lockedWallet->hasSufficientBalance($amount)) {
                 throw WalletDomainException::insufficientBalanceForWithdrawal();
             }
 
-            $balanceBefore = (float) $wallet->balance;
+            $balanceBefore = (float) $lockedWallet->balance;
 
-            $this->walletRepository->decrementBalance($walletId, $amount);
-            $wallet->refresh();
+            $this->walletRepository->decrementBalance((string) $lockedWallet->id, $amount);
+            $lockedWallet->refresh();
 
             $withdrawalMovement = $this->movementRepository->record([
-                'wallet_id' => (string) $wallet->id,
-                'user_id' => (string) $wallet->user_id,
+                'wallet_id' => (string) $lockedWallet->id,
+                'user_id' => (string) $lockedWallet->user_id,
                 'type' => WalletMovement::TYPE_WITHDRAWAL,
                 'status' => WalletMovement::STATUS_PENDING,
                 'amount' => $amount,
                 'balance_before' => $balanceBefore,
-                'balance_after' => (float) $wallet->balance,
+                'balance_after' => (float) $lockedWallet->balance,
                 'description' => $notes ?? 'Retiro pendiente de procesamiento',
                 'metadata' => [
                     'directory_id' => $directoryId,
@@ -1428,7 +1442,7 @@ final class WalletService
                 ],
             ]);
 
-            return $wallet;
+            return $lockedWallet;
         });
 
         // Fuera de la transacción (ya hizo commit): sin esto, un segundo
@@ -1568,6 +1582,40 @@ final class WalletService
      * incrementBalance() correspondiente simplemente no se ejecuta,
      * dejando un movimiento fantasma que rompe la cuadratura del ledger).
      */
+    /**
+     * Verifica que el destino de retiro exista, esté activo y pertenezca al
+     * usuario autenticado. Se ejecuta dentro de la transacción que bloquea
+     * la wallet para impedir IDOR y cambios concurrentes del directorio.
+     */
+    private function assertOwnedActiveWithdrawalDirectory(Wallet $wallet, string $directoryId, string $directoryType, string $userId) : void
+    {
+        $directory = match ($directoryType) {
+            'pago_movil' => PagoMovil::query()
+                ->whereKey($directoryId)
+                ->where('user_id', $userId)
+                ->where('status', 'ACTIVE')
+                ->lockForUpdate()
+                ->first(),
+            'pix' => PixKey::query()
+                ->whereKey($directoryId)
+                ->where('user_id', $userId)
+                ->where('status', 'ACTIVE')
+                ->lockForUpdate()
+                ->first(),
+            'binance' => BinanceAccount::query()
+                ->whereKey($directoryId)
+                ->where('user_id', $userId)
+                ->where('status', 'ACTIVE')
+                ->lockForUpdate()
+                ->first(),
+            default => null,
+        };
+
+        if (! $directory) {
+            throw WalletDomainException::withdrawalDirectoryInvalid();
+        }
+    }
+
     private function assertPositiveAmount(float $amount) : void
     {
         if ($amount <= 0) {
