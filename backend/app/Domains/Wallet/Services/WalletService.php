@@ -1917,20 +1917,6 @@ final class WalletService
      */
     private function assertOwnedActiveWithdrawalDirectory(Wallet $wallet, string $directoryId, string $directoryType, string $userId) : void
     {
-        // Evitar retirar una moneda a un tipo de destino que no corresponde:
-        // VES → Pago Móvil, BRL → PIX, cripto → Binance.
-        $currencyCode = strtoupper((string) $wallet->currency()->value('iso_code'));
-        $expectedDirectoryType = match (true) {
-            in_array($currencyCode, ['VES', 'VED', 'BSS'], true) => 'pago_movil',
-            $currencyCode === 'BRL' => 'pix',
-            in_array($currencyCode, ['USDT', 'BTC', 'ETH'], true) => 'binance',
-            default => null,
-        };
-
-        if ($expectedDirectoryType === null || $directoryType !== $expectedDirectoryType) {
-            throw WalletDomainException::withdrawalDirectoryInvalid();
-        }
-
         $directory = match ($directoryType) {
             'pago_movil' => PagoMovil::query()
                 ->whereKey($directoryId)
