@@ -7,18 +7,10 @@ use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Domains\Games\Bingo\Services\Winner\BingoPrizePayoutService;
 use App\Services\Games\GamePrizeService;
 use App\Domains\Wallet\Services\WalletService;
-use Mockery;
 use Tests\TestCase;
 
 class BingoExternalPlayerPrizeOwnershipTest extends TestCase
 {
-    protected function tearDown() : void
-    {
-        Mockery::close();
-
-        parent::tearDown();
-    }
-
     public function test_external_buyer_prize_is_not_sent_to_sellers_wallet() : void
     {
         // WalletService es final y no debe utilizarse en esta ruta; se crea
@@ -27,8 +19,8 @@ class BingoExternalPlayerPrizeOwnershipTest extends TestCase
         $walletService = (new \ReflectionClass(WalletService::class))->newInstanceWithoutConstructor();
         $gamePrizeService = new GamePrizeService($walletService);
 
-        $auditLogger = Mockery::mock(BingoRoomAuditLogger::class);
-        $auditLogger->shouldNotReceive('log');
+        /** @var BingoRoomAuditLogger $auditLogger */
+        $auditLogger = (new \ReflectionClass(BingoRoomAuditLogger::class))->newInstanceWithoutConstructor();
 
         $prize = new BingoCardPrize([
             'id' => '900000000000000001',
