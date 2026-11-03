@@ -17,11 +17,11 @@ class BingoExternalPlayerPrizeOwnershipTest extends TestCase
         // WalletService es final y no debe utilizarse en esta ruta; se crea
         // sin constructor para que cualquier acceso accidental falle.
         /** @var WalletService $walletService */
-        $walletService = (new \ReflectionClass(WalletService::class))->newInstanceWithoutConstructor();
+        $walletService = (new ReflectionClass(WalletService::class))->newInstanceWithoutConstructor();
         $gamePrizeService = new GamePrizeService($walletService);
 
         /** @var BingoRoomAuditLogger $auditLogger */
-        $auditLogger = (new \ReflectionClass(BingoRoomAuditLogger::class))->newInstanceWithoutConstructor();
+        $auditLogger = (new ReflectionClass(BingoRoomAuditLogger::class))->newInstanceWithoutConstructor();
 
         $prize = new BingoCardPrize([
             'id' => '900000000000000001',
