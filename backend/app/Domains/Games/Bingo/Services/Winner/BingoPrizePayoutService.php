@@ -52,7 +52,7 @@ final class BingoPrizePayoutService
 
         if ($externalPlayerIds->isNotEmpty()) {
             $needsSave = false;
-            if (! $cardPrize->external_player_id && $externalPlayerIds->count() === 1) {
+            if (!$cardPrize->external_player_id && $externalPlayerIds->count() === 1) {
                 $cardPrize->external_player_id = $externalPlayerIds->first();
                 $needsSave = true;
             }
@@ -100,7 +100,7 @@ final class BingoPrizePayoutService
         // BingoDrawService; esto cubre reintentos o cambios manuales de estado).
         $cardPrize->loadMissing('room');
         if ($cardPrize->room?->isDemo()) {
-            if (! $cardPrize->isCancelled()) {
+            if (!$cardPrize->isCancelled()) {
                 $cardPrize->update(['prize_status' => 'cancelled']);
             }
 
@@ -115,7 +115,7 @@ final class BingoPrizePayoutService
         $cardPrize->refresh();
         $cardPrize->loadMissing('room');
 
-        if (! $cardPrize->room) {
+        if (!$cardPrize->room) {
             return;
         }
 
