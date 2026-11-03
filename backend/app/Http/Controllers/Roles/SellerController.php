@@ -193,7 +193,7 @@ class SellerController extends Controller
                 // accessibleBy() valida que el seller pueda VENDER en la sala;
                 // el jugador además debe pertenecer a su red comercial — en una
                 // sala PUBLIC el mismo teléfono puede ser de otro comercio.
-                $player = ExternalPlayer::select('room_user_id', 'first_name', 'last_name', 'country_id', 'phone', 'link')
+                $player = ExternalPlayer::select('id', 'room_user_id', 'first_name', 'last_name', 'country_id', 'phone', 'link')
                     ->where('phone', $request->player_info)
                     ->where('game_id', 1)
                     ->where('room_id', $room->id)
