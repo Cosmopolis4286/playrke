@@ -86,18 +86,11 @@ final class BingoWinnerDetectionService
             return null;
         }
 
-        // Mismo filtro que BingoGameService::getUserCartonsForExternalPlayer():
-        // un cartón con pago aún PENDING de revisión admin no puede reclamar
-        // premio — el comprador no debería poder ganar con algo que el sistema
-        // todavía no confirmó como pagado.
-        $pendingLotIds = \App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment::query()
-            ->where('external_player_id', $externalPlayerId)
-            ->where('payment_status', 'PENDING')
-            ->pluck('card_lot_id');
-
+        // El mismo scope que utiliza el sorteo automático: lote ACTIVE y
+        // todos los pagos asociados aprobados (o ningún pago pendiente de revisión).
         $cards = BingoCard::whereIn('id', $cardIds)
             ->where('status', BingoCard::STATUS_ACTIVE)
-            ->when($pendingLotIds->isNotEmpty(), fn ($q) => $q->whereNotIn('card_lot_id', $pendingLotIds))
+            ->eligibleForDraw()
             ->get();
 
         return $this->checkWinnerForCards($room, $cards, antiCheatUserId: null);
@@ -111,6 +104,7 @@ final class BingoWinnerDetectionService
     {
         $cards = BingoCard::where('room_id', (string) $room->id)
             ->where('status', BingoCard::STATUS_ACTIVE)
+            ->eligibleForDraw()
             ->where(
                 fn ($q) => $q
                     ->whereHas('roomUser', fn ($r) => $r->where('user_id', (string) $userId))
@@ -141,22 +135,24 @@ final class BingoWinnerDetectionService
 
         $variant = $room->config?->game_variant ?? BingoVariant::BINGO_75;
 
-        $drawnNumbers = BingoDraw::where('room_id', $room->id)
-            ->pluck('chip')
-            ->map(fn ($chip) => (int) $chip)
-            ->toArray();
-
-        if (empty($drawnNumbers)) {
-            return null;
-        }
-
-        // Obtener ronda activa
+        // Resolver primero la ronda activa. Los números cantados y el último
+        // draw deben pertenecer a ESA ronda, nunca a toda la sala.
         $round = BingoRound::where('room_id', (string) $room->id)
             ->whereIn('status', ['ACTIVE', 'IN_PROGRESS'])
             ->orderBy('round')
             ->first();
 
         if (! $round) {
+            return null;
+        }
+
+        $drawnNumbers = BingoDraw::where('room_id', $room->id)
+            ->where('round_id', (string) $round->id)
+            ->pluck('chip')
+            ->map(fn ($chip) => (int) $chip)
+            ->toArray();
+
+        if (empty($drawnNumbers)) {
             return null;
         }
 
@@ -170,7 +166,10 @@ final class BingoWinnerDetectionService
 
         $patternPositions = $this->patternResolver->resolve($pattern, $variant);
 
-        $lastDraw = BingoDraw::where('room_id', $room->id)->orderBy('created_at', 'desc')->first();
+        $lastDraw = BingoDraw::where('room_id', $room->id)
+            ->where('round_id', (string) $round->id)
+            ->orderBy('created_at', 'desc')
+            ->first();
         if (! $lastDraw) {
             return null;
         }

@@ -7,6 +7,8 @@ use App\Domains\Games\Bingo\Events\BingoGameStarted;
 use App\Domains\Games\Bingo\Events\BingoNumberCalled;
 use App\Domains\Games\Bingo\Events\BingoWinnerDeclared;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
+use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Draw\BingoDrawCode;
@@ -44,7 +46,7 @@ final class BingoDrawService
     private const CHIP_INTERVAL_SECONDS = 5; // fallback si time_chip no está configurado
 
     /**
-     * Cartones ACTIVE de la sala, cacheados en memoria durante la corrida del sorteo.
+     * Cartones elegibles de la sala, cacheados en memoria durante la corrida del sorteo.
      * Keyed por json_encode($with) para evitar que broadcastPlayersProgress
      * (que carga ['roomUser.user']) envene el cache de detectWinnerAndEnd
      * (que necesita ['roomUser.user','cardLot']).
@@ -55,7 +57,6 @@ final class BingoDrawService
      * @var array<string, \Illuminate\Support\Collection<int, BingoCard>>
      */
     private array $activeCardsCache = [];
-    private ?int $activeCardsCacheCount = null;
     private ?string $activeCardsCacheRoomId = null;
 
     /**
@@ -115,12 +116,53 @@ final class BingoDrawService
 
         /** @var array{winnerData: array<string,mixed>, broadcast: array<string,mixed>}|null $txResult */
         $txResult = DB::transaction(function() use ($room, $round, $roundId, $pattern, $cardId, $lastDrawId, $isDemoRoom, &$cardPrize) {
+            // Mantener el mismo orden de locks que BingoCardPaymentReviewService::reject():
+            // primero pagos y después cartón. Así un rechazo concurrente no puede
+            // confirmar un pago inválido mientras este proceso registra un ganador.
+            $cardLotId = BingoCard::where('id', $cardId)
+                ->where('room_id', (string) $room->id)
+                ->value('card_lot_id');
+
+            if (! $cardLotId) {
+                return null;
+            }
+
+            // Los pagos soft-deleted también cuentan: borrar lógicamente un
+            // comprobante PENDING/REJECTED no puede convertirlo en una venta válida.
+            $payments = BingoCardPayment::withTrashed()
+                ->where('card_lot_id', (string) $cardLotId)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+
+            $cardLot = BingoCardLot::where('id', (string) $cardLotId)
+                ->lockForUpdate()
+                ->first();
+
             $card = BingoCard::where('id', $cardId)
+                ->where('room_id', (string) $room->id)
                 ->lockForUpdate()
                 ->with(['roomUser.user', 'cardLot'])
                 ->first();
 
             if (! $card) {
+                return null;
+            }
+
+            // Última barrera de seguridad: no confiar solo en el filtro del caller
+            // ni en el cache del sorteo. Revalidar lote y pago bajo los locks tomados.
+            if (
+                ! $cardLot
+                || $cardLot->status !== 'ACTIVE'
+                || $payments->contains(fn ($payment) => $payment->payment_status !== 'APPROVED')
+            ) {
+                Log::warning('[BingoDrawService] Reclamo de cartón no elegible bloqueado', [
+                    'card_id' => (string) $card->id,
+                    'card_lot_id' => (string) $cardLotId,
+                    'lot_status' => $cardLot?->status,
+                    'payment_statuses' => $payments->pluck('payment_status')->all(),
+                ]);
+
                 return null;
             }
 
@@ -456,15 +498,17 @@ final class BingoDrawService
             || ! isset($this->activeCardsCache[$withKey]);
 
         $chipIndex = $this->currentChipIndex;
+        // Los pagos pueden pasar de PENDING a APPROVED/REJECTED sin cambiar
+        // el número total de cartones. Por eso la recarga es temporal, no depende
+        // de comparar únicamente el count de ACTIVE.
         $periodicStale = ! $baseStale
-            && $this->activeCardsCacheCount !== null
             && $chipIndex > 0
-            && ($chipIndex % self::ACTIVE_CARDS_REFRESH_INTERVAL === 0)
-            && BingoCard::where('room_id', $roomId)->where('status', BingoCard::STATUS_ACTIVE)->count() !== $this->activeCardsCacheCount;
+            && ($chipIndex % self::ACTIVE_CARDS_REFRESH_INTERVAL === 0);
 
         if ($baseStale || $periodicStale) {
             $loaded = BingoCard::where('room_id', $roomId)
                 ->where('status', BingoCard::STATUS_ACTIVE)
+                ->eligibleForDraw()
                 ->with($with)
                 ->get();
 
@@ -472,12 +516,10 @@ final class BingoDrawService
                 // Primer load o sala distinta — reiniciar todo el cache.
                 $this->activeCardsCache = [$withKey => $loaded];
                 $this->activeCardsCacheRoomId = $roomId;
-                $this->activeCardsCacheCount = $loaded->count();
             } else {
-                // Recarga periódica — actualizar el count global y recargar TODAS las variantes
+                // Recarga periódica — recargar TODAS las variantes
                 // en cache para evitar que una evicción cause un query extra en el mismo chip
                 // (broadcastPlayersProgress y detectWinnerAndEnd usan distintos $with).
-                $this->activeCardsCacheCount = $loaded->count();
                 foreach (array_keys($this->activeCardsCache) as $k) {
                     if ($k === $withKey) {
                         $this->activeCardsCache[$k] = $loaded;
@@ -821,7 +863,6 @@ final class BingoDrawService
     private function invalidateActiveCardsCache() : void
     {
         $this->activeCardsCache = [];
-        $this->activeCardsCacheCount = null;
         // No resetear currentChipIndex — lo actualiza el draw loop por chip.
     }
 
