@@ -9,6 +9,7 @@ use App\Domains\Wallet\Models\WalletMovement;
 use App\Domains\Wallet\Services\WalletFraudService;
 use App\Domains\Wallet\Services\WalletService;
 use App\Models\Currency;
+use App\Models\Directories\Crypto\Binance\BinanceAccount;
 use App\Models\MovementType;
 use App\Models\User;
 use Database\Seeders\MovementTypeSeeder;
