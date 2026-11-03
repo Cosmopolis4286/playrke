@@ -146,6 +146,23 @@ final class BingoDrawService
                 return null;
             }
 
+            // Última barrera de seguridad: no confiar solo en el filtro del caller
+            // ni en el cache del sorteo. Revalidar lote y pago bajo los locks tomados.
+            if (
+                ! $cardLot
+                || $cardLot->status !== 'ACTIVE'
+                || $payments->contains(fn ($payment) => $payment->payment_status !== 'APPROVED')
+            ) {
+                Log::warning('[BingoDrawService] Reclamo de cartón no elegible bloqueado', [
+                    'card_id' => (string) $card->id,
+                    'card_lot_id' => (string) $cardLotId,
+                    'lot_status' => $cardLot?->status,
+                    'payment_statuses' => $payments->pluck('payment_status')->all(),
+                ]);
+
+                return null;
+            }
+
             $userId = $card->roomUser?->user_id ?? $card->creator_user_id;
             $user = $card->roomUser?->user ?? User::find($userId);
             $userName = $user?->username ?? ('Jugador #' . $userId);
@@ -213,23 +230,6 @@ final class BingoDrawService
 
             if ((int) $card->status !== BingoCard::STATUS_ACTIVE) {
                 // Otro proceso lo reclamó en un estado distinto (cancelled, etc.)
-                return null;
-            }
-
-            // Última barrera de seguridad: no confiar solo en el filtro del caller
-            // ni en el cache del sorteo. Revalidar lote y pago bajo los locks tomados.
-            if (
-                ! $cardLot
-                || $cardLot->status !== 'ACTIVE'
-                || $payments->contains(fn ($payment) => $payment->payment_status !== 'APPROVED')
-            ) {
-                Log::warning('[BingoDrawService] Reclamo de cartón no elegible bloqueado', [
-                    'card_id' => (string) $card->id,
-                    'card_lot_id' => (string) $cardLotId,
-                    'lot_status' => $cardLot?->status,
-                    'payment_statuses' => $payments->pluck('payment_status')->all(),
-                ]);
-
                 return null;
             }
 
