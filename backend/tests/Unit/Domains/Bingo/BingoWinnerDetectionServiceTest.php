@@ -4,12 +4,14 @@ namespace Tests\Unit\Domains\Bingo;
 
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
+use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
+use App\Domains\Games\Bingo\Services\Game\BingoDrawService;
 use App\Domains\Games\Bingo\Services\Game\BingoWinnerDetectionService;
 use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
 use App\Models\Country;
