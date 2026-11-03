@@ -4,6 +4,8 @@ namespace App\Domains\Games\Bingo\Models\Card\CardPrize;
 
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
+use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
+use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
@@ -38,6 +40,7 @@ class BingoCardPrize extends BaseModel implements GamePrizeContract
         'status' => 'string',
         'creator_user_id' => 'string',
         'seller_user_id' => 'string',
+        'external_player_id' => 'string',
         'room_user_id' => 'string',
         'card_lot_id' => 'string',
         'winning_card_id' => 'string',
@@ -52,7 +55,7 @@ class BingoCardPrize extends BaseModel implements GamePrizeContract
     ];
 
     protected $fillable = [
-        'room_id', 'creator_user_id', 'seller_user_id', 'seller_type', 'room_user_id', 'card_lot_id',
+        'room_id', 'creator_user_id', 'seller_user_id', 'seller_type', 'external_player_id', 'room_user_id', 'card_lot_id',
         'winning_card_id', 'currency_id', 'round_id', 'status', 'prize_type',
         'winning_pattern', 'usd_amount', 'local_amount', 'prize_status',
         'claimed_at', 'verification_code', 'prize_notes',
@@ -75,7 +78,10 @@ class BingoCardPrize extends BaseModel implements GamePrizeContract
             'creator_user_id' => $this->creator_user_id,
             'seller_user_id' => $this->seller_user_id,
             'seller_type' => $this->seller_type,
-            'user_id' => $this->creator_user_id,
+            'external_player_id' => $this->external_player_id,
+            // Los premios de compradores externos se entregan fuera de la wallet;
+            // nunca atribuir el pago al vendedor/creador del cartón.
+            'user_id' => $this->external_player_id ? null : $this->creator_user_id,
             'currency_id' => $this->currency_id,
             'payment_amount' => $this->local_amount,
             'payment_proof' => $movementId ? 'system_auto' : null,
@@ -99,6 +105,11 @@ class BingoCardPrize extends BaseModel implements GamePrizeContract
     public function creatorUser() : BelongsTo
     {
         return $this->belongsTo(User::class, 'creator_user_id')->withTrashed();
+    }
+
+    public function externalPlayer() : BelongsTo
+    {
+        return $this->belongsTo(ExternalPlayer::class, 'external_player_id');
     }
 
     public function currency() : BelongsTo
