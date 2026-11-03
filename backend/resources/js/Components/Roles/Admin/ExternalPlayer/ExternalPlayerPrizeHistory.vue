@@ -16,7 +16,7 @@ const statusLabel: Record<string, string> = {
   processing: 'En revisión',
   claimed: 'Entregado',
   suspended: 'En revisión',
-  disputed: 'En disputa',
+  disputed: 'En disputa'
 }
 
 function formatStatus(status: string): string {
@@ -33,7 +33,7 @@ async function loadMore() {
   try {
     const nextPage = currentPage.value + 1
     const { data } = await backendClient.get(`/admin/external-players/${props.detail.id}/prize-history`, {
-      params: { page: nextPage },
+      params: { page: nextPage }
     })
     extraRows.value = [...extraRows.value, ...data.rows]
     hasMore.value = data.has_more
@@ -49,7 +49,10 @@ async function loadMore() {
 <template>
   <div class="ep-detail__divider" />
   <div class="ep-activity">
-    <p class="ep-detail__label mb-2"><i class="fas fa-trophy me-1"></i>Premios ganados</p>
+    <p class="ep-detail__label mb-2">
+      <i class="fas fa-trophy me-1" />
+      Premios ganados
+    </p>
 
     <ul v-if="(detail.recent_prizes?.length ?? 0) > 0 || extraRows.length" class="ep-activity__list">
       <li v-for="row in [...(detail.recent_prizes ?? []), ...extraRows]" :key="row.id" class="ep-activity__item">
@@ -57,7 +60,9 @@ async function loadMore() {
         <span class="ep-activity__meta">{{ formatStatus(row.status) }} · {{ row.date }}<template v-if="row.method"> · {{ row.method }}</template></span>
       </li>
     </ul>
-    <p v-else class="ep-activity__empty">Sin premios registrados.</p>
+    <p v-else class="ep-activity__empty">
+      Sin premios registrados.
+    </p>
 
     <button
       v-if="hasMore"
@@ -66,8 +71,10 @@ async function loadMore() {
       :disabled="loadingMore"
       @click="loadMore"
     >
-      <span v-if="loadingMore" class="spinner-border spinner-border-sm me-1"></span>
-      <template v-else>Cargar más</template>
+      <span v-if="loadingMore" class="spinner-border spinner-border-sm me-1" />
+      <template v-else>
+        Cargar más
+      </template>
     </button>
   </div>
 </template>
