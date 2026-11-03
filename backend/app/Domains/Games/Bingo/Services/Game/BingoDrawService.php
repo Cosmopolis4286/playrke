@@ -251,11 +251,20 @@ final class BingoDrawService
                 default => 'serial',
             };
 
+            // La identidad económica de una compra externa vive en el pago del
+            // lote, no en room_user_id (compartido con el vendedor). Si aparecen
+            // varios compradores para el mismo lote, se conserva el premio en
+            // revisión sin seleccionar un beneficiario arbitrariamente.
+            $externalPlayerIds = $payments->pluck('external_player_id')->filter()->unique()->values();
+            $externalPlayerId = $externalPlayerIds->count() === 1 ? (string) $externalPlayerIds->first() : null;
+            $hasExternalPlayer = $externalPlayerIds->isNotEmpty();
+
             $cardPrize = BingoCardPrize::create([
                 'room_id' => (string) $room->id,
                 'creator_user_id' => (string) ($userId ?? $card->creator_user_id),
                 'seller_user_id' => $card->seller_user_id ? (string) $card->seller_user_id : null,
                 'seller_type' => $card->seller_type,
+                'external_player_id' => $externalPlayerId,
                 'room_user_id' => (string) $card->room_user_id,
                 'card_lot_id' => (string) $card->card_lot_id,
                 'winning_card_id' => (string) $card->id,
@@ -269,7 +278,7 @@ final class BingoDrawService
                 // Sala DEMO (sin dinero real): el premio queda registrado pero
                 // cancelado de entrada — ni el pago de abajo ni el comando de
                 // reintentos (waiting/processing) lo acreditan nunca.
-                'prize_status' => $isDemoRoom ? 'cancelled' : 'waiting',
+                'prize_status' => $isDemoRoom ? 'cancelled' : ($hasExternalPlayer ? 'suspended' : 'waiting'),
                 'verification_code' => strtoupper(bin2hex(random_bytes(8))),
             ]);
 
