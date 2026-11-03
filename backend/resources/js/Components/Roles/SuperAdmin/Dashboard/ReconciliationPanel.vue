@@ -23,6 +23,7 @@ const ALERT_LABELS: Record<string, string> = {
   JACKPOT_REVERSAL_SHORTFALL: 'Jackpot sin devolver',
   CREATOR_PAYOUT_FAILED:      'Pago al creador fallido',
   LEGACY_LOT_NOT_REVERSED:    'Reembolso sin desglose',
+  EXTERNAL_PLAYER_REFUND_PENDING: 'Devolución externa pendiente',
 }
 </script>
 
