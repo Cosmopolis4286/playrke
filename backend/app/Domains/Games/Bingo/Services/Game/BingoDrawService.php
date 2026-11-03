@@ -166,9 +166,20 @@ final class BingoDrawService
                 return null;
             }
 
-            $userId = $card->roomUser?->user_id ?? $card->creator_user_id;
-            $user = $card->roomUser?->user ?? User::find($userId);
-            $userName = $user?->username ?? ('Jugador #' . $userId);
+            $externalPlayerIds = $payments->pluck('external_player_id')->filter()->unique()->values();
+            $hasExternalPlayer = $externalPlayerIds->isNotEmpty();
+            $externalPlayerId = $externalPlayerIds->count() === 1 ? (string) $externalPlayerIds->first() : null;
+            $externalPlayer = $externalPlayerId
+                ? \App\Models\Roles\Player\External\ExternalPlayer::find($externalPlayerId)
+                : null;
+
+            // Un room_user compartido identifica al vendedor, no al comprador.
+            // No publicar ni registrar al vendedor como ganador económico.
+            $userId = $hasExternalPlayer ? null : ($card->roomUser?->user_id ?? $card->creator_user_id);
+            $user = $hasExternalPlayer ? null : ($card->roomUser?->user ?? User::find($userId));
+            $userName = $hasExternalPlayer
+                ? (trim(($externalPlayer?->first_name ?? '') . ' ' . ($externalPlayer?->last_name ?? '')) ?: 'Comprador externo')
+                : ($user?->username ?? ('Jugador #' . $userId));
 
             // Si el cartón ya es WINNER, el premio fue creado en un intento anterior
             // (el job de sorteo murió después del commit de bingo_card_prizes pero
@@ -209,7 +220,7 @@ final class BingoDrawService
 
                 return [
                     'winnerData' => [
-                        'user_id' => (int) $userId,
+                        'user_id' => $userId !== null ? (int) $userId : null,
                         'user_name' => $userName,
                         'card_id' => (string) $card->id,
                         'card_serial' => $card->serial_number,
@@ -221,7 +232,7 @@ final class BingoDrawService
                     'broadcast' => [
                         'roomId' => (int) $room->id,
                         'drawId' => $lastDrawId,
-                        'winnerId' => (int) $userId,
+                        'winnerId' => $userId !== null ? (int) $userId : 0,
                         'winnerName' => $userName,
                         'cardId' => (int) $card->id,
                         'pattern' => $pattern->name,
@@ -255,10 +266,6 @@ final class BingoDrawService
             // lote, no en room_user_id (compartido con el vendedor). Si aparecen
             // varios compradores para el mismo lote, se conserva el premio en
             // revisión sin seleccionar un beneficiario arbitrariamente.
-            $externalPlayerIds = $payments->pluck('external_player_id')->filter()->unique()->values();
-            $externalPlayerId = $externalPlayerIds->count() === 1 ? (string) $externalPlayerIds->first() : null;
-            $hasExternalPlayer = $externalPlayerIds->isNotEmpty();
-
             $cardPrize = BingoCardPrize::create([
                 'room_id' => (string) $room->id,
                 'creator_user_id' => (string) ($userId ?? $card->creator_user_id),
@@ -294,7 +301,7 @@ final class BingoDrawService
 
             return [
                 'winnerData' => [
-                    'user_id' => (int) $userId,
+                    'user_id' => $userId !== null ? (int) $userId : null,
                     'user_name' => $userName,
                     'card_id' => (string) $card->id,
                     'card_serial' => $card->serial_number,
@@ -308,7 +315,7 @@ final class BingoDrawService
                 'broadcast' => [
                     'roomId' => (int) $room->id,
                     'drawId' => $lastDrawId,
-                    'winnerId' => (int) $userId,
+                    'winnerId' => $userId !== null ? (int) $userId : 0,
                     'winnerName' => $userName,
                     'cardId' => (int) $card->id,
                     'pattern' => $pattern->name,
