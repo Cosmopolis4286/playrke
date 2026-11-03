@@ -51,7 +51,8 @@ final class BingoPrizePayoutService
             }
 
             if (in_array($cardPrize->prize_status, ['waiting', 'processing'], true)) {
-                $cardPrize->markAsSuspended();
+                $cardPrize->prize_status = 'suspended';
+                $cardPrize->save();
             } elseif ($cardPrize->prize_status === 'claimed') {
                 // Premio histórico posiblemente acreditado al vendedor: no
                 // revertir fondos automáticamente; requiere conciliación manual.
