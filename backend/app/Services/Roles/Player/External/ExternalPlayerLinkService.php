@@ -66,7 +66,7 @@ final class ExternalPlayerLinkService
 
         $seller = Seller::where('user_id', $userId)->first(['user_id']);
 
-        return $seller ? [(string) $seller->user_id] : [$userId];
+        return $seller ? [(string) $seller->user_id] : [];
     }
 
     /**
