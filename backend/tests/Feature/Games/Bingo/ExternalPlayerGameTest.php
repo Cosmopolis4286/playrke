@@ -3,6 +3,7 @@
 namespace Tests\Feature\Games\Bingo;
 
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
+use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Models\Country;
@@ -140,6 +141,31 @@ class ExternalPlayerGameTest extends TestCase
 
         $this->assertCount(1, $cardsB);
         $this->assertTrue($cardsB->contains((string) $cardB->id));
+    }
+
+    /** @test */
+    public function ambiguous_external_card_is_detected_and_never_assigned_to_the_seller() : void
+    {
+        $room = $this->makeRoom();
+        $roomUser = $this->makeSharedRoomUser($room);
+        $buyerA = $this->makeExternalPlayer($room, $roomUser, '+1000000091');
+        $buyerB = $this->makeExternalPlayer($room, $roomUser, '+1000000092');
+        $card = $this->makeCardForPlayer($room, $roomUser, $buyerA);
+
+        // Un cartón histórico ligado a dos compradores no tiene beneficiario
+        // inequívoco: nunca debe atribuirse al vendedor del room_user.
+        ExternalPlayerParticipation::recordFor($buyerB->id, BingoCard::class, $card->id);
+
+        $prize = new BingoCardPrize([
+            'creator_user_id' => (string) $this->creator->id,
+            'winning_card_id' => (string) $card->id,
+            'local_amount' => 10,
+        ]);
+
+        $this->assertTrue($prize->hasExternalBeneficiary());
+        $attributes = $prize->buildPaymentAttributes(null, 'pending', 'Beneficiario ambiguo');
+        $this->assertNull($attributes['user_id']);
+        $this->assertNull($attributes['external_player_id']);
     }
 
     /** @test */
