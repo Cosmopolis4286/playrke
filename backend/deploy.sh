@@ -77,6 +77,7 @@ log "Iniciando la aplicación, Reverb, workers, scheduler y proxy..."
 
 log "Generando cachés Laravel con el entorno de producción ya cargado..."
 "${COMPOSE[@]}" exec -T php php artisan optimize
+"${COMPOSE[@]}" exec -T php php artisan storage:link
 
 log "Reiniciando procesos persistentes para que lean la configuración actual..."
 "${COMPOSE[@]}" restart queue bingo-refunds scheduler reverb
