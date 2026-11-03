@@ -23,16 +23,16 @@ RUN apk add --no-cache $PHPIZE_DEPS \
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 RUN npm install -g pnpm@10.25.0
 
-WORKDIR /var/www
+WORKDIR /workspace/backend
 
-COPY composer.json composer.lock* ./
+COPY backend/composer.json backend/composer.lock* ./
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
 
-COPY package.json* pnpm-lock.yaml* ./
-RUN if [ -f package.json ]; then \
-        pnpm install --frozen-lockfile; \
-        pnpm store prune; \
-    fi
+WORKDIR /workspace
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY backend/package.json backend/package.json
+RUN pnpm install --frozen-lockfile --filter ./backend... \
+ && pnpm store prune
 
 # ── Stage 2: Producción ────────────────────────────────────────────────────────
 FROM php:8.4-fpm-alpine AS production
@@ -127,14 +127,15 @@ RUN mkdir -p /etc/supervisor/conf.d \
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-WORKDIR /var/www
+WORKDIR /workspace/backend
 
-COPY --from=deps /var/www/vendor ./vendor
-COPY --chown=www-data:www-data . .
+COPY --from=deps /workspace/backend/vendor ./vendor
+COPY --from=deps /workspace/node_modules /workspace/node_modules
+COPY --from=deps /workspace/backend/node_modules ./node_modules
+COPY --chown=www-data:www-data backend/ .
 
 RUN composer dump-autoload --optimize --classmap-authoritative --apcu
 
-COPY --from=deps /var/www/node_modules* ./node_modules/
 
 # La configuración pública del frontend se inyecta en build time.
 # Nunca pasar secretos privados como VITE_*: estas variables quedan en los assets.
@@ -166,7 +167,8 @@ RUN rm -rf \
     .phpunit.cache .php-cs-fixer.cache .phpstan.cache \
     build/ coverage.xml phpunit.xml
 
-RUN mkdir -p \
+RUN ln -s /workspace/backend /var/www \
+ && mkdir -p \
     storage/framework/cache/data \
     storage/framework/sessions \
     storage/framework/views \
@@ -192,7 +194,7 @@ CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisor.conf"]
 FROM nginx:1.27-alpine AS web
 
 COPY --from=production /var/www/public /var/www/public
-COPY docker/nginx/app.conf /etc/nginx/conf.d/default.conf
+COPY backend/docker/nginx/app.conf /etc/nginx/conf.d/default.conf
 
 RUN mkdir -p /var/www/public/storage \
  && chown -R nginx:nginx /var/www/public
