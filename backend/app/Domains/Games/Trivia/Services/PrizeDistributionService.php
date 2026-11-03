@@ -140,12 +140,13 @@ final class PrizeDistributionService
             return null;
         }
 
-        // Preparar el registro para el FSM de GamePrizeService: solo se
-        // reinicia a 'waiting' si aún no se intentó pagar (evita pisar
-        // 'processing'/'claimed' si esto se llama dos veces sobre el mismo ganador).
-        if ($participant->final_rank === null) {
+        // GameEngineService persists final_rank before invoking this service.
+        // Therefore final_rank cannot be used to determine whether the prize FSM
+        // was initialized. Initialize only when prize_status is still null; this
+        // preserves processing/claimed/suspended/disputed states on retries.
+        if ($participant->prize_status === null) {
             $participant->update([
-                'final_rank' => $rank,
+                'final_rank' => $participant->final_rank ?? $rank,
                 'prize_won' => $amount,
                 'status' => 'winner',
                 'prize_status' => 'waiting',
