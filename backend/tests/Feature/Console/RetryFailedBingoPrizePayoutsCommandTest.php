@@ -3,6 +3,7 @@
 namespace Tests\Feature\Console;
 
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
+use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrizePayment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -20,8 +21,7 @@ class RetryFailedBingoPrizePayoutsCommandTest extends TestCase
             $exhaustedId = $this->insertPrize('processing');
 
             for ($attempt = 0; $attempt < 5; $attempt++) {
-                DB::table('bingo_card_prize_payments')->insert([
-                    'id' => (string) (970000000000000100 + $attempt),
+                BingoCardPrizePayment::create([
                     'card_prize_id' => $exhaustedId,
                     'payment_method' => 'system_payment',
                     'room_id' => '970000000000000001',
@@ -29,10 +29,11 @@ class RetryFailedBingoPrizePayoutsCommandTest extends TestCase
                     'currency_id' => '970000000000000003',
                     'payment_amount' => 5,
                     'payment_status' => 'failed',
-                    'created_at' => now()->subMinutes(10),
-                    'updated_at' => now()->subMinutes(10),
+                    'processed_at' => now()->subMinutes(10),
                 ]);
             }
+
+            $this->assertSame(5, BingoCardPrize::findOrFail($exhaustedId)->payments()->count());
 
             // Usa el servicio real: BingoPrizePayoutService es final y un
             // comprador externo debe quedar suspendido, nunca acreditado
