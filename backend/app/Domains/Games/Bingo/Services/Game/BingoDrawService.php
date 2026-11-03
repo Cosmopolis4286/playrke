@@ -115,7 +115,28 @@ final class BingoDrawService
 
         /** @var array{winnerData: array<string,mixed>, broadcast: array<string,mixed>}|null $txResult */
         $txResult = DB::transaction(function() use ($room, $round, $roundId, $pattern, $cardId, $lastDrawId, $isDemoRoom, &$cardPrize) {
+            // Mantener el mismo orden de locks que BingoCardPaymentReviewService::reject():
+            // primero pagos y después cartón. Así un rechazo concurrente no puede
+            // confirmar un pago inválido mientras este proceso registra un ganador.
+            $cardLotId = BingoCard::where('id', $cardId)
+                ->where('room_id', (string) $room->id)
+                ->value('card_lot_id');
+
+            if (! $cardLotId) {
+                return null;
+            }
+
+            $payments = BingoCardPayment::where('card_lot_id', (string) $cardLotId)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+
+            $cardLot = BingoCardLot::where('id', (string) $cardLotId)
+                ->lockForUpdate()
+                ->first();
+
             $card = BingoCard::where('id', $cardId)
+                ->where('room_id', (string) $room->id)
                 ->lockForUpdate()
                 ->with(['roomUser.user', 'cardLot'])
                 ->first();
@@ -191,6 +212,23 @@ final class BingoDrawService
 
             if ((int) $card->status !== BingoCard::STATUS_ACTIVE) {
                 // Otro proceso lo reclamó en un estado distinto (cancelled, etc.)
+                return null;
+            }
+
+            // Última barrera de seguridad: no confiar solo en el filtro del caller
+            // ni en el cache del sorteo. Revalidar lote y pago bajo los locks tomados.
+            if (
+                ! $cardLot
+                || $cardLot->status !== 'ACTIVE'
+                || $payments->contains(fn ($payment) => $payment->payment_status !== 'APPROVED')
+            ) {
+                Log::warning('[BingoDrawService] Reclamo de cartón no elegible bloqueado', [
+                    'card_id' => (string) $card->id,
+                    'card_lot_id' => (string) $cardLotId,
+                    'lot_status' => $cardLot?->status,
+                    'payment_statuses' => $payments->pluck('payment_status')->all(),
+                ]);
+
                 return null;
             }
 
@@ -456,15 +494,17 @@ final class BingoDrawService
             || ! isset($this->activeCardsCache[$withKey]);
 
         $chipIndex = $this->currentChipIndex;
+        // Los pagos pueden pasar de PENDING a APPROVED/REJECTED sin cambiar
+        // el número total de cartones. Por eso la recarga es temporal, no depende
+        // de comparar únicamente el count de ACTIVE.
         $periodicStale = ! $baseStale
-            && $this->activeCardsCacheCount !== null
             && $chipIndex > 0
-            && ($chipIndex % self::ACTIVE_CARDS_REFRESH_INTERVAL === 0)
-            && BingoCard::where('room_id', $roomId)->where('status', BingoCard::STATUS_ACTIVE)->count() !== $this->activeCardsCacheCount;
+            && ($chipIndex % self::ACTIVE_CARDS_REFRESH_INTERVAL === 0);
 
         if ($baseStale || $periodicStale) {
             $loaded = BingoCard::where('room_id', $roomId)
                 ->where('status', BingoCard::STATUS_ACTIVE)
+                ->eligibleForDraw()
                 ->with($with)
                 ->get();
 
