@@ -170,6 +170,7 @@ RUN rm -rf \
 RUN rm -rf /var/www \
  && ln -s /workspace/backend /var/www \
  && mkdir -p \
+    storage/app/public \
     storage/framework/cache/data \
     storage/framework/sessions \
     storage/framework/views \
