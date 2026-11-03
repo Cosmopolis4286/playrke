@@ -1126,6 +1126,16 @@ final class BingoDrawService
             ]);
         }
 
+        // Persistir el inicio antes de emitir la primera ficha. Esto bloquea
+        // aprobaciones tardías de comprobantes aunque la sala se haya iniciado
+        // manualmente antes de su hora programada.
+        if ($round->status !== 'IN_PROGRESS') {
+            $round->forceFill([
+                'status' => 'IN_PROGRESS',
+                'start_time' => $round->start_time ?? now(),
+            ])->save();
+        }
+
         $roundId = (string) $round->id;
 
         // 3. Cargar el patrón de la ronda (determina qué celdas deben completarse)
