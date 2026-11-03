@@ -134,7 +134,7 @@ COPY --from=deps /workspace/node_modules /workspace/node_modules
 COPY --from=deps /workspace/backend/node_modules ./node_modules
 COPY --chown=www-data:www-data backend/ .
 
-RUN composer dump-autoload --optimize --classmap-authoritative --apcu
+RUN composer dump-autoload --no-scripts --optimize --classmap-authoritative --apcu
 
 
 # La configuración pública del frontend se inyecta en build time.
@@ -179,7 +179,7 @@ RUN rm -rf /var/www \
  && chmod -R 775 storage bootstrap/cache
 
 # Entrypoint inline
-RUN printf '#!/bin/sh\nset -e\nexec "$@"\n' > /usr/local/bin/entrypoint.sh \
+RUN printf '#!/bin/sh\nset -e\nphp /var/www/artisan package:discover --ansi\nexec "$@"\n' > /usr/local/bin/entrypoint.sh \
  && chmod +x /usr/local/bin/entrypoint.sh
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
