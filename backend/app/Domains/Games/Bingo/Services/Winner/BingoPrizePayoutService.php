@@ -37,27 +37,36 @@ final class BingoPrizePayoutService
         // vendedor. El room user NO identifica al beneficiario económico.
         // Resolver el dueño desde el pago original y retener el premio: no hay
         // wallet para ExternalPlayer ni autorización para acreditar al vendedor.
-        $externalPlayerIds = BingoCardPayment::withTrashed()
-            ->where('card_lot_id', (string) $cardPrize->card_lot_id)
-            ->whereNotNull('external_player_id')
-            ->distinct()
-            ->pluck('external_player_id')
-            ->map(fn ($id) => (string) $id)
-            ->values();
+        $externalPlayerIds = collect();
+        if ($cardPrize->external_player_id) {
+            $externalPlayerIds->push((string) $cardPrize->external_player_id);
+        } elseif ($cardPrize->card_lot_id) {
+            $externalPlayerIds = BingoCardPayment::withTrashed()
+                ->where('card_lot_id', (string) $cardPrize->card_lot_id)
+                ->whereNotNull('external_player_id')
+                ->distinct()
+                ->pluck('external_player_id')
+                ->map(fn ($id) => (string) $id)
+                ->values();
+        }
 
-        if ($cardPrize->external_player_id || $externalPlayerIds->isNotEmpty()) {
+        if ($externalPlayerIds->isNotEmpty()) {
+            $needsSave = false;
             if (! $cardPrize->external_player_id && $externalPlayerIds->count() === 1) {
                 $cardPrize->external_player_id = $externalPlayerIds->first();
+                $needsSave = true;
             }
 
             if (in_array($cardPrize->prize_status, ['waiting', 'processing'], true)) {
                 $cardPrize->prize_status = 'suspended';
-                $cardPrize->save();
+                $needsSave = true;
             } elseif ($cardPrize->prize_status === 'claimed') {
                 // Premio histórico posiblemente acreditado al vendedor: no
                 // revertir fondos automáticamente; requiere conciliación manual.
                 $cardPrize->markAsDisputed();
-            } else {
+            }
+
+            if ($needsSave) {
                 $cardPrize->save();
             }
 
