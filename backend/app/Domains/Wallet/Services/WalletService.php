@@ -1393,7 +1393,7 @@ final class WalletService
         $kycLevel = (int) ($wallet->user?->kyc_level ?? 0);
         $this->walletLimitService->assertWithinLimits($wallet, $amount, $kycLevel);
 
-        $wallet = DB::transaction(function() use ($wallet, $amount, $directoryId, $directoryType, $notes, &$withdrawalMovement) {
+        $wallet = DB::transaction(function() use ($wallet, $amount, $directoryId, $directoryType, $notes, $userId, &$withdrawalMovement) {
             // Serializar TODAS las solicitudes de retiro de esta wallet. El
             // modelo recibido por el controller puede estar desactualizado:
             // nunca validar saldo ni operaciones pendientes sin releerlo bajo lock.
