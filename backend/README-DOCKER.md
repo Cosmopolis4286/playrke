@@ -90,14 +90,14 @@ Si necesitas controlar cada paso:
 docker compose --env-file .env.prod -f docker-compose.prod.yml config --quiet
 docker compose --env-file .env.prod -f docker-compose.prod.yml build php nginx
 docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --wait --wait-timeout 180 mysql redis
-docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm --no-deps --entrypoint php php artisan migrate --force --no-interaction
+docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm --no-deps --entrypoint sh php -c 'php artisan package:discover --ansi && php artisan migrate --force --no-interaction'
 docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build --remove-orphans --wait --wait-timeout 300
-docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T php php artisan optimize
+for service in php reverb queue bingo-refunds scheduler; do docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T "$service" php artisan optimize; done
 docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T php php artisan storage:link
 docker compose --env-file .env.prod -f docker-compose.prod.yml restart queue bingo-refunds scheduler reverb
 ~~~
 
-Las migraciones se ejecutan explícitamente antes de iniciar los workers. No se ejecutan desde el entrypoint de cada contenedor, para evitar carreras entre PHP-FPM, workers, Reverb y scheduler.
+Las migraciones se ejecutan explícitamente una sola vez antes de iniciar los workers. El entrypoint solo genera el manifiesto de paquetes con el entorno ya cargado; no ejecuta migraciones, evitando carreras entre PHP-FPM, workers, Reverb y scheduler. Las cachés se generan en cada contenedor porque sus sistemas de archivos no son compartidos.
 
 ## 4. Verificación posterior
 
