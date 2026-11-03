@@ -1,206 +1,133 @@
-# Docker Production Setup for PlayRKE
+# Despliegue de producción con Docker
 
-This guide explains how to deploy PlayRKE in production using Docker and Docker Compose.
+Esta guía corresponde exclusivamente al stack de producción ubicado en backend/docker-compose.prod.yml.
 
-## 🏗️ Architecture
+> **Importante:** el archivo docker-compose.prod.yml de la raíz del monorepo es un entorno de desarrollo y no debe utilizarse para desplegar producción. El stack de producción está dentro de backend/.
 
-The production setup includes:
+## Arquitectura
 
-- **Nginx**: Web server and reverse proxy
-- **PHP-FPM**: Laravel application server
-- **MySQL 8.0**: Database server
-- **Redis 7**: Caching and session storage
-- **Laravel Reverb**: WebSocket server for real-time features
-- **Queue Worker**: Background job processing
-- **Scheduler**: Cron job scheduler
+- **Traefik:** entrada HTTPS y certificados Let's Encrypt.
+- **Nginx:** único servicio HTTP expuesto a Traefik; sirve los recursos públicos y reenvía PHP por FastCGI.
+- **PHP-FPM:** ejecuta Laravel.
+- **MySQL y Redis:** persistencia, sesiones, caché y colas.
+- **Reverb:** WebSockets.
+- **Workers:** colas generales/Bingo y reembolsos de Bingo en procesos separados.
+- **Scheduler:** ejecuta las tareas programadas de Laravel.
 
-## 📋 Prerequisites
+Traefik no debe enviar tráfico HTTP directamente a PHP-FPM: PHP-FPM habla FastCGI, no HTTP. El servicio Nginx es el puente HTTP/FastCGI.
 
-- Docker 20.10+
-- Docker Compose 2.0+
-- At least 2GB RAM
-- 10GB+ disk space
+## Requisitos
 
-## 🚀 Quick Start
+- Docker Engine.
+- Docker Compose v2 (comando docker compose, no el binario antiguo docker-compose).
+- Dominio apuntando al servidor y puertos TCP 80/443 disponibles.
+- Memoria, almacenamiento y copias de seguridad dimensionados para producción.
 
-1. **Clone and navigate to the backend directory:**
-   ```bash
-   cd backend
-   ```
+## 1. Preparar el entorno
 
-2. **Configure environment:**
-   ```bash
-   cp .env.example .env.production
-   # Edit .env.production with your production settings
-   ```
+Desde el directorio backend/:
 
-3. **Deploy with the automated script:**
-   ```bash
-   chmod +x deploy.sh
-   ./deploy.sh
-   ```
+~~~bash
+cp .env.example .env.prod
+~~~
 
-## ⚙️ Manual Deployment
+Edita .env.prod. Como mínimo, establece valores reales para:
 
-If you prefer to deploy manually:
+| Variable | Requisito |
+|---|---|
+| APP_ENV | production |
+| APP_DEBUG | false |
+| APP_KEY | Clave Laravel con prefijo base64: |
+| APP_URL | URL HTTPS del dominio |
+| FRONTEND_URL | URL HTTPS pública |
+| APP_DOMAIN | Dominio sin protocolo |
+| ACME_EMAIL | Correo válido para Let's Encrypt |
+| DB_HOST | mysql |
+| DB_ROOT_PASSWORD, DB_PASSWORD | Contraseñas únicas y robustas |
+| REDIS_HOST | redis |
+| REDIS_PASSWORD | Secreto robusto |
+| REVERB_APP_ID, REVERB_APP_KEY, REVERB_APP_SECRET | Valores únicos y secretos |
+| SESSION_SECURE_COOKIE | true |
+| TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY | Credenciales reales de Cloudflare Turnstile |
+| LOG_LEVEL | Nivel adecuado para producción, por ejemplo error |
 
-1. **Build and start services:**
-   ```bash
-   docker-compose -f docker-compose.prod.yml up --build -d
-   ```
+Genera secretos fuera del repositorio. Por ejemplo:
 
-2. **Run migrations:**
-   ```bash
-   docker-compose -f docker-compose.prod.yml exec php php artisan migrate --force
-   ```
+~~~bash
+printf 'APP_KEY=base64:%s\n' "$(openssl rand -base64 32 | tr -d '\n')"
+openssl rand -hex 32 # contraseña DB/Redis
+openssl rand -hex 16 # identificador o clave Reverb
+openssl rand -hex 32 # secreto Reverb
+~~~
 
-3. **Optimize application:**
-   ```bash
-   docker-compose -f docker-compose.prod.yml exec php php artisan config:cache
-   docker-compose -f docker-compose.prod.yml exec php php artisan route:cache
-   docker-compose -f docker-compose.prod.yml exec php php artisan view:cache
-   ```
+Configura además las variables del resto de integraciones que utilice tu entorno. No reutilices valores del entorno local ni guardes .env.prod en Git.
 
-## 🔧 Configuration
+## 2. Validar y desplegar
 
-### Environment Variables
+El script valida variables críticas, comprueba la configuración de Compose, espera a MySQL/Redis, ejecuta las migraciones una sola vez y luego inicia el stack:
 
-Key production settings in `.env.production`:
+~~~bash
+chmod +x deploy.sh
+./deploy.sh
+~~~
 
-- `APP_ENV=production`
-- `APP_DEBUG=false`
-- `DB_HOST=mysql`
-- `REDIS_HOST=redis`
-- `SESSION_DRIVER=redis`
-- `CACHE_DRIVER=redis`
-- `QUEUE_CONNECTION=redis`
+También puede ejecutarse desde otro directorio usando la ruta al script.
 
-### SSL/HTTPS Setup
+El script requiere que .env.prod exista previamente. No genera claves ni contraseñas de ejemplo. Si la validación falla, corrige el archivo antes de continuar.
 
-1. Place SSL certificates in `docker/nginx/ssl/`:
-   ```
-   docker/nginx/ssl/cert.pem
-   docker/nginx/ssl/key.pem
-   ```
+## 3. Despliegue manual
 
-2. Update `nginx.conf` to use HTTPS (uncomment SSL section)
+Si necesitas controlar cada paso:
 
-### Database Configuration
+~~~bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml config --quiet
+docker compose --env-file .env.prod -f docker-compose.prod.yml build php nginx
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --wait --wait-timeout 180 mysql redis
+docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm --no-deps --entrypoint php php artisan migrate --force --no-interaction
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build --remove-orphans --wait --wait-timeout 300
+docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T php php artisan optimize
+docker compose --env-file .env.prod -f docker-compose.prod.yml exec -T php php artisan storage:link
+docker compose --env-file .env.prod -f docker-compose.prod.yml restart queue bingo-refunds scheduler reverb
+~~~
 
-The setup uses MySQL 8.0 with optimized settings for production. Default credentials:
-- Database: `playrke`
-- User: `playrke_user`
-- Password: `playrke_password`
+Las migraciones se ejecutan explícitamente antes de iniciar los workers. No se ejecutan desde el entrypoint de cada contenedor, para evitar carreras entre PHP-FPM, workers, Reverb y scheduler.
 
-Change these in `.env.production` and the docker-compose file.
+## 4. Verificación posterior
 
-## 📊 Monitoring
+~~~bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml ps
+docker compose --env-file .env.prod -f docker-compose.prod.yml logs --tail=200 php nginx queue bingo-refunds scheduler reverb
+~~~
 
-### View Logs
-```bash
-# All services
-docker-compose -f docker-compose.prod.yml logs -f
+Antes de habilitar tráfico real, verifica:
 
-# Specific service
-docker-compose -f docker-compose.prod.yml logs -f php
-docker-compose -f docker-compose.prod.yml logs -f nginx
-```
+- HTTPS y renovación de certificados.
+- Acceso a la aplicación a través de Nginx/Traefik.
+- Conexión a MySQL y Redis.
+- Conexión WebSocket de Reverb.
+- Procesamiento de colas generales y bingo-refunds.
+- Ejecución del scheduler.
+- Lectura/escritura de archivos públicos.
+- Flujos de compra, sorteo, premio y reembolso en staging.
 
-### Check Container Status
-```bash
-docker-compose -f docker-compose.prod.yml ps
-```
+## Operación
 
-### Access Application Shell
-```bash
-docker-compose -f docker-compose.prod.yml exec php sh
-```
+Ver logs:
 
-## 🔒 Security Considerations
+~~~bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml logs -f
+~~~
 
-1. **Change default passwords** before deploying to production
-2. **Use HTTPS** by configuring SSL certificates
-3. **Set up firewall** rules to restrict access
-4. **Regular updates** of Docker images
-5. **Backup strategy** for database and storage
+Reiniciar workers después de desplegar código:
 
-## 📁 Important Files
+~~~bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml restart queue bingo-refunds scheduler reverb
+~~~
 
-- `docker-compose.prod.yml`: Production services configuration
-- `docker/nginx/nginx.conf`: Nginx web server configuration
-- `docker/mysql/my.cnf`: MySQL optimization settings
-- `docker/redis/redis.conf`: Redis configuration
-- `docker/entrypoint.sh`: Container startup script
-- `deploy.sh`: Automated deployment script
+Detener el stack:
 
-## 🔄 Common Commands
+~~~bash
+docker compose --env-file .env.prod -f docker-compose.prod.yml down
+~~~
 
-### Stop Services
-```bash
-docker-compose -f docker-compose.prod.yml down
-```
-
-### Rebuild Services
-```bash
-docker-compose -f docker-compose.prod.yml up --build -d
-```
-
-### Clear Caches
-```bash
-docker-compose -f docker-compose.prod.yml exec php php artisan cache:clear
-docker-compose -f docker-compose.prod.yml exec php php artisan config:clear
-```
-
-### Backup Database
-```bash
-docker-compose -f docker-compose.prod.yml exec mysql mysqldump -u root -p playrke > backup.sql
-```
-
-### Restore Database
-```bash
-docker-compose -f docker-compose.prod.yml exec -T mysql mysql -u root -p playrke < backup.sql
-```
-
-## 🐛 Troubleshooting
-
-### Permission Issues
-```bash
-docker-compose -f docker-compose.prod.yml exec php chown -R www-data:www-data storage bootstrap/cache
-docker-compose -f docker-compose.prod.yml exec php chmod -R 775 storage bootstrap/cache
-```
-
-### Queue Issues
-```bash
-docker-compose -f docker-compose.prod.yml restart queue
-```
-
-### Migration Issues
-```bash
-docker-compose -f docker-compose.prod.yml exec php php artisan migrate:rollback
-docker-compose -f docker-compose.prod.yml exec php php artisan migrate --force
-```
-
-## 📈 Performance Optimization
-
-The setup includes several optimizations:
-
-- **Nginx**: Gzip compression, static asset caching
-- **PHP-FPM**: Optimized for production
-- **MySQL**: InnoDB buffer pool, query logging
-- **Redis**: Memory management, AOF persistence
-- **Laravel**: Config/route/view caching
-
-## 🌐 Domain Configuration
-
-1. Update `APP_URL` and `FRONTEND_URL` in `.env.production`
-2. Update `server_name` in `nginx.conf`
-3. Update `SESSION_DOMAIN` in `.env.production`
-4. Update `SANCTUM_STATEFUL_DOMAINS` in `.env.production`
-
-## 📞 Support
-
-For issues related to:
-- **Docker setup**: Check this README first
-- **Laravel application**: Check Laravel documentation
-- **Database**: Check MySQL logs
-- **Web server**: Check Nginx logs
+No utilices down -v en producción: eliminaría volúmenes persistentes. Mantén copias de seguridad verificadas de MySQL y de los archivos públicos antes de cambios de esquema o despliegues importantes.
