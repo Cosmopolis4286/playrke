@@ -215,8 +215,8 @@ final class BingoCardLotRefundJob implements ShouldQueue
         ExternalPlayer $buyer,
         float $platformReimbursement,
     ) : void {
-        app(\\App\\Services\\Platform\\FinancialReconciliationService::class)->record(
-            type: \\App\\Models\\Platform\\FinancialReconciliationItem::TYPE_EXTERNAL_PLAYER_REFUND_PENDING,
+        app(\App\Services\Platform\FinancialReconciliationService::class)->record(
+            type: \App\Models\Platform\FinancialReconciliationItem::TYPE_EXTERNAL_PLAYER_REFUND_PENDING,
             message: "Devolución al comprador externo pendiente: el vendedor debe entregar el importe completo de la venta del lote #{$lot->id}.",
             amount: (float) $lot->sale_amount,
             currencyId: $lot->currency_id ? (string) $lot->currency_id : null,
