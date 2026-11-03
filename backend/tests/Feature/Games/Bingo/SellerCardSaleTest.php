@@ -372,7 +372,7 @@ class SellerCardSaleTest extends TestCase
         $agencySeller = $this->makeSeller($this->commerceC);
         Seller::where('user_id', $agencySeller->id)->update(['subsidiary_id' => $agencyId]);
 
-        $scope = app(\\App\\Services\\Roles\\Player\\External\\ExternalPlayerLinkService::class);
+        $scope = app(\App\Services\Roles\Player\External\ExternalPlayerLinkService::class);
 
         // La comercializadora ve vendedores directos y de sus agencias, nunca otra red.
         $this->assertEqualsCanonicalizing(
