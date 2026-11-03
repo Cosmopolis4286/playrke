@@ -59,6 +59,8 @@ class RetryFailedBingoPrizePayoutsCommandTest extends TestCase
     private function insertPrize(string $status) : string
     {
         $id = (string) random_int(971000000000000000, 979999999999999999);
+        $cardId = (string) random_int(961000000000000000, 969999999999999999);
+        $roundId = (string) random_int(951000000000000000, 959999999999999999);
 
         DB::table('bingo_card_prizes')->insert([
             'id' => $id,
@@ -66,9 +68,9 @@ class RetryFailedBingoPrizePayoutsCommandTest extends TestCase
             'creator_user_id' => '970000000000000002',
             'room_user_id' => '970000000000000004',
             'card_lot_id' => '970000000000000005',
-            'winning_card_id' => '970000000000000006',
+            'winning_card_id' => $cardId,
             'currency_id' => '970000000000000003',
-            'round_id' => '970000000000000007',
+            'round_id' => $roundId,
             'status' => 'ACTIVE',
             'prize_type' => 'full_house',
             'winning_pattern' => 'full_house',
