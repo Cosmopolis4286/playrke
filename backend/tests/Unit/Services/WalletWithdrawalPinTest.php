@@ -153,9 +153,16 @@ class WalletWithdrawalPinTest extends TestCase
 
     private function makeDirectory(Wallet $wallet) : array
     {
-        // requestWithdraw() no valida el directorio en sí (eso ocurre en el
-        // FormRequest/controller) — cualquier string sirve para este test.
-        return ['directoryId' => 'dir-1', 'directoryType' => 'pago_movil'];
+        // Usar un destino persistido y propiedad del usuario: requestWithdraw()
+        // valida titularidad y estado ACTIVE dentro de la transacción.
+        $directory = BinanceAccount::create([
+            'account_type' => 'B',
+            'data_value' => 'usuario-binance-' . $wallet->user_id,
+            'user_id' => $wallet->user_id,
+            'status' => 'ACTIVE',
+        ]);
+
+        return ['directoryId' => (string) $directory->id, 'directoryType' => 'binance'];
     }
 
     private function makeWalletWithUser(float $balance = 1000.0, ?string $pin = null) : Wallet
