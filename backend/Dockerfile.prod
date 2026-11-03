@@ -30,7 +30,7 @@ RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
 
 COPY package.json* pnpm-lock.yaml* ./
 RUN if [ -f package.json ]; then \
-        pnpm install --frozen-lockfile --prod; \
+        pnpm install --frozen-lockfile; \
         pnpm store prune; \
     fi
 
@@ -135,6 +135,24 @@ COPY --chown=www-data:www-data . .
 RUN composer dump-autoload --optimize --classmap-authoritative --apcu
 
 COPY --from=deps /var/www/node_modules* ./node_modules/
+
+# La configuración pública del frontend se inyecta en build time.
+# Nunca pasar secretos privados como VITE_*: estas variables quedan en los assets.
+ARG VITE_API_URL
+ARG VITE_APP_NAME=PlayRKE
+ARG VITE_REVERB_APP_KEY
+ARG VITE_REVERB_HOST
+ARG VITE_REVERB_PORT=443
+ARG VITE_REVERB_SCHEME=https
+ARG VITE_TURNSTILE_SITE_KEY
+ENV VITE_API_URL=${VITE_API_URL} \
+    VITE_APP_NAME=${VITE_APP_NAME} \
+    VITE_REVERB_APP_KEY=${VITE_REVERB_APP_KEY} \
+    VITE_REVERB_HOST=${VITE_REVERB_HOST} \
+    VITE_REVERB_PORT=${VITE_REVERB_PORT} \
+    VITE_REVERB_SCHEME=${VITE_REVERB_SCHEME} \
+    VITE_TURNSTILE_SITE_KEY=${VITE_TURNSTILE_SITE_KEY}
+
 RUN if [ -f package.json ] && grep -q '"build"' package.json; then \
         npm install -g pnpm@10.25.0 && pnpm run build; \
     fi \
