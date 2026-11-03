@@ -215,7 +215,7 @@ final class BingoCardLotRefundJob implements ShouldQueue
     ) : void {
         $item = app(\App\Services\Platform\FinancialReconciliationService::class)->record(
             type: \App\Models\Platform\FinancialReconciliationItem::TYPE_EXTERNAL_PLAYER_REFUND_PENDING,
-            message: "Devolución al comprador externo pendiente: el vendedor debe entregar el importe completo de la venta del lote #{$lot->id}.",
+            message: "Devolución externa pendiente: vendedor #{$lot->seller_user_id} debe entregar a {$buyer->first_name} {$buyer->last_name} el importe completo del lote #{$lot->id}.",
             amount: (float) $lot->sale_amount,
             currencyId: $lot->currency_id ? (string) $lot->currency_id : null,
             roomId: (string) $room->id,
