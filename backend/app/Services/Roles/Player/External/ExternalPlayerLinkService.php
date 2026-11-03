@@ -64,9 +64,20 @@ final class ExternalPlayerLinkService
             return $subsidiary->networkUserIds();
         }
 
-        $seller = Seller::where('user_id', $userId)->first(['user_id']);
+        $seller = Seller::where('user_id', $userId)->first(['user_id', 'subsidiary_id']);
 
-        return $seller ? [(string) $seller->user_id] : [];
+        if (! $seller) {
+            return [];
+        }
+
+        // Un vendedor adscrito a una agencia hereda el alcance de esa
+        // agencia; un vendedor directo conserva acceso únicamente a sus
+        // propios compradores.
+        if ($seller->subsidiary_id !== null) {
+            return Subsidiary::whereKey($seller->subsidiary_id)->first()?->networkUserIds() ?? [];
+        }
+
+        return [(string) $seller->user_id];
     }
 
     /**
