@@ -43,14 +43,15 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
             // Agrupa intentos persistidos por premio. La subconsulta filtra
             // explícitamente SoftDeletes y evita diferencias entre el conteo
             // de la relación y el SQL agregado generado por has().
-            $exhaustedPrizeIds = DB::table('bingo_card_prize_payments')
-                ->select('card_prize_id')
-                ->whereNull('deleted_at')
-                ->groupBy('card_prize_id')
+            $exhaustedPayments = DB::table('bingo_card_prize_payments')
+                ->selectRaw('1')
+                ->whereColumn('bingo_card_prize_payments.card_prize_id', 'bingo_card_prizes.id')
+                ->whereNull('bingo_card_prize_payments.deleted_at')
+                ->groupBy('bingo_card_prize_payments.card_prize_id')
                 ->havingRaw('COUNT(*) >= ?', [PrizePayoutRetryPolicy::MAX_ATTEMPTS]);
 
             $exhausted = BingoCardPrize::whereIn('prize_status', ['waiting', 'processing'])
-                ->whereIn('id', $exhaustedPrizeIds)
+                ->whereExists($exhaustedPayments)
                 ->count();
 
             if ($exhausted > 0) {
@@ -69,7 +70,14 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
             //
             // La subconsulta excluye premios que ya alcanzaron el límite de intentos.
             BingoCardPrize::whereIn('prize_status', ['waiting', 'processing'])
-                ->whereNotIn('id', $exhaustedPrizeIds)
+                ->whereNotExists(function($query) {
+                    $query->selectRaw('1')
+                        ->from('bingo_card_prize_payments as exhausted_payments')
+                        ->whereColumn('exhausted_payments.card_prize_id', 'bingo_card_prizes.id')
+                        ->whereNull('exhausted_payments.deleted_at')
+                        ->groupBy('exhausted_payments.card_prize_id')
+                        ->havingRaw('COUNT(*) >= ?', [PrizePayoutRetryPolicy::MAX_ATTEMPTS]);
+                })
                 ->chunkById(50, function($chunk) use ($payoutService, &$retried, &$skipped) {
                     foreach ($chunk as $cardPrize) {
                         // Cargar solo el último payment de cada modelo individualmente:
