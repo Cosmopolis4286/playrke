@@ -215,7 +215,7 @@ final class BingoCardLotRefundJob implements ShouldQueue
     ) : void {
         $item = app(\App\Services\Platform\FinancialReconciliationService::class)->record(
             type: \App\Models\Platform\FinancialReconciliationItem::TYPE_EXTERNAL_PLAYER_REFUND_PENDING,
-            message: "Devolución externa pendiente: vendedor #{$lot->seller_user_id} debe entregar a {$buyer->first_name} {$buyer->last_name} el importe completo del lote #{$lot->id}.",
+            message: "Devolución externa pendiente: vendedor #" . ($lot->seller_user_id ?: $lot->user_id) . " debe entregar a {$buyer->first_name} {$buyer->last_name} el importe completo del lote #{$lot->id}.",
             amount: (float) $lot->sale_amount,
             currencyId: $lot->currency_id ? (string) $lot->currency_id : null,
             roomId: (string) $room->id,
@@ -223,7 +223,7 @@ final class BingoCardLotRefundJob implements ShouldQueue
             idempotencyKey: "external-player-refund-delivery-{$lot->id}",
             details: [
                 'external_player_id' => (string) $buyer->id,
-                'seller_user_id' => (string) $lot->seller_user_id,
+                'seller_user_id' => (string) ($lot->seller_user_id ?: $lot->user_id),
                 'buyer_refund_amount' => (float) $lot->sale_amount,
                 'platform_reimbursement_to_seller' => round($platformReimbursement, 2),
                 'delivery_confirmation_required' => true,
@@ -291,10 +291,11 @@ final class BingoCardLotRefundJob implements ShouldQueue
             return null;
         }
 
-        $externalPlayerId = ExternalPlayerParticipation::ofParticipable(BingoCard::class)
-            ->where('participable_id', (string) $firstCardId)
+        $externalPlayerId = ExternalPlayerParticipation::withTrashed()
+            ->ofParticipable(BingoCard::class)
+            ->whereRaw('JSON_UNQUOTE(participable_id) = ?', [(string) $firstCardId])
             ->value('external_player_id');
 
-        return $externalPlayerId ? ExternalPlayer::find($externalPlayerId) : null;
+        return $externalPlayerId ? ExternalPlayer::withTrashed()->find($externalPlayerId) : null;
     }
 }
