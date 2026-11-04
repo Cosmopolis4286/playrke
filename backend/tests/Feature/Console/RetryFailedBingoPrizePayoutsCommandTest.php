@@ -34,6 +34,11 @@ class RetryFailedBingoPrizePayoutsCommandTest extends TestCase
             }
 
             $this->assertSame(5, BingoCardPrize::findOrFail($exhaustedId)->payments()->count());
+            $this->assertSame(5, DB::table('bingo_card_prize_payments')
+                ->where('card_prize_id', $exhaustedId)
+                ->where('payment_status', 'failed')
+                ->whereNull('deleted_at')
+                ->count());
 
             // Usa el servicio real: BingoPrizePayoutService es final y un
             // comprador externo debe quedar suspendido, nunca acreditado
