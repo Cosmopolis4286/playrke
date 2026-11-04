@@ -47,11 +47,16 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
                 ->select('card_prize_id')
                 ->whereNull('deleted_at')
                 ->groupBy('card_prize_id')
-                ->havingRaw('COUNT(*) >= ?', [PrizePayoutRetryPolicy::MAX_ATTEMPTS]);
+                ->havingRaw('COUNT(*) >= ?', [PrizePayoutRetryPolicy::MAX_ATTEMPTS])
+                ->pluck('card_prize_id')
+                ->map(static fn ($id) => (string) $id)
+                ->all();
 
-            $exhausted = BingoCardPrize::whereIn('prize_status', ['waiting', 'processing'])
-                ->whereIn('id', clone $exhaustedPrizeIds)
-                ->count();
+            $exhausted = $exhaustedPrizeIds === []
+                ? 0
+                : BingoCardPrize::whereIn('prize_status', ['waiting', 'processing'])
+                    ->whereIn('id', $exhaustedPrizeIds)
+                    ->count();
 
             if ($exhausted > 0) {
                 Log::warning('[Bingo:RetryPrizePayouts] Premios agotaron el máximo de intentos y requieren revisión manual', [
@@ -69,7 +74,7 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
             //
             // La subconsulta excluye premios que ya alcanzaron el límite de intentos.
             BingoCardPrize::whereIn('prize_status', ['waiting', 'processing'])
-                ->whereNotIn('id', clone $exhaustedPrizeIds)
+                ->when($exhaustedPrizeIds !== [], fn ($query) => $query->whereNotIn('id', $exhaustedPrizeIds))
                 ->chunkById(50, function($chunk) use ($payoutService, &$retried, &$skipped) {
                     foreach ($chunk as $cardPrize) {
                         // Cargar solo el último payment de cada modelo individualmente:
