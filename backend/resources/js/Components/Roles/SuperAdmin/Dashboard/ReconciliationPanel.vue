@@ -40,7 +40,12 @@ const ALERT_LABELS: Record<string, string> = {
           <p class="rc-header__sub">RKE que deben los comercios por ventas fuera del sistema y movimientos de dinero pendientes de conciliar</p>
         </div>
       </div>
-      <button class="rc-refresh" :class="{ 'rc-refresh--spin': loading }" :disabled="loading" @click="emit('refresh')">
+      <button
+        class="rc-refresh"
+        :class="{ 'rc-refresh--spin': loading }"
+        :disabled="loading"
+        @click="emit('refresh')"
+      >
         <i class="fas fa-sync-alt" />
       </button>
     </div>
