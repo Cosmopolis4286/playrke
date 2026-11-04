@@ -45,6 +45,7 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
             // de la relación y el SQL agregado generado por has().
             $exhaustedPrizeIds = DB::table('bingo_card_prize_payments')
                 ->select('card_prize_id')
+                ->where('payment_status', 'failed')
                 ->whereNull('deleted_at')
                 ->groupBy('card_prize_id')
                 ->havingRaw('COUNT(*) >= ?', [PrizePayoutRetryPolicy::MAX_ATTEMPTS])
@@ -82,8 +83,13 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
                         // que limita el resultado TOTAL de la relación a 1 fila global, no
                         // 1 por modelo — todos los demás modelos verían payments vacíos y
                         // bypassearían el backoff.
-                        $lastPayment = $cardPrize->payments()->latest('created_at')->first();
-                        $attempts = $cardPrize->payments()->count();
+                        $lastPayment = $cardPrize->payments()
+                            ->where('payment_status', 'failed')
+                            ->latest('created_at')
+                            ->first();
+                        $attempts = $cardPrize->payments()
+                            ->where('payment_status', 'failed')
+                            ->count();
 
                         if (! PrizePayoutRetryPolicy::isReadyToRetry($lastPayment?->created_at, $attempts)) {
                             $skipped++;
