@@ -53,10 +53,15 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
                 ->map(static fn ($id) => (string) $id)
                 ->all();
 
+            // Cuenta desde la tabla para no depender de scopes globales del modelo
+            // (por ejemplo, ámbitos de organización) que pueden ocultar premios
+            // que sí deben aparecer en el reporte operativo de agotados.
             $exhausted = $exhaustedPrizeIds === []
                 ? 0
-                : BingoCardPrize::whereIn('prize_status', ['waiting', 'processing'])
+                : DB::table('bingo_card_prizes')
+                    ->whereIn('prize_status', ['waiting', 'processing'])
                     ->whereIn('id', $exhaustedPrizeIds)
+                    ->whereNull('deleted_at')
                     ->count();
 
             if ($exhausted > 0) {
