@@ -7,6 +7,7 @@ import path from 'path'
 
 import type { PluginOption } from 'vite'
 import obfuscatorPluginRaw from 'vite-plugin-javascript-obfuscator'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 const obfuscatorPlugin = obfuscatorPluginRaw as unknown as (options: {
   include: string[]
@@ -14,7 +15,6 @@ const obfuscatorPlugin = obfuscatorPluginRaw as unknown as (options: {
   apply: 'build'
   options: Record<string, unknown>
 }) => PluginOption
-import { visualizer } from 'rollup-plugin-visualizer'
 
 // ---------------------------------------------
 // Archivos CSS globales que siempre se incluyen
@@ -162,7 +162,7 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       hmr: {
         host: 'localhost',
-        port: 5173,
+        port: 5173
       },
       cors: true,
       allowedHosts: ['localhost', '127.0.0.1', 'host.docker.internal', '.localhost']
