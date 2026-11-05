@@ -24,6 +24,9 @@ class FinancialReconciliationItem extends Model
     /** Lote reembolsado vendido antes del desglose financiero: no se pudo revertir su venta. */
     public const TYPE_LEGACY_LOT_NOT_REVERSED = 'LEGACY_LOT_NOT_REVERSED';
 
+    /** Venta offline de jugador externo revertida contablemente; el vendedor debe confirmar la entrega del dinero al comprador. */
+    public const TYPE_EXTERNAL_PLAYER_REFUND_PENDING = 'EXTERNAL_PLAYER_REFUND_PENDING';
+
     /** La wallet de plataforma no tenía saldo para devolver el RKE de una venta reembolsada. */
     public const TYPE_RKE_REVERSAL_FAILED = 'RKE_REVERSAL_FAILED';
 

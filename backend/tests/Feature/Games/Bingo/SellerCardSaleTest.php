@@ -5,6 +5,10 @@ namespace Tests\Feature\Games\Bingo;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob;
+use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
+use App\Domains\Wallet\Services\WalletService;
+use App\Models\Platform\FinancialReconciliationItem;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Games\Common\Utils\GameStatus;
@@ -943,6 +947,36 @@ class SellerCardSaleTest extends TestCase
 
         // Mismo comprador (mismo registro y mismo link en la sala), no un duplicado.
         $this->assertSame(1, \App\Models\Roles\Player\External\ExternalPlayer::count());
+    }
+
+    /** @test */
+    public function offline_external_player_refund_opens_a_delivery_reconciliation_item() : void
+    {
+        $this->sale($this->sellerA, $this->roomR1)->assertOk();
+
+        $lot = BingoCardLot::firstOrFail();
+        $this->assertSame('offline', $lot->financial_breakdown['channel']);
+
+        $job = new BingoCardLotRefundJob((string) $lot->id, (string) $this->roomR1->id);
+        $job->handle(app(WalletService::class), app(BingoRoomAuditLogger::class));
+
+        $item = FinancialReconciliationItem::where('lot_id', $lot->id)
+            ->where('type', FinancialReconciliationItem::TYPE_EXTERNAL_PLAYER_REFUND_PENDING)
+            ->first();
+
+        $this->assertNotNull($item, 'La devolución física al comprador debe quedar en conciliación.');
+        $this->assertSame('OPEN', $item->status);
+        $this->assertEqualsWithDelta((float) $lot->sale_amount, (float) $item->amount, 0.001);
+        $this->assertSame((string) $this->sellerA->id, (string) $item->details['seller_user_id']);
+        $this->assertNotEmpty($item->details['external_player_id']);
+        $this->assertTrue($item->details['delivery_confirmation_required']);
+        $this->assertSame('REFUNDED', $lot->fresh()->status);
+
+        // Reintentar el job no duplica la obligación de devolución.
+        $job->handle(app(WalletService::class), app(BingoRoomAuditLogger::class));
+        $this->assertSame(1, FinancialReconciliationItem::where('lot_id', $lot->id)
+            ->where('type', FinancialReconciliationItem::TYPE_EXTERNAL_PLAYER_REFUND_PENDING)
+            ->count());
     }
 
     /** @test */

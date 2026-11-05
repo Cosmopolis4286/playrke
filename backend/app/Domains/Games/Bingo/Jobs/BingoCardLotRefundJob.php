@@ -21,10 +21,16 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use Throwable;
 
 /**
- * Reembolsa un único BingoCardLot (cartón comprado) a la wallet del comprador.
+ * Revierte financieramente un único BingoCardLot (cartón comprado).
+ *
+ * En ventas con wallet acredita al comprador. En ventas offline de jugadores
+ * externos, devuelve al vendedor lo que la plataforma ya había cobrado y abre
+ * una conciliación pendiente para confirmar que el vendedor entregó al jugador
+ * externo el importe completo que recibió.
  *
  * Se despacha desde BingoRoomCrudService::refundCardLotsForRoom() en lugar de
  * procesar todos los lotes inline — esto desacopla la cancelación de sala del
@@ -95,9 +101,22 @@ final class BingoCardLotRefundJob implements ShouldQueue
                 //    se lo devuelve al comprador de su efectivo.
                 $offline = $reversal['channel'] === 'offline';
                 $amount = $offline ? (float) $reversal['refund_to_seller'] : (float) $lot->sale_amount;
+                $externalBuyer = $this->resolveExternalBuyer($lot);
 
                 if ($amount <= 0) {
-                    $this->completeLotRefund($lot, $room, $auditLogger, 0.0, 'Reembolso sin acreditación: el comercio devuelve al comprador el efectivo que cobró');
+                    if ($offline && $externalBuyer) {
+                        $this->recordExternalBuyerRefundObligation($lot, $room, $externalBuyer, $amount);
+                    }
+
+                    $this->completeLotRefund(
+                        $lot,
+                        $room,
+                        $auditLogger,
+                        0.0,
+                        $offline && $externalBuyer
+                            ? 'Reversión contable completada; devolución al comprador externo pendiente de confirmación'
+                            : 'Reembolso sin acreditación: el comercio devuelve al comprador el efectivo que cobró',
+                    );
 
                     return;
                 }
@@ -121,8 +140,6 @@ final class BingoCardLotRefundJob implements ShouldQueue
                 // la wallet del vendedor — pero debe quedar marcado
                 // explícitamente como dinero de un tercero que el vendedor
                 // debe entregar, no como saldo propio ganado.
-                $externalBuyer = $this->resolveExternalBuyer($lot);
-
                 $description = match (true) {
                     $offline => "Reembolso Bingo — Sala #{$room->id}: reintegro de lo cobrado por la plataforma"
                         . ($externalBuyer ? " (jugador externo {$externalBuyer->first_name} — ENTREGAR al comprador junto con el efectivo retenido, no es saldo propio)" : ''),
@@ -145,7 +162,19 @@ final class BingoCardLotRefundJob implements ShouldQueue
                     ] : [],
                 );
 
-                $this->completeLotRefund($lot, $room, $auditLogger, $amount, 'Reembolso acreditado');
+                if ($offline && $externalBuyer) {
+                    $this->recordExternalBuyerRefundObligation($lot, $room, $externalBuyer, $amount);
+                }
+
+                $this->completeLotRefund(
+                    $lot,
+                    $room,
+                    $auditLogger,
+                    $amount,
+                    $offline && $externalBuyer
+                        ? 'Reversión contable completada; devolución al comprador externo pendiente de confirmación'
+                        : 'Reembolso acreditado',
+                );
             });
         } catch (Throwable $e) {
             Log::error('[BingoCardLotRefundJob] Error al reembolsar', [
@@ -172,13 +201,40 @@ final class BingoCardLotRefundJob implements ShouldQueue
     }
 
     /**
-     * Resuelve el ExternalPlayer comprador real de este lote, si aplica.
-     * Un lote vendedor→externo vincula CADA cartón individual a su
-     * ExternalPlayer (ver BingoCardGenerationService::generateCards()) — con
-     * que uno tenga participación basta para identificar al comprador, ya
-     * que todos los cartones de un mismo lote pertenecen al mismo comprador
-     * (una sola llamada a generateCards() por compra).
+     * La reversión de una venta offline devuelve al vendedor lo que ya había
+     * transferido a la plataforma, pero el comprador externo no tiene wallet.
+     * El vendedor debe entregarle el importe completo de la venta. Se abre una
+     * conciliación pendiente para no confundir la reversión contable con la
+     * devolución física del dinero al comprador.
      */
+    private function recordExternalBuyerRefundObligation(
+        BingoCardLot $lot,
+        BingoRoom $room,
+        ExternalPlayer $buyer,
+        float $platformReimbursement,
+    ) : void {
+        $item = app(\App\Services\Platform\FinancialReconciliationService::class)->record(
+            type: \App\Models\Platform\FinancialReconciliationItem::TYPE_EXTERNAL_PLAYER_REFUND_PENDING,
+            message: "Devolución externa pendiente: vendedor #" . ($lot->seller_user_id ?: $lot->user_id) . " debe entregar a {$buyer->first_name} {$buyer->last_name} el importe completo del lote #{$lot->id}.",
+            amount: (float) $lot->sale_amount,
+            currencyId: $lot->currency_id ? (string) $lot->currency_id : null,
+            roomId: (string) $room->id,
+            lotId: (string) $lot->id,
+            idempotencyKey: "external-player-refund-delivery-{$lot->id}",
+            details: [
+                'external_player_id' => (string) $buyer->id,
+                'seller_user_id' => (string) ($lot->seller_user_id ?: $lot->user_id),
+                'buyer_refund_amount' => (float) $lot->sale_amount,
+                'platform_reimbursement_to_seller' => round($platformReimbursement, 2),
+                'delivery_confirmation_required' => true,
+            ],
+        );
+
+        if (! $item) {
+            throw new RuntimeException('No se pudo registrar la devolución pendiente del comprador externo.');
+        }
+    }
+
     /** Marca el lote REFUNDED, resuelve fallas previas y deja log + auditoría. */
     private function completeLotRefund(BingoCardLot $lot, BingoRoom $room, BingoRoomAuditLogger $auditLogger, float $amount, string $message) : void
     {
@@ -220,6 +276,14 @@ final class BingoCardLotRefundJob implements ShouldQueue
         );
     }
 
+    /**
+     * Resuelve el ExternalPlayer comprador real de este lote, si aplica.
+     * Un lote vendedor→externo vincula CADA cartón individual a su
+     * ExternalPlayer (ver BingoCardGenerationService::generateCards()) — con
+     * que uno tenga participación basta para identificar al comprador, ya
+     * que todos los cartones de un mismo lote pertenecen al mismo comprador
+     * (una sola llamada a generateCards() por compra).
+     */
     private function resolveExternalBuyer(BingoCardLot $lot) : ?ExternalPlayer
     {
         $firstCardId = BingoCard::where('card_lot_id', $lot->id)->value('id');
@@ -227,10 +291,11 @@ final class BingoCardLotRefundJob implements ShouldQueue
             return null;
         }
 
-        $externalPlayerId = ExternalPlayerParticipation::ofParticipable(BingoCard::class)
-            ->where('participable_id', (string) $firstCardId)
+        $externalPlayerId = ExternalPlayerParticipation::withTrashed()
+            ->ofParticipable(BingoCard::class)
+            ->whereRaw('JSON_UNQUOTE(participable_id) = ?', [(string) $firstCardId])
             ->value('external_player_id');
 
-        return $externalPlayerId ? ExternalPlayer::find($externalPlayerId) : null;
+        return $externalPlayerId ? ExternalPlayer::withTrashed()->find($externalPlayerId) : null;
     }
 }
