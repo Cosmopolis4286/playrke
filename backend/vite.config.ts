@@ -5,8 +5,15 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import fs from 'fs'
 import path from 'path'
 
+import type { PluginOption } from 'vite'
 import obfuscatorPluginRaw from 'vite-plugin-javascript-obfuscator'
-const obfuscatorPlugin = obfuscatorPluginRaw as unknown as (options: any) => any
+
+const obfuscatorPlugin = obfuscatorPluginRaw as unknown as (options: {
+  include: string[]
+  exclude: RegExp[]
+  apply: 'build'
+  options: Record<string, unknown>
+}) => PluginOption
 import { visualizer } from 'rollup-plugin-visualizer'
 
 // ---------------------------------------------
@@ -14,7 +21,7 @@ import { visualizer } from 'rollup-plugin-visualizer'
 // ---------------------------------------------
 const cssFiles = [
   'resources/css/global/styles.css',
-  'resources/css/global/loader.css',
+  'resources/css/global/loader.css'
 ]
 
 // ---------------------------------------------
@@ -73,52 +80,51 @@ export default defineConfig(({ mode }) => {
       }),
       vue(), // Plugin Vue 3
       vueJsx(), // Soporte JSX en Vue
-      // La ofuscación se deja opt-in: el plugin actual reescribe declaraciones
-      // const y provoca advertencias masivas de Rollup en módulos Vue/TypeScript.
-      // La minificación de Vite sigue activa para todas las compilaciones productivas.
+      // La ofuscación se deja opt-in porque el plugin reescribe declaraciones
+      // const y genera advertencias masivas de Rollup en módulos Vue/TypeScript.
+      // La minificación nativa de Vite se mantiene en todas las compilaciones productivas.
       ...(isProduction && process.env.VITE_ENABLE_OBFUSCATION === 'true'
         ? [
-            obfuscatorPlugin({
-              include: ['resources/js/**/*.ts', 'resources/js/**/*.js'],
-              exclude: [/node_modules/],
-              apply: 'build',
-              options: {
-                identifierNamesGenerator: 'mangled-shuffled',
-                reservedNames: ['^$', '_', 'console', 'window', 'document'],
-                reservedStrings: ['route', 'Ziggy', 'csrf', 'api'],
-                debugProtection: true,
-                debugProtectionInterval: 2000,
-                selfDefending: true,
-                stringArray: true,
-                stringArrayEncoding: ['rc4', 'base64'],
-                stringArrayThreshold: 0.75,
-                deadCodeInjection: true,
-                deadCodeInjectionThreshold: 0.4,
-                controlFlowFlattening: true,
-                controlFlowFlatteningThreshold: 0.75,
-                compact: true,
-                simplify: true,
-                disableConsoleOutput: true,
-                numbersToExpressions: true,
-                transformObjectKeys: true,
-                shuffleStringArray: true,
-                rotateStringArray: true,
-              },
-            }),
-          ]
+          obfuscatorPlugin({
+            include: ['resources/js/**/*.ts', 'resources/js/**/*.js'],
+            exclude: [/node_modules/],
+            apply: 'build',
+            options: {
+              identifierNamesGenerator: 'mangled-shuffled',
+              reservedNames: ['^$', '_', 'console', 'window', 'document'],
+              reservedStrings: ['route', 'Ziggy', 'csrf', 'api'],
+              debugProtection: true,
+              debugProtectionInterval: 2000,
+              selfDefending: true,
+              stringArray: true,
+              stringArrayEncoding: ['rc4', 'base64'],
+              stringArrayThreshold: 0.75,
+              deadCodeInjection: true,
+              deadCodeInjectionThreshold: 0.4,
+              controlFlowFlattening: true,
+              controlFlowFlatteningThreshold: 0.75,
+              compact: true,
+              simplify: true,
+              disableConsoleOutput: true,
+              numbersToExpressions: true,
+              transformObjectKeys: true,
+              shuffleStringArray: true,
+              rotateStringArray: true
+            }
+          })
+        ]
         : []),
-      // El informe de bundle solo se genera bajo demanda para no incluir
-      // build-stats.html accidentalmente en la imagen de producción.
+      // El informe del bundle solo se genera bajo demanda.
       ...(isProduction && process.env.VITE_ANALYZE_BUNDLE === 'true'
         ? [
-            visualizer({
-              filename: './build-stats.html',
-              open: false,
-              gzipSize: true,
-              brotliSize: true,
-            }),
-          ]
-        : []),
+          visualizer({
+            filename: './build-stats.html',
+            open: false,
+            gzipSize: true,
+            brotliSize: true
+          })
+        ]
+        : [])
     ],
 
     build: {
@@ -159,7 +165,7 @@ export default defineConfig(({ mode }) => {
         port: 5173,
       },
       cors: true,
-      allowedHosts: ['localhost', '127.0.0.1', 'host.docker.internal', '.localhost'],
+      allowedHosts: ['localhost', '127.0.0.1', 'host.docker.internal', '.localhost']
     }
   }
 })
