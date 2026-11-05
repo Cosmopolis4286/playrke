@@ -135,7 +135,7 @@ export default defineConfig(({ mode }) => {
           // División de chunks por juego y carpeta 'rke'
           manualChunks(id) {
             if (id.includes('resources/js/games/')) {
-              const match = id.match(/resources\/js\/games\/([^\/]+)\//)
+              const match = id.match(/resources\/js\/games\/([^/]+)\//)
               if (match) {
                 const game = match[1]
                 if (id.includes('/components/')) return `${game}-components`
