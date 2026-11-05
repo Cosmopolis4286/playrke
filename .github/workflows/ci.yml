@@ -244,7 +244,76 @@ jobs:
             BASE="$(git rev-parse HEAD^)"
           fi
           CHANGED="$(git diff --name-only "$BASE" HEAD)"
-          if grep -Eq '^(backend/Dockerfile.prod|backend/docker-compose.prod.yml|backend/deploy.sh|backend/README-DOCKER.md|\.dockerignore|\.github/workflows/ci\.yml)$' <<< "$CHANGED"; then
+          if grep -Eq '^(backend/Dockerfile.prod|backend/docker-compose.prod.yml|backend/deploy.sh|backend/README-DOCKER.md|backend/vite.config.ts|backend/package.json|pnpm-lock.yaml|package.json|\.dockerignore|\.github/workflows/ci\.yml)
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "No hay cambios en el stack Docker de producción; se omite la construcción."
+          fi
+
+      - name: Validar sintaxis del script de despliegue
+        if: steps.docker_changes.outputs.run == 'true'
+        run: bash -n backend/deploy.sh
+
+      - name: Preparar entorno de prueba sin secretos reales
+        if: steps.docker_changes.outputs.run == 'true'
+        run: |
+          cat > backend/.env.prod <<'EOF'
+          APP_NAME=PlayRKE
+          APP_ENV=production
+          APP_KEY=base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          APP_DEBUG=false
+          APP_URL=https://playrke.invalid
+          FRONTEND_URL=https://playrke.invalid
+          APP_DOMAIN=playrke.invalid
+          ACME_EMAIL=ci@playrke.invalid
+          DB_CONNECTION=mysql
+          DB_HOST=mysql
+          DB_PORT=3306
+          DB_DATABASE=playrke
+          DB_USERNAME=playrke
+          DB_PASSWORD=ci-db-password-012345678901234567890123
+          DB_ROOT_PASSWORD=ci-root-password-012345678901234567890123
+          CACHE_STORE=redis
+          QUEUE_CONNECTION=redis
+          SESSION_DRIVER=redis
+          BROADCAST_CONNECTION=reverb
+          FILESYSTEM_DISK=public
+          SESSION_SECURE_COOKIE=true
+          LOG_LEVEL=error
+          REDIS_HOST=redis
+          REDIS_PASSWORD=ci-redis-password-012345678901234567890123
+          REDIS_PORT=6379
+          REVERB_HOST=reverb
+          REVERB_PORT=8080
+          REVERB_SCHEME=http
+          REVERB_APP_ID=123456
+          REVERB_APP_KEY=ci-reverb-public-key
+          REVERB_APP_SECRET=ci-reverb-secret-012345678901234567890123
+          REVERB_SERVER_HOST=0.0.0.0
+          REVERB_SERVER_PORT=8080
+          TURNSTILE_SITE_KEY=ci-turnstile-site
+          TURNSTILE_SECRET_KEY=ci-turnstile-secret
+          VITE_API_URL=https://playrke.invalid/api
+          VITE_APP_NAME=PlayRKE
+          VITE_REVERB_APP_KEY=ci-reverb-public-key
+          VITE_REVERB_HOST=ws.playrke.invalid
+          VITE_REVERB_PORT=443
+          VITE_REVERB_SCHEME=https
+          VITE_TURNSTILE_SITE_KEY=ci-turnstile-site
+          EOF
+          chmod 600 backend/.env.prod
+
+      - name: Validar configuración Docker Compose
+        if: steps.docker_changes.outputs.run == 'true'
+        working-directory: backend
+        run: docker compose --env-file .env.prod -f docker-compose.prod.yml config --quiet
+
+      - name: Construir PHP-FPM y Nginx de producción
+        if: steps.docker_changes.outputs.run == 'true'
+        working-directory: backend
+        run: docker compose --env-file .env.prod -f docker-compose.prod.yml build --progress plain php nginx
+ <<< "$CHANGED"; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
