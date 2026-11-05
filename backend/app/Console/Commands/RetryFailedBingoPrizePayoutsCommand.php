@@ -43,14 +43,18 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
             // Agrupa intentos persistidos por premio. La subconsulta filtra
             // explícitamente SoftDeletes y evita diferencias entre el conteo
             // de la relación y el SQL agregado generado por has().
-            $exhaustedPrizeIds = DB::table('bingo_card_prize_payments')
-                ->select('card_prize_id')
+            $failedPaymentPrizeIds = DB::table('bingo_card_prize_payments')
                 ->where('payment_status', 'failed')
                 ->whereNull('deleted_at')
-                ->groupBy('card_prize_id')
-                ->havingRaw('COUNT(*) >= ?', [PrizePayoutRetryPolicy::MAX_ATTEMPTS])
-                ->pluck('card_prize_id')
+                ->pluck('card_prize_id');
+
+            // Agrupar en PHP evita diferencias del motor SQL al comparar
+            // identificadores BIGINT/string en consultas GROUP BY/HAVING.
+            $exhaustedPrizeIds = $failedPaymentPrizeIds
                 ->map(static fn ($id) => (string) $id)
+                ->countBy()
+                ->filter(static fn (int $attempts) => $attempts >= PrizePayoutRetryPolicy::MAX_ATTEMPTS)
+                ->keys()
                 ->all();
 
             // Cuenta desde la tabla para no depender de scopes globales del modelo
