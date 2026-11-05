@@ -73,61 +73,52 @@ export default defineConfig(({ mode }) => {
       }),
       vue(), // Plugin Vue 3
       vueJsx(), // Soporte JSX en Vue
-      ...(isProduction
+      // La ofuscación se deja opt-in: el plugin actual reescribe declaraciones
+      // const y provoca advertencias masivas de Rollup en módulos Vue/TypeScript.
+      // La minificación de Vite sigue activa para todas las compilaciones productivas.
+      ...(isProduction && process.env.VITE_ENABLE_OBFUSCATION === 'true'
         ? [
-            // Ofuscador para proteger todos los JS y TS en resources/js (recursivamente)
             obfuscatorPlugin({
               include: ['resources/js/**/*.ts', 'resources/js/**/*.js'],
               exclude: [/node_modules/],
               apply: 'build',
               options: {
-                // Ofuscación de identificadores
                 identifierNamesGenerator: 'mangled-shuffled',
-                reservedNames: ['^$', '_', 'console', 'window', 'document'], // Proteger símbolos críticos
-                reservedStrings: ['route', 'Ziggy', 'csrf', 'api'], // Palabras clave de la app
-                
-                // Protección contra debugging
+                reservedNames: ['^$', '_', 'console', 'window', 'document'],
+                reservedStrings: ['route', 'Ziggy', 'csrf', 'api'],
                 debugProtection: true,
-                debugProtectionInterval: 2000, // Chequeo cada 2 segundos
+                debugProtectionInterval: 2000,
                 selfDefending: true,
-                
-                // Ofuscación de strings
                 stringArray: true,
                 stringArrayEncoding: ['rc4', 'base64'],
-                stringArrayThreshold: 0.75, // 75% de strings ofuscados
-                
-                // Protección adicional
+                stringArrayThreshold: 0.75,
                 deadCodeInjection: true,
-                deadCodeInjectionThreshold: 0.4, // 40% código muerto
+                deadCodeInjectionThreshold: 0.4,
                 controlFlowFlattening: true,
                 controlFlowFlatteningThreshold: 0.75,
-                
-                // Compactación
                 compact: true,
                 simplify: true,
-                
-                // Deshabilitar funciones de desarrollo
-                disableConsoleOutput: true, // Elimina console.*
-                
-                // Transformaciones
+                disableConsoleOutput: true,
                 numbersToExpressions: true,
                 transformObjectKeys: true,
                 shuffleStringArray: true,
                 rotateStringArray: true,
-                
-                // Opciones de dominio (opcional - descomenta si quieres bloquear dominios)
-                // domainLock: ['playrke.com', 'www.playrke.com'],
-              }
+              },
             }),
-            // Visualizador del bundle para análisis (abrir después de build)
+          ]
+        : []),
+      // El informe de bundle solo se genera bajo demanda para no incluir
+      // build-stats.html accidentalmente en la imagen de producción.
+      ...(isProduction && process.env.VITE_ANALYZE_BUNDLE === 'true'
+        ? [
             visualizer({
               filename: './build-stats.html',
-              open: true,
+              open: false,
               gzipSize: true,
-              brotliSize: true
-            })
+              brotliSize: true,
+            }),
           ]
-        : [])
+        : []),
     ],
 
     build: {
