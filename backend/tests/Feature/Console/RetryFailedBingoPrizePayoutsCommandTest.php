@@ -6,6 +6,7 @@ use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrizePayment;
 use App\Domains\Games\Common\Services\PrizePayoutRetryPolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
