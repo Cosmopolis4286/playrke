@@ -4,6 +4,7 @@ namespace Tests\Feature\Console;
 
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrizePayment;
+use App\Domains\Games\Common\Services\PrizePayoutRetryPolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -20,7 +21,7 @@ class RetryFailedBingoPrizePayoutsCommandTest extends TestCase
             $eligibleId = $this->insertPrize('waiting');
             $exhaustedId = $this->insertPrize('processing');
 
-            for ($attempt = 0; $attempt < 5; $attempt++) {
+            for ($attempt = 0; $attempt < PrizePayoutRetryPolicy::MAX_ATTEMPTS; $attempt++) {
                 BingoCardPrizePayment::create([
                     'card_prize_id' => $exhaustedId,
                     'payment_method' => 'system_payment',
@@ -33,15 +34,31 @@ class RetryFailedBingoPrizePayoutsCommandTest extends TestCase
                 ]);
             }
 
-            $this->assertSame(5, BingoCardPrize::findOrFail($exhaustedId)->payments()->count());
-            $this->assertSame(5, DB::table('bingo_card_prize_payments')
+            $this->assertSame(PrizePayoutRetryPolicy::MAX_ATTEMPTS, BingoCardPrize::findOrFail($exhaustedId)->payments()->count());
+            $this->assertSame(PrizePayoutRetryPolicy::MAX_ATTEMPTS, DB::table('bingo_card_prize_payments')
                 ->where('card_prize_id', $exhaustedId)
                 ->where('payment_status', 'failed')
                 ->whereNull('deleted_at')
                 ->count());
 
-            // Usa el servicio real: BingoPrizePayoutService es final y un
-            // comprador externo debe quedar suspendido, nunca acreditado
+            // Verifica la misma consulta de detección que utiliza el comando:
+            // solo pagos fallidos no eliminados, asociados a premios pendientes.
+            $detectedPrizeIds = DB::table('bingo_card_prize_payments as payments')
+                ->join('bingo_card_prizes as prizes', 'prizes.id', '=', 'payments.card_prize_id')
+                ->whereIn('prizes.prize_status', ['waiting', 'processing'])
+                ->whereNull('prizes.deleted_at')
+                ->where('payments.payment_status', 'failed')
+                ->whereNull('payments.deleted_at')
+                ->select('payments.card_prize_id')
+                ->groupBy('payments.card_prize_id')
+                ->havingRaw('COUNT(*) >= ?', [PrizePayoutRetryPolicy::MAX_ATTEMPTS])
+                ->pluck('payments.card_prize_id')
+                ->map(fn ($id) => (string) $id)
+                ->all();
+
+            $this->assertSame([$exhaustedId], $detectedPrizeIds);
+
+            // Un comprador externo debe quedar suspendido, nunca acreditado
             // automáticamente a la wallet del vendedor.
             $this->artisan('bingo:retry-failed-prize-payouts')
                 ->expectsOutputToContain('Premios acreditados: 0')
