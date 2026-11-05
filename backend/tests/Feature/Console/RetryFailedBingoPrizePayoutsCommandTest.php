@@ -60,10 +60,18 @@ class RetryFailedBingoPrizePayoutsCommandTest extends TestCase
 
             // Un comprador externo debe quedar suspendido, nunca acreditado
             // automáticamente a la wallet del vendedor.
-            $this->artisan('bingo:retry-failed-prize-payouts')
-                ->expectsOutputToContain('Premios acreditados: 0')
-                ->expectsOutputToContain('revisión manual por agotar intentos: 1')
-                ->assertExitCode(0);
+            $exitCode = Artisan::call('bingo:retry-failed-prize-payouts');
+            $commandOutput = Artisan::output();
+
+            // Incluye la salida real en el mensaje de fallo: el comando captura
+            // Throwable internamente y puede devolver código 0 aun con error.
+            $this->assertSame(0, $exitCode, "Salida del comando Bingo:\\n".$commandOutput);
+            $this->assertStringContainsString('Premios acreditados: 0', $commandOutput);
+            $this->assertStringContainsString(
+                'revisión manual por agotar intentos: 1',
+                $commandOutput,
+                "Salida inesperada del comando Bingo:\\n".$commandOutput,
+            );
 
             $this->assertSame('suspended', BingoCardPrize::findOrFail($eligibleId)->prize_status);
             $this->assertSame('processing', BingoCardPrize::findOrFail($exhaustedId)->prize_status);
