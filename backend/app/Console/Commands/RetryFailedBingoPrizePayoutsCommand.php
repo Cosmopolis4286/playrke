@@ -38,36 +38,28 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
         $exhausted = 0;
 
         try {
-            // Los premios que agotaron intentos no se modifican automáticamente:
-            // podrían requerir conciliación si el worker cayó en una ventana ambigua.
-            // Agrupa intentos persistidos por premio. La subconsulta filtra
-            // explícitamente SoftDeletes y evita diferencias entre el conteo
-            // de la relación y el SQL agregado generado por has().
-            $failedPaymentPrizeIds = DB::table('bingo_card_prize_payments')
-                ->where('payment_status', 'failed')
+            // Se evalúa cada premio pendiente contra sus pagos persistidos.
+            // Evita depender de la normalización de claves numéricas de PHP
+            // (IDs BIGINT) o de agregaciones SQL que pueden variar entre motores.
+            $exhaustedPrizeIds = [];
+            $pendingPrizeIds = DB::table('bingo_card_prizes')
+                ->whereIn('prize_status', ['waiting', 'processing'])
                 ->whereNull('deleted_at')
-                ->pluck('card_prize_id');
+                ->pluck('id');
 
-            // Agrupar en PHP evita diferencias del motor SQL al comparar
-            // identificadores BIGINT/string en consultas GROUP BY/HAVING.
-            $exhaustedPrizeIds = $failedPaymentPrizeIds
-                ->map(static fn ($id) => (string) $id)
-                ->countBy()
-                ->filter(static fn (int $attempts) => $attempts >= PrizePayoutRetryPolicy::MAX_ATTEMPTS)
-                ->keys()
-                ->all();
-
-            // Cuenta desde la tabla para no depender de scopes globales del modelo
-            // (por ejemplo, ámbitos de organización) que pueden ocultar premios
-            // que sí deben aparecer en el reporte operativo de agotados.
-            $exhausted = $exhaustedPrizeIds === []
-                ? 0
-                : DB::table('bingo_card_prizes')
-                    ->whereIn('prize_status', ['waiting', 'processing'])
-                    ->whereIn('id', $exhaustedPrizeIds)
+            foreach ($pendingPrizeIds as $prizeId) {
+                $failedAttempts = DB::table('bingo_card_prize_payments')
+                    ->where('card_prize_id', (string) $prizeId)
+                    ->where('payment_status', 'failed')
                     ->whereNull('deleted_at')
                     ->count();
 
+                if ($failedAttempts >= PrizePayoutRetryPolicy::MAX_ATTEMPTS) {
+                    $exhaustedPrizeIds[] = (string) $prizeId;
+                }
+            }
+
+            $exhausted = count($exhaustedPrizeIds);
             if ($exhausted > 0) {
                 Log::warning('[Bingo:RetryPrizePayouts] Premios agotaron el máximo de intentos y requieren revisión manual', [
                     'count' => $exhausted,
