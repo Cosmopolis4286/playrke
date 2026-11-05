@@ -824,7 +824,7 @@ final class WalletService
 
                 if (! $withdrawable) {
                     $metadata['bonus_balance_before'] = $bonusBalanceBefore;
-                    $metadata['bonus_balance_after'] = (float) $lockedWallet->bonus_balance;
+                    $metadata['bonus_balance_after'] = (float) $wallet->bonus_balance;
                 }
 
                 return $this->movementRepository->record([
