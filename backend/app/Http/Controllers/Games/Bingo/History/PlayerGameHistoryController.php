@@ -27,8 +27,10 @@ final class PlayerGameHistoryController extends Controller
     public function index(Request $request) : Response
     {
         $userId = (string) Auth::id();
-        $perPage = (int) $request->query('per_page', 15);
-        $page = (int) $request->query('page', 1);
+        // Limitar el tamaño de página evita que el historial dispare consultas
+        // y cargas de memoria desproporcionadas por parámetros manipulados.
+        $perPage = min(max($request->integer('per_page', 15), 1), 50);
+        $page = max($request->integer('page', 1), 1);
         $search = $request->query('search') ?: null;
         $result = $request->query('result') ?: null;
 
