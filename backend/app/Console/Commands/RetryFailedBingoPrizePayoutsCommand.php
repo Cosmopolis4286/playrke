@@ -11,20 +11,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-/**
- * Reintenta acreditar premios de bingo que quedaron en prize_status =
- * 'waiting'/'processing' tras un fallo de BingoPrizePayoutService::payout()
- * (wallet inactiva, error transitorio, etc. — ver
- * BingoDrawService::claimCardWin()).
- *
- * Sin este comando, un premio que falla al pagarse queda esperando para
- * siempre: claimCardWin() solo invoca el pago una vez, en el momento del
- * sorteo, y nunca vuelve a intentarlo por su cuenta.
- *
- * Usa PrizePayoutRetryPolicy (MAX_ATTEMPTS + backoff lineal) — la misma
- * política que RetryFailedBingoRefundsCommand y trivia:retry-failed-prize-payouts
- * — en vez de una constante local y un reintento sin espera entre corridas.
- */
 class RetryFailedBingoPrizePayoutsCommand extends Command
 {
     protected $description = 'Reintenta acreditar a la wallet los premios de bingo cuyo pago automático falló';
@@ -38,26 +24,20 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
         $exhausted = 0;
 
         try {
-            // Se evalúa cada premio pendiente contra sus pagos persistidos.
-            // Evita depender de la normalización de claves numéricas de PHP
-            // (IDs BIGINT) o de agregaciones SQL que pueden variar entre motores.
-            $exhaustedPrizeIds = [];
-            $pendingPrizeIds = DB::table('bingo_card_prizes')
-                ->whereIn('prize_status', ['waiting', 'processing'])
-                ->whereNull('deleted_at')
-                ->pluck('id');
-
-            foreach ($pendingPrizeIds as $prizeId) {
-                $failedAttempts = DB::table('bingo_card_prize_payments')
-                    ->where('card_prize_id', (string) $prizeId)
-                    ->where('payment_status', 'failed')
-                    ->whereNull('deleted_at')
-                    ->count();
-
-                if ($failedAttempts >= PrizePayoutRetryPolicy::MAX_ATTEMPTS) {
-                    $exhaustedPrizeIds[] = (string) $prizeId;
-                }
-            }
+            // La fuente de verdad son los pagos fallidos. Agrupar desde pagos
+            // evita recorrer premios y comparar BIGINT en PHP registro a registro.
+            $exhaustedPrizeIds = DB::table('bingo_card_prize_payments as payments')
+                ->join('bingo_card_prizes as prizes', 'prizes.id', '=', 'payments.card_prize_id')
+                ->whereIn('prizes.prize_status', ['waiting', 'processing'])
+                ->whereNull('prizes.deleted_at')
+                ->where('payments.payment_status', 'failed')
+                ->whereNull('payments.deleted_at')
+                ->select('payments.card_prize_id')
+                ->groupBy('payments.card_prize_id')
+                ->havingRaw('COUNT(*) >= ?', [PrizePayoutRetryPolicy::MAX_ATTEMPTS])
+                ->pluck('payments.card_prize_id')
+                ->map(fn ($id) => (string) $id)
+                ->all();
 
             $exhausted = count($exhaustedPrizeIds);
             if ($exhausted > 0) {
@@ -67,23 +47,12 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
                 ]);
             }
 
-            // 'processing' incluido: cubre premios que quedaron a medias (wallet
-            // posiblemente ya acreditada) en una corrida anterior — payout() ya
-            // sabe distinguir ese caso y solo reparar el estado sin re-acreditar.
-            //
-            // chunkById(50): evita cargar toda la tabla en memoria si hay muchos
-            // premios pendientes tras un incidente prolongado.
-            //
-            // La subconsulta excluye premios que ya alcanzaron el límite de intentos.
+            // 'processing' incluido: payout() reconoce estados intermedios y
+            // protege la acreditación para evitar duplicados.
             BingoCardPrize::whereIn('prize_status', ['waiting', 'processing'])
                 ->when($exhaustedPrizeIds !== [], fn ($query) => $query->whereNotIn('id', $exhaustedPrizeIds))
-                ->chunkById(50, function($chunk) use ($payoutService, &$retried, &$skipped) {
+                ->chunkById(50, function ($chunk) use ($payoutService, &$retried, &$skipped) {
                     foreach ($chunk as $cardPrize) {
-                        // Cargar solo el último payment de cada modelo individualmente:
-                        // limit(1) en eager-load HasMany es un pitfall conocido de Laravel
-                        // que limita el resultado TOTAL de la relación a 1 fila global, no
-                        // 1 por modelo — todos los demás modelos verían payments vacíos y
-                        // bypassearían el backoff.
                         $lastPayment = $cardPrize->payments()
                             ->where('payment_status', 'failed')
                             ->latest('created_at')
@@ -100,7 +69,6 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
 
                         try {
                             $payoutService->payout($cardPrize);
-
                             $cardPrize->refresh();
 
                             if ($cardPrize->isClaimed()) {
@@ -110,8 +78,6 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
                                 $skipped++;
                             }
                         } catch (Throwable $e) {
-                            // Un premio defectuoso no debe detener la recuperación
-                            // de los siguientes registros del mismo lote.
                             $skipped++;
                             Log::error('[Bingo:RetryPrizePayouts] Error al reintentar un premio', [
                                 'card_prize_id' => (string) $cardPrize->id,
@@ -130,13 +96,9 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
                 $e->getFile(),
                 $e->getLine(),
             );
-
             $this->error($output);
         }
 
-        // Envuelto en try/catch: si logCommandExecution() fallara por
-        // cualquier motivo, el error visible al operador debe ser el
-        // original de la tarea, no uno de logging que lo enmascare.
         try {
             app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
         } catch (Throwable $logEx) {
