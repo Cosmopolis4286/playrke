@@ -834,7 +834,7 @@ final class WalletService
                     'status' => WalletMovement::STATUS_COMPLETED,
                     'amount' => $amount,
                     'balance_before' => $balanceBefore,
-                    'balance_after' => (float) $wallet->balance,
+                    'balance_after' => (float) $lockedWallet->balance,
                     'description' => $description,
                     'idempotency_key' => $idempotencyKey,
                     'metadata' => $metadata,
@@ -860,6 +860,7 @@ final class WalletService
             throw $e;
         }
 
+        $wallet->refresh();
         $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_PRIZE, $amount, (string) $movement->id);
 
         return $movement;
