@@ -185,10 +185,10 @@ class WalletMovementControllerTest extends TestCase
         $this->actingAs($this->admin)
             ->postJson(route('wallet-movements.reject', $movement))
             ->assertStatus(422)
-            ->assertJsonValidationErrors('admin_notes');
+            ->assertJsonValidationErrors('player_message');
 
         $this->actingAs($this->admin)
-            ->postJson(route('wallet-movements.reject', $movement), ['admin_notes' => 'no'])
+            ->postJson(route('wallet-movements.reject', $movement), ['player_message' => 'no'])
             ->assertStatus(422);
 
         $this->assertSame(WalletMovement::STATUS_PENDING, $movement->fresh()->status);
