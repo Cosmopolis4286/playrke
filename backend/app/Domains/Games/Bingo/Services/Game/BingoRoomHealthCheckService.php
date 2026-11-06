@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Games\Bingo\Services\Game;
 
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use Closure;
 use DomainException;
 
@@ -61,9 +62,9 @@ final class BingoRoomHealthCheckService
         }
     }
 
-    private function assertHasPlayers(BingoRoom $room) : void
+    private function assertHasPlayers(BingoRoom $room, int $registeredPlayers) : void
     {
-        if (($room->total_players ?? 0) <= 0) {
+        if ($registeredPlayers <= 0) {
             throw new DomainException(
                 "La sala #{$room->id} no tiene jugadores registrados.",
             );
@@ -79,22 +80,22 @@ final class BingoRoomHealthCheckService
         }
     }
 
-    private function assertMinCardsReached(BingoRoom $room) : void
+    private function assertMinCardsReached(BingoRoom $room, int $totalCards) : void
     {
         $minCards = $room->config?->min_cards_to_start;
-        if ($minCards !== null && ($room->total_cards ?? 0) < $minCards) {
+        if ($minCards !== null && $totalCards < $minCards) {
             throw new DomainException(
-                "La sala #{$room->id} requiere mínimo {$minCards} cartones para sortear, tiene " . ($room->total_cards ?? 0) . '.',
+                "La sala #{$room->id} requiere mínimo {$minCards} cartones para sortear, tiene {$totalCards}.",
             );
         }
     }
 
-    private function assertMinPlayersReached(BingoRoom $room) : void
+    private function assertMinPlayersReached(BingoRoom $room, int $registeredPlayers) : void
     {
         $minPlayers = $room->config?->min_players;
-        if ($minPlayers !== null && ($room->total_players ?? 0) < $minPlayers) {
+        if ($minPlayers !== null && $registeredPlayers < $minPlayers) {
             throw new DomainException(
-                "La sala #{$room->id} requiere mínimo {$minPlayers} jugadores para sortear, tiene " . ($room->total_players ?? 0) . '.',
+                "La sala #{$room->id} requiere mínimo {$minPlayers} jugadores para sortear, tiene {$registeredPlayers}.",
             );
         }
     }
@@ -154,17 +155,26 @@ final class BingoRoomHealthCheckService
      */
     private function checks(BingoRoom $room) : array
     {
-        // Asegurar eager-load de rounds y config una sola vez antes de los checks
+        // Asegurar eager-load de rounds y config una sola vez antes de los checks.
         $room->loadMissing(['rounds', 'config']);
+
+        // Los contadores total_players/total_cards son agregados denormalizados y
+        // pueden quedar desactualizados tras altas/bajas concurrentes o procesos
+        // interrumpidos. El sorteo debe validar la misma fuente de verdad que el
+        // despachador automático: las relaciones persistidas de jugadores y cartones.
+        $registeredPlayers = $room->players()
+            ->whereIn('role', [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER])
+            ->count();
+        $totalCards = $room->cards()->count();
 
         return [
             fn () => $this->assertValidStatus($room),
             fn () => $this->assertNotAlreadyFinished($room),
-            fn () => $this->assertHasPlayers($room),
+            fn () => $this->assertHasPlayers($room, $registeredPlayers),
             fn () => $this->assertHasRounds($room),
             fn () => $this->assertRoundsHavePatterns($room),
-            fn () => $this->assertMinCardsReached($room),
-            fn () => $this->assertMinPlayersReached($room),
+            fn () => $this->assertMinCardsReached($room, $totalCards),
+            fn () => $this->assertMinPlayersReached($room, $registeredPlayers),
             fn () => $this->assertPrizePoolCoherent($room),
         ];
     }
