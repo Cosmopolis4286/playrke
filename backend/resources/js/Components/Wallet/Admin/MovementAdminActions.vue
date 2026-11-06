@@ -172,7 +172,7 @@ function onNotesKeydown(e: KeyboardEvent) {
           :disabled="actionLoading"
           @input="emit('update:playerMessage', ($event.target as HTMLTextAreaElement).value)"
           @keydown="onNotesKeydown"
-        ></textarea>
+        />
         <div class="mv-notes-meta">
           <span class="mv-notes-meta__hint">
             <kbd>Ctrl</kbd>+<kbd>Enter</kbd> para confirmar
