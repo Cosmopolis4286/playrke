@@ -199,7 +199,7 @@ final class WalletMovementController extends Controller
             'movimientos-billetera',
             [
                 'ID', 'Usuario', 'Email', 'Tipo', 'Estado', 'Monto', 'Moneda', 'Referencia',
-                'Notas admin', 'Procesado por', 'Asignado a', 'Asignado el',
+                'Notas admin', 'Motivo comunicado al jugador', 'Procesado por', 'Asignado a', 'Asignado el',
                 'Balance antes', 'Balance después', 'Hash recibo', 'Creado', 'Procesado',
             ],
             // cursor() ignora el with() de ADMIN_PANEL_RELATIONS (no puede
@@ -219,6 +219,7 @@ final class WalletMovementController extends Controller
                 $m->wallet?->currency?->iso_code,
                 $m->reference_id,
                 $m->admin_notes,
+                $m->player_message,
                 trim(($m->processedBy?->first_name ?? '') . ' ' . ($m->processedBy?->last_name ?? '')),
                 $m->assignedTo ? trim("{$m->assignedTo->first_name} {$m->assignedTo->last_name}") : null,
                 $m->assigned_at?->format('Y-m-d H:i:s'),
