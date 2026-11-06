@@ -19,7 +19,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   typeLabel: 'movimiento',
   canSubmitReject: true,
-  isCredit: false,
+  isCredit: false
 })
 
 const emit = defineEmits<{
@@ -45,7 +45,7 @@ const quickReasons = computed<string[]>(() => {
       'El monto no coincide con el comprobante',
       'Comprobante ilegible',
       'Comprobante duplicado o ya utilizado',
-      ...common,
+      ...common
     ]
   }
   if (props.detail.type === 'WITHDRAWAL') {
@@ -53,7 +53,7 @@ const quickReasons = computed<string[]>(() => {
       'Datos bancarios incorrectos',
       'La cuenta destino no pertenece al titular',
       'Verificación de identidad (KYC) pendiente',
-      ...common,
+      ...common
     ]
   }
   return common
