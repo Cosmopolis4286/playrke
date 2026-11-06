@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests\\Unit\\Domains\\Bingo;
+namespace Tests\Unit\Domains\Bingo;
 
-use App\\Domains\\Games\\Bingo\\Services\\Payment\\BingoCardPaymentReviewService;
-use App\\Domains\\Games\\Bingo\\Services\\Payment\\BingoPendingPaymentStartService;
-use App\\Services\\NotificationService;
-use PHPUnit\\Framework\\TestCase;
+use App\Domains\Games\Bingo\Services\Payment\BingoCardPaymentReviewService;
+use App\Domains\Games\Bingo\Services\Payment\BingoPendingPaymentStartService;
+use App\Services\NotificationService;
+use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use RuntimeException;
 
