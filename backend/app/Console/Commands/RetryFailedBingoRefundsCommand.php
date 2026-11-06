@@ -1,19 +1,19 @@
 <?php
 
-namespace App\\Console\\Commands;
+namespace App\Console\Commands;
 
-use App\\Domains\\Games\\Bingo\\Jobs\\BingoCardLotRefundJob;
-use App\\Domains\\Games\\Bingo\\Models\\Card\\BingoLotRefundFailure;
-use App\\Domains\\Games\\Bingo\\Models\\Room\\BingoRoom;
-use App\\Domains\\Games\\Bingo\\Services\\Room\\BingoRoomAuditLogger;
-use App\\Domains\\Games\\Common\\Services\\PrizePayoutRetryPolicy;
-use App\\Domains\\Wallet\\Exceptions\\WalletUnavailableException;
-use App\\Domains\\Wallet\\Services\\WalletService;
-use App\\Services\\Commands\\CommandService;
-use App\\Services\\NotificationService;
-use App\\Traits\\ResolvesSuperadminIds;
-use Illuminate\\Console\\Command;
-use Illuminate\\Support\\Facades\\Log;
+use App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob;
+use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
+use App\Domains\Games\Common\Services\PrizePayoutRetryPolicy;
+use App\Domains\Wallet\Exceptions\WalletUnavailableException;
+use App\Domains\Wallet\Services\WalletService;
+use App\Services\Commands\CommandService;
+use App\Services\NotificationService;
+use App\Traits\ResolvesSuperadminIds;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class RetryFailedBingoRefundsCommand extends Command
