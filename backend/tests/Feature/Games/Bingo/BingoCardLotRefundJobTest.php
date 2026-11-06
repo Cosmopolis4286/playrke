@@ -1,13 +1,13 @@
 <?php
 
-namespace Tests\\Feature\\Games\\Bingo;
+namespace Tests\Feature\Games\Bingo;
 
-use App\\Domains\\Games\\Bingo\\Jobs\\BingoCardLotRefundJob;
-use App\\Domains\\Games\\Bingo\\Services\\Room\\BingoRoomAuditLogger;
-use App\\Domains\\Wallet\\Services\\WalletService;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Support\\Facades\\DB;
-use Tests\\TestCase;
+use App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob;
+use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
+use App\Domains\Wallet\Services\WalletService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
 
 class BingoCardLotRefundJobTest extends TestCase
 {
