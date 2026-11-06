@@ -796,9 +796,12 @@ final class WalletService
 
         try {
             $movement = DB::transaction(function() use ($wallet, $amount, $description, $gameId, $prizeType, $idempotencyKey, $withdrawable) {
-                $walletId = (string) $wallet->id;
-                $balanceBefore = (float) $wallet->balance;
-                $bonusBalanceBefore = (float) $wallet->bonus_balance;
+                // Releer la wallet bajo bloqueo: el modelo recibido puede
+                // contener un saldo obsoleto si hubo otra operación concurrente.
+                $lockedWallet = Wallet::query()->lockForUpdate()->findOrFail($wallet->id);
+                $walletId = (string) $lockedWallet->id;
+                $balanceBefore = (float) $lockedWallet->balance;
+                $bonusBalanceBefore = (float) $lockedWallet->bonus_balance;
 
                 $metadata = ['game_id' => $gameId, 'prize_type' => $prizeType, 'withdrawable' => $withdrawable];
 
@@ -807,7 +810,7 @@ final class WalletService
                     // incluido un premio ganado — ver recordRefund() para el
                     // porqué. Solo aplica a la porción "balance" (retirable);
                     // premios de bono (withdrawable=false) no se tocan.
-                    $netAmount = $this->settlePendingDebt($wallet, $amount);
+                    $netAmount = $this->settlePendingDebt($lockedWallet, $amount);
                     if ($netAmount > 0) {
                         $this->walletRepository->incrementBalance($walletId, $netAmount);
                     }
@@ -817,7 +820,7 @@ final class WalletService
                 } else {
                     $this->walletRepository->incrementBonusBalance($walletId, $amount);
                 }
-                $wallet->refresh();
+                $lockedWallet->refresh();
 
                 if (! $withdrawable) {
                     $metadata['bonus_balance_before'] = $bonusBalanceBefore;
@@ -826,12 +829,12 @@ final class WalletService
 
                 return $this->movementRepository->record([
                     'wallet_id' => $walletId,
-                    'user_id' => (string) $wallet->user_id,
+                    'user_id' => (string) $lockedWallet->user_id,
                     'type' => $withdrawable ? WalletMovement::TYPE_PRIZE : WalletMovement::TYPE_BONUS_PRIZE,
                     'status' => WalletMovement::STATUS_COMPLETED,
                     'amount' => $amount,
                     'balance_before' => $balanceBefore,
-                    'balance_after' => (float) $wallet->balance,
+                    'balance_after' => (float) $lockedWallet->balance,
                     'description' => $description,
                     'idempotency_key' => $idempotencyKey,
                     'metadata' => $metadata,
@@ -857,6 +860,7 @@ final class WalletService
             throw $e;
         }
 
+        $wallet->refresh();
         $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_PRIZE, $amount, (string) $movement->id);
 
         return $movement;
