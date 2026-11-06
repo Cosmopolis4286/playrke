@@ -67,7 +67,7 @@ function applyQuickReason(reason: string) {
 /** Consecuencia del rechazo según el tipo — antes todo lo que no era WITHDRAWAL decía "¿Rechazar el depósito?". */
 const rejectConsequence = computed(() => {
   if (props.detail.type === 'WITHDRAWAL' || !props.isCredit) {
-    return 'El monto reservado será <strong>devuelto</strong> al saldo del usuario.'
+    return 'El monto reservado será devuelto al saldo del usuario.'
   }
   return 'No se acreditará ningún monto al usuario.'
 })
@@ -138,7 +138,7 @@ function onNotesKeydown(e: KeyboardEvent) {
           placeholder="Observaciones internas para el equipo…"
           :disabled="actionLoading"
           @input="emit('update:adminNotes', ($event.target as HTMLTextAreaElement).value)"
-        ></textarea>
+        />
         <div class="mv-notes-meta">
           <span class="mv-notes-meta__count">{{ adminNotes.length }}/512</span>
         </div>
@@ -208,7 +208,7 @@ function onNotesKeydown(e: KeyboardEvent) {
       <div v-else class="mv-reject-confirm">
         <p class="mv-reject-confirm__text">
           <i class="fas fa-exclamation-triangle text-warning me-1" />
-          ¿Rechazar este {{ typeLabel }}? <span v-html="rejectConsequence" />
+          ¿Rechazar este {{ typeLabel }}? {{ rejectConsequence }}
         </p>
         <div class="mv-actions__btns">
           <button
