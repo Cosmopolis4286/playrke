@@ -35,9 +35,9 @@ defineProps<{
       <span class="mv-detail__cell-label">Descripción</span>
       <span class="mv-detail__cell-value">{{ movement.description }}</span>
     </div>
-    <div v-if="movement.admin_notes" class="mv-detail__cell mv-detail__cell--full">
+    <div v-if="movement.player_message" class="mv-detail__cell mv-detail__cell--full">
       <span class="mv-detail__cell-label">Nota del equipo</span>
-      <span class="mv-detail__cell-value">{{ movement.admin_notes }}</span>
+      <span class="mv-detail__cell-value">{{ movement.player_message }}</span>
     </div>
   </div>
 </template>
