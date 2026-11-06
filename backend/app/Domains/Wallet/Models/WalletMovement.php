@@ -110,6 +110,7 @@ class WalletMovement extends Model
         'receipt_hash',
         'metadata',
         'admin_notes',
+        'player_message',
         'processed_by',
         'processed_at',
         'assigned_to_user_id',
