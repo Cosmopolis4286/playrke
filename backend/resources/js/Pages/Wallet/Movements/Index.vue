@@ -56,7 +56,7 @@ const {
   computed(() => props.movementTypes),
   props.initialPendingCount,
   handleCriticalBacklog,
-  () => scheduleOverviewRefresh(),
+  () => scheduleOverviewRefresh()
 )
 
 // Eventos en vivo (nuevo pendiente / procesado por otro admin) → KPIs y
@@ -124,8 +124,8 @@ const {
   showDetail, detailLoading, detail,
   adminNotes, playerMessage, actionLoading, actionError, showRejectForm, receiptZoom,
   openDetail, handleApprove, handleReject,
-  isReceiptImage, isPending, isActionable,
-  nextPendingId, typeLabel, canSubmitReject
+  isReceiptImage, isActionable,
+  typeLabel, canSubmitReject
 } = useWalletMovementDetail(handleMovementUpdated, computed(() => props.movementTypes), movements)
 
 /** Acciones solo si el movimiento es procesable Y el admin tiene permiso de gestión. */
@@ -286,8 +286,10 @@ const {
         </div>
 
         <div class="mv-queue__grid">
-          <StatTile label="Aprobados hoy" :value="stats?.approved_today ?? '—'" icon="fa-check" variant="success" />
-          <StatTile label="Rechazados hoy" :value="stats?.rejected_today ?? '—'" icon="fa-xmark" variant="danger" />
+          <StatTile label="Aprobados hoy" :value="stats?.approved_today ?? '—'" icon="fa-check"
+            variant="success" />
+          <StatTile label="Rechazados hoy" :value="stats?.rejected_today ?? '—'" icon="fa-xmark"
+            variant="danger" />
           <StatTile
             label="Tasa de rechazo"
             :value="stats ? `${stats.rejection_rate_today}%` : '—'"
