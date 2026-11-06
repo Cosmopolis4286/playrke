@@ -26,6 +26,7 @@ export function useWalletMovementDetail(
   const detailLoading  = ref(false)
   const detail         = ref<Movement | null>(null)
   const adminNotes     = ref('')
+  const playerMessage  = ref('')
   const actionLoading  = ref(false)
   const actionError    = ref('')
   const showRejectForm = ref(false)
@@ -36,6 +37,7 @@ export function useWalletMovementDetail(
     showDetail.value     = true
     detailLoading.value  = true
     adminNotes.value     = ''
+    playerMessage.value  = ''
     actionError.value    = ''
     showRejectForm.value = false
     receiptZoom.value    = false
@@ -104,6 +106,7 @@ export function useWalletMovementDetail(
       })
       onUpdated(data.data)
       adminNotes.value = ''
+      playerMessage.value = ''
       showToast('Movimiento aprobado correctamente.', 'success')
       openNextPending()
     } catch (e: any) {
@@ -118,7 +121,7 @@ export function useWalletMovementDetail(
   /** Longitud mínima del motivo — misma regla que REJECT_NOTES_RULES en WalletMovementController. */
   const REJECT_REASON_MIN = 5
 
-  const canSubmitReject = computed(() => adminNotes.value.trim().length >= REJECT_REASON_MIN)
+  const canSubmitReject = computed(() => playerMessage.value.trim().length >= REJECT_REASON_MIN)
 
   /**
    * El paso "Confirmar rechazo" del formulario inline ya ES la confirmación
@@ -129,7 +132,7 @@ export function useWalletMovementDetail(
     if (!detail.value || actionLoading.value) return
 
     if (!canSubmitReject.value) {
-      actionError.value = `Indica el motivo del rechazo (mínimo ${REJECT_REASON_MIN} caracteres): el jugador lo recibe en su notificación.`
+      actionError.value = `Indica el motivo para el jugador (mínimo ${REJECT_REASON_MIN} caracteres).`
       return
     }
 
@@ -137,10 +140,12 @@ export function useWalletMovementDetail(
     actionLoading.value = true
     try {
       const { data } = await backendClient.post(`/wallet-movements/${detail.value.id}/reject`, {
-        admin_notes: adminNotes.value.trim(),
+        admin_notes: adminNotes.value.trim() || null,
+        player_message: playerMessage.value.trim(),
       })
       onUpdated(data.data)
       adminNotes.value     = ''
+      playerMessage.value  = ''
       showRejectForm.value = false
       showToast('Movimiento rechazado correctamente.', 'success')
       openNextPending()
@@ -172,7 +177,7 @@ export function useWalletMovementDetail(
 
   return {
     showDetail, detailLoading, detail,
-    adminNotes, actionLoading, actionError, showRejectForm, receiptZoom,
+    adminNotes, playerMessage, actionLoading, actionError, showRejectForm, receiptZoom,
     openDetail, handleApprove, handleReject,
     isReceiptImage, isPending, isActionable,
     nextPendingId, typeLabel, canSubmitReject,
