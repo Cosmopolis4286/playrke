@@ -7,6 +7,7 @@ const props = withDefaults(defineProps<{
   detail: Movement
   isActionable: boolean
   adminNotes: string
+  playerMessage: string
   actionLoading: boolean
   actionError: string
   showRejectForm: boolean
@@ -23,6 +24,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   'update:adminNotes': [value: string]
+  'update:playerMessage': [value: string]
   'update:showRejectForm': [value: boolean]
   approve: []
   reject: []
@@ -58,8 +60,8 @@ const quickReasons = computed<string[]>(() => {
 })
 
 function applyQuickReason(reason: string) {
-  const current = props.adminNotes.trim()
-  emit('update:adminNotes', current && !current.includes(reason) ? `${current}. ${reason}` : reason)
+  const current = props.playerMessage.trim()
+  emit('update:playerMessage', current && !current.includes(reason) ? `${current}. ${reason}` : reason)
 }
 
 /** Consecuencia del rechazo según el tipo — antes todo lo que no era WITHDRAWAL decía "¿Rechazar el depósito?". */
@@ -125,14 +127,29 @@ function onNotesKeydown(e: KeyboardEvent) {
     </div>
 
     <template v-if="isActionable">
-    <!-- Notas admin: opcionales al aprobar, motivo OBLIGATORIO al rechazar
-         (el jugador lo recibe en su notificación). -->
+    <!-- Las notas internas nunca se envían al jugador. -->
     <div class="mb-2">
-      <label class="mv-detail__label mb-1" :class="{ 'mv-detail__label--required': showRejectForm }">
-        {{ showRejectForm ? 'Motivo del rechazo (obligatorio · lo verá el jugador)' : 'Notas (opcional)' }}
-      </label>
+      <label class="mv-detail__label mb-1">Notas internas (solo administración)</label>
+      <textarea
+        :value="adminNotes"
+        class="form-control form-control-sm"
+        rows="2"
+        maxlength="512"
+        placeholder="Observaciones internas para el equipo…"
+        :disabled="actionLoading"
+        @input="emit('update:adminNotes', ($event.target as HTMLTextAreaElement).value)"
+      ></textarea>
+      <div class="mv-notes-meta">
+        <span class="mv-notes-meta__count">{{ adminNotes.length }}/512</span>
+      </div>
+    </div>
 
-      <div v-if="showRejectForm" class="mv-quick-reasons">
+    <!-- El motivo público se captura por separado y solo al rechazar. -->
+    <div v-if="showRejectForm" class="mb-2">
+      <label class="mv-detail__label mb-1 mv-detail__label--required">
+        Motivo del rechazo (obligatorio · lo verá el jugador)
+      </label>
+      <div class="mv-quick-reasons">
         <button
           v-for="reason in quickReasons"
           :key="reason"
@@ -144,24 +161,23 @@ function onNotesKeydown(e: KeyboardEvent) {
           {{ reason }}
         </button>
       </div>
-
       <textarea
         ref="notesRef"
-        :value="adminNotes"
+        :value="playerMessage"
         class="form-control form-control-sm"
-        :class="{ 'is-invalid': showRejectForm && actionError && !canSubmitReject }"
+        :class="{ 'is-invalid': actionError && !canSubmitReject }"
         rows="2"
         maxlength="512"
-        :placeholder="showRejectForm ? 'Explica por qué se rechaza…' : 'Notas internas sobre la aprobación…'"
+        placeholder="Escribe una explicación clara que recibirá el jugador…"
         :disabled="actionLoading"
-        @input="emit('update:adminNotes', ($event.target as HTMLTextAreaElement).value)"
+        @input="emit('update:playerMessage', ($event.target as HTMLTextAreaElement).value)"
         @keydown="onNotesKeydown"
       ></textarea>
       <div class="mv-notes-meta">
-        <span v-if="showRejectForm" class="mv-notes-meta__hint">
+        <span class="mv-notes-meta__hint">
           <kbd>Ctrl</kbd>+<kbd>Enter</kbd> para confirmar
         </span>
-        <span class="mv-notes-meta__count">{{ adminNotes.length }}/512</span>
+        <span class="mv-notes-meta__count">{{ playerMessage.length }}/512</span>
       </div>
     </div>
 
