@@ -19,7 +19,7 @@ El repositorio contiene dos implementaciones de interfaz que no deben confundirs
 | CI | GitHub Actions | `.github/workflows/ci.yml` |
 | Producción | Docker Compose | Stack productivo en `backend/docker-compose.prod.yml` |
 
-La raíz `package.json` declara workspaces npm para `backend` y `frontend`, pero `pnpm-workspace.yaml` incluye únicamente `backend`. Por tanto, **no asumir que `pnpm install` desde la raíz instala o compila el frontend Nuxt**. El frontend Nuxt es una aplicación separada cuyo estado de integración/despliegue debe confirmarse antes de reactivarla.
+La raíz `package.json` y `pnpm-workspace.yaml` incluyen únicamente `backend` en el workspace pnpm. Por tanto, **`pnpm install` desde la raíz no instala ni compila el frontend Nuxt**. Este paquete se ejecuta de forma aislada desde `frontend/` (o mediante los scripts `dev:frontend` y `build:frontend` de la raíz); su integración con autenticación, CI y despliegue debe confirmarse antes de tratarlo como frontend productivo.
 
 ## Dominios funcionales
 
