@@ -9,6 +9,7 @@ use App\Http\Controllers\WalletController;
 use App\Http\Controllers\WalletLimitController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 /*
 |--------------------------------------------------------------------------
@@ -71,11 +72,16 @@ Route::middleware('auth')->get('wallet/receipt/{filename}', function(string $fil
     $canManage = Auth::user()?->can('wallet.movements.view') || Auth::user()?->can('wallet.movements.manage');
     abort_unless($isOwner || $canManage, 403);
 
-    $path = storage_path('app/public/wallet/receipts/' . $filename);
-    if (! file_exists($path)) {
+    // El disco local apunta a storage/app (privado), no a storage/app/public.
+    $disk = Storage::disk('local');
+    $receiptPath = 'wallet/receipts/' . $filename;
+
+    if (! $disk->exists($receiptPath)) {
         abort(404);
     }
-    $mime = mime_content_type($path) ?: 'application/octet-stream';
+
+    $path = $disk->path($receiptPath);
+    $mime = $disk->mimeType($receiptPath) ?: 'application/octet-stream';
 
     return response()->file($path, ['Content-Type' => $mime]);
 })->name('wallet.receipt');
