@@ -3,6 +3,7 @@
 namespace App\Domains\Games\Bingo\Services\Room\Utils;
 
 use App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Models\Games\Common\Utils\GameStatus;
@@ -94,24 +95,40 @@ final class CheckExpiredBingoRoomsService
         foreach ($underMinimum as $room) {
             // lockForUpdate dentro de la transacción previene que dos ejecuciones
             // concurrentes del cron cancelen la misma sala dos veces.
-            $changed = DB::transaction(function() use ($room, $cancelledId, $activeId) : bool {
+            $reason = DB::transaction(function() use ($room, $cancelledId, $activeId) : ?string {
                 $locked = BingoRoom::where('id', $room->id)
                     ->where('status_id', $activeId)
                     ->lockForUpdate()
                     ->first();
 
                 if (! $locked) {
-                    return false; // Otro proceso ya cambió el estado
+                    return null; // Otro proceso ya cambió el estado
                 }
 
-                return (bool) $locked->update(['status_id' => $cancelledId]);
+                // La lista inicial solo descubre candidatas. Entre esa lectura y
+                // este lock pudo completarse una venta/registro o cambiar la fecha.
+                // Revalidar con datos actuales evita cancelar una sala que ya cumple
+                // los mínimos y serializa la decisión con los guards de capacidad.
+                $locked->load('config');
+                if (! $locked->config || (int) $locked->config->unix_date > Carbon::now('UTC')->timestamp) {
+                    return null;
+                }
+
+                $unmetMinimum = $this->unmetMinimum($locked);
+                if ($unmetMinimum === null) {
+                    return null;
+                }
+
+                $locked->update(['status_id' => $cancelledId]);
+
+                return $unmetMinimum;
             });
 
-            if (! $changed) {
+            if ($reason === null) {
                 continue;
             }
 
-            $reason = $this->unmetMinimum($room) === 'players' ? 'jugadores' : 'cartones';
+            $room = $room->fresh(['config']);
 
             Log::info('[CheckExpiredBingoRoomsService] Sala cancelada por mínimo no alcanzado', [
                 'room_id' => $room->id,
@@ -164,8 +181,16 @@ final class CheckExpiredBingoRoomsService
     private function unmetMinimum(BingoRoom $room) : ?string
     {
         $minCards = $room->config?->min_cards_to_start;
-        if ($minCards !== null && ($room->total_cards ?? 0) < $minCards) {
-            return 'cards';
+        if ($minCards !== null) {
+            // El contador denormalizado de la sala puede estar desfasado; para
+            // una decisión financiera de cancelación, contar los lotes vigentes.
+            $totalCards = BingoCardLot::where('room_id', $room->id)
+                ->where('status', '!=', 'REFUNDED')
+                ->sum('card_count');
+
+            if ((int) $totalCards < (int) $minCards) {
+                return 'cards';
+            }
         }
 
         $minPlayers = $room->config?->min_players;

@@ -60,6 +60,19 @@ class CheckExpiredBingoRoomsMinimumsTest extends TestCase
     }
 
     #[Test]
+    public function usa_lotes_vigentes_y_no_el_contador_desnormalizado_para_validar_minimo() : void
+    {
+        // Simula un total_cards desfasado: los lotes persistidos son la fuente
+        // autoritativa que también usa la transición masiva a IN_PROGRESS.
+        $roomId = $this->makeExpiredRoom(players: 3, cards: 6, minPlayers: 2, minCards: 5, roomTotalCards: 0);
+
+        app(CheckExpiredBingoRoomsService::class)->handle();
+
+        $this->assertSame($this->statusId('IN_PROGRESS'), (string) BingoRoom::find($roomId)->status_id);
+        Queue::assertNothingPushed();
+    }
+
+    #[Test]
     public function sala_vieja_sin_minimos_configurados_pasa_a_en_curso() : void
     {
         $roomId = $this->makeExpiredRoom(players: 1, cards: 1, minPlayers: null, minCards: null);
@@ -90,7 +103,7 @@ class CheckExpiredBingoRoomsMinimumsTest extends TestCase
         Queue::assertPushed(BingoCardLotRefundJob::class);
     }
 
-    private function makeExpiredRoom(int $players, int $cards, ?int $minPlayers, ?int $minCards) : string
+    private function makeExpiredRoom(int $players, int $cards, ?int $minPlayers, ?int $minCards, ?int $roomTotalCards = null) : string
     {
         $roomId = (string) (910000000000000000 + (++self::$seq));
         DB::table('bingo_rooms')->insert([
@@ -101,7 +114,7 @@ class CheckExpiredBingoRoomsMinimumsTest extends TestCase
             'prize_pool' => 0,
             'uuid_code' => 'TEST-' . $roomId,
             'total_players' => $players,
-            'total_cards' => $cards,
+            'total_cards' => $roomTotalCards ?? $cards,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
