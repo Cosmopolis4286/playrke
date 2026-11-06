@@ -99,6 +99,50 @@ class WalletControllerSecurityTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_receipt_migration_moves_public_files_to_private_storage(): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
+
+        $owner = User::factory()->create();
+        $currency = Currency::firstOrCreate(
+            ['iso_code' => 'USD'],
+            ['name' => 'Dollar', 'type' => 'FIAT'],
+        );
+        $wallet = Wallet::create([
+            'user_id' => $owner->id,
+            'currency_id' => $currency->id,
+            'balance' => 0,
+            'bonus_balance' => 0,
+            'status' => 'ACTIVE',
+        ]);
+
+        $filename = 'legacy-public-receipt.pdf';
+        $receiptPath = 'wallet/receipts/' . $filename;
+        Storage::disk('public')->put($receiptPath, 'legacy receipt');
+
+        WalletMovement::create([
+            'wallet_id' => $wallet->id,
+            'user_id' => $owner->id,
+            'type' => WalletMovement::TYPE_DEPOSIT,
+            'status' => WalletMovement::STATUS_PENDING,
+            'amount' => 10,
+            'balance_before' => 0,
+            'balance_after' => 0,
+            'receipt_path' => $receiptPath,
+        ]);
+
+        $this->artisan('wallet:migrate-receipts-private')
+            ->assertExitCode(0);
+        Storage::disk('public')->assertExists($receiptPath);
+        Storage::disk('local')->assertMissing($receiptPath);
+
+        $this->artisan('wallet:migrate-receipts-private --apply')
+            ->assertExitCode(0);
+        Storage::disk('local')->assertExists($receiptPath);
+        Storage::disk('public')->assertMissing($receiptPath);
+    }
+
     public function test_pending_operation_returns_server_error_when_lookup_fails(): void
     {
         $wallet = new Wallet();
