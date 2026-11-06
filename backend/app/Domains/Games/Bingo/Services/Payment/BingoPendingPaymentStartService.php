@@ -186,7 +186,7 @@ final class BingoPendingPaymentStartService
         );
     }
 
-    private function notify(string|int $userId, string $title, string $message) : void
+    private function notify(string|int $userId, string $title, string $message) : bool
     {
         $userId = (string) $userId;
 
