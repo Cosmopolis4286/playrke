@@ -1130,10 +1130,32 @@ final class BingoDrawService
         // aprobaciones tardías de comprobantes aunque la sala se haya iniciado
         // manualmente antes de su hora programada.
         if ($round->status !== 'IN_PROGRESS') {
-            $round->forceFill([
-                'status' => 'IN_PROGRESS',
-                'start_time' => $round->start_time ?? now(),
-            ])->save();
+            DB::transaction(function() use ($roomId, $round) {
+                // Serializar el inicio contra aprobaciones/rechazos de comprobantes.
+                // approve() bloquea primero el pago y luego consulta hasStarted(); al
+                // tomar aquí los mismos pagos PENDING antes de marcar la ronda,
+                // cualquier aprobación concurrente queda ordenada antes del inicio
+                // (se acepta como previa) o después (exige confirmLate).
+                // Ordenar por id mantiene el mismo orden de locks que claimCardWin().
+                BingoCardPayment::where('room_id', (string) $roomId)
+                    ->where('payment_status', 'PENDING')
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get(['id']);
+
+                $lockedRound = BingoRound::whereKey($round->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if ($lockedRound->status !== 'IN_PROGRESS') {
+                    $lockedRound->forceFill([
+                        'status' => 'IN_PROGRESS',
+                        'start_time' => $lockedRound->start_time ?? now(),
+                    ])->save();
+                }
+
+                $round->refresh();
+            });
         }
 
         $roundId = (string) $round->id;
