@@ -40,9 +40,9 @@ Los controladores HTTP se encuentran fuera del dominio, en `backend/app/Http/Con
 
 ## Documentación relacionada
 
-- [Arquitectura general](../../../../../docs/ARCHITECTURE.md)
-- [Autenticación específica de Bingo](../../../../docs/security/BINGO_AUTHENTICATION.md)
-- [Pagos y premios](../../../../../docs/PAYMENTS_AND_PRIZES.md)
-- [Preparación para lanzamiento](../../../../../docs/RELEASE_READINESS.md)
+- [Arquitectura general](../architecture/OVERVIEW.md)
+- [Autenticación específica de Bingo](../security/BINGO_AUTHENTICATION.md)
+- [Pagos y premios](../payments/PAYMENTS_AND_PRIZES.md)
+- [Preparación para lanzamiento](../guides/RELEASE_READINESS.md)
 
 Este documento reemplaza el antiguo checklist de migración del dominio, que describía como pendientes directorios y capas que ya existen en la estructura actual.

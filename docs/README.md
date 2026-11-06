@@ -1,48 +1,62 @@
 # Documentación PlayRKE
 
-La implementación y configuración versionadas prevalecen sobre cualquier documento. Esta carpeta contiene guías mantenidas; los changelogs, auditorías y planes conservan contexto histórico y deben leerse con su fecha/estado.
+Toda la documentación propia del proyecto vive aquí. El [README raíz](../README.md) es solo la puerta de entrada. Los documentos incluidos con dependencias o plantillas de terceros se mantienen junto a esas dependencias y no se consideran documentación PlayRKE.
 
-## Guías mantenidas
+**Regla de precedencia:** el código y la configuración versionados prevalecen sobre los documentos. Los archivos en `history/` y `product/` conservan contexto; no son runbooks ni una declaración del estado actual.
 
-| Documento | Contenido |
+## Guías de trabajo
+
+- [Desarrollo e instalación](guides/DEVELOPMENT.md)
+- [Contribución y PR](guides/CONTRIBUTING.md)
+- [CI y validaciones](guides/CI.md)
+- [Preparación para lanzamiento](guides/RELEASE_READINESS.md)
+
+## Arquitectura y dominios
+
+- [Arquitectura general](architecture/OVERVIEW.md)
+- [Mapa de rutas Laravel](architecture/ROUTES.md)
+- [Bingo](domains/BINGO.md)
+- [Trivia](domains/TRIVIA.md)
+- [Arquitectura detallada de Trivia](domains/TRIVIA_ARCHITECTURE.md)
+- [Helpers de formularios](frontend/FORM_HELPERS.md)
+- [Frontend Nuxt 4 aislado](frontends/NUXT4.md)
+
+## Seguridad y finanzas
+
+- [Autenticación y autorización](security/AUTHENTICATION.md)
+- [Autenticación de Bingo](security/BINGO_AUTHENTICATION.md)
+- [Jerarquía de roles](security/ROLE_HIERARCHY.md)
+- [Visibilidad del menú por rol](security/SIDEBAR_MENU_VISIBILITY.md)
+- [Pagos, wallets y premios](payments/PAYMENTS_AND_PRIZES.md)
+- [Diseño USDT-TRC20](payments/USDT_TRC20_DESIGN.md)
+- [Auditoría Marketplace](payments/MARKETPLACE_ARCHITECTURE_AUDIT.md)
+
+## Operación
+
+- [Despliegue Docker](operations/DEPLOYMENT_DOCKER.md)
+- [Laravel IDE Helper](operations/IDE_HELPER.md)
+- [Estado del ecosistema](operations/ESTADO_ECOSISTEMA.md)
+
+## Producto e historial
+
+`product/` contiene alcance, estrategia y planes de producto/ingeniería conservados como material de referencia. `history/` contiene changelogs y auditorías fechadas. Antes de ejecutar una tarea descrita allí, verifica si sigue vigente en el código.
+
+- [Alcance de juegos y comercio](product/ALCANCE_JUEGOS_Y_COMERCIO.md)
+- [Estrategia de producto](product/ESTRATEGIA_ANALISIS.md) · [plan](product/ESTRATEGIA_PLAN.md)
+- [Planes técnicos](product/GAME_ENGINE_PLAN.md), [matchmaking](product/MATCHMAKING_PLAN.md), [XP/logros](product/XP_LOGROS_PLAN.md)
+- [Historial de arquitectura](history/CHANGELOG_ARQUITECTURA.md)
+- [Changelog backend](history/BACKEND_CHANGELOG.md)
+- [Auditoría Trivia 2026-08](history/TRIVIA_AUDIT_2026_08.md)
+- [Changelog Nuxt histórico 2025](history/NUXT_CHANGELOG_2025.md)
+
+## Fuentes de verdad
+
+| Área | Fuente |
 |---|---|
-| [Arquitectura](ARCHITECTURE.md) | Aplicaciones, stack, módulos, persistencia y eventos |
-| [Desarrollo](DEVELOPMENT.md) | Instalación local, entorno, comandos y pruebas |
-| [Autenticación](AUTHENTICATION.md) | Login, sesiones, CSRF, guards y autorización |
-| [Pagos y premios](PAYMENTS_AND_PRIZES.md) | Wallet, pagos, premios, reintentos y conciliación |
-| [CI](CI.md) | GitHub Actions, jobs y criterios de aceptación |
-| [Preparación de lanzamiento](RELEASE_READINESS.md) | Riesgos y controles previos a producción |
-| [Contribución](CONTRIBUTING.md) | Flujo de trabajo y criterios de PR |
+| Workspace JS | `pnpm-workspace.yaml`, `package.json`, `backend/package.json`, `frontend/package.json` |
+| CI | `.github/workflows/ci.yml` |
+| Runtime y dependencias PHP | `backend/composer.json`, `backend/config/` |
+| Producción | `backend/docker-compose.prod.yml`, `backend/deploy.sh` |
+| Variables de entorno | `backend/.env.example` |
 
-## Documentación de dominios y operaciones
-
-- [Despliegue Docker](../backend/README-DOCKER.md)
-- [Dominio Bingo](../backend/app/Domains/Games/Bingo/README.md)
-- [Dominio Trivia](../backend/app/Domains/Games/Trivia/README.md)
-- [Arquitectura detallada de Trivia](../backend/app/Domains/Games/Trivia/ARCHITECTURE_TRIVIA.md)
-- [Autenticación específica de Bingo](../backend/docs/security/BINGO_AUTHENTICATION.md)
-- [Jerarquía de roles](../backend/docs/ROLE_HIERARCHY.md)
-- [Visibilidad del menú por rol](../backend/docs/SIDEBAR_MENU_VISIBILITY.md)
-- [Rutas Laravel](../backend/routes/README.md)
-
-## Decisiones, auditorías y planes conservados
-
-Estos documentos son referencias fechadas; no son automáticamente estado actual ni instrucciones de despliegue:
-
-- [Alcance funcional de Bingo, Trivia y comercio](../ALCANCE_JUEGOS_Y_COMERCIO.md)
-- [Estado del ecosistema](../ESTADO_ECOSISTEMA.md)
-- [Changelog de arquitectura](../CHANGELOG_ARQUITECTURA.md)
-- [Auditoría de arquitectura Marketplace](../MARKETPLACE_ARCHITECTURE_AUDIT.md)
-- [Diseño USDT-TRC20](../PAYMENTS_USDT_TRC20_DESIGN.md)
-- [Estrategia de producto: análisis](../progreso/estrategia-producto-analisis.md)
-- [Estrategia de producto: plan](../progreso/estrategia-producto-plan.md)
-- [Planes de Game Engine, matchmaking y XP/logros](../progreso/)
-
-## Fuente de verdad
-
-- Stack y frontend: `package.json`, `pnpm-workspace.yaml`, `backend/package.json`, `frontend/package.json`.
-- CI: `.github/workflows/ci.yml`.
-- Producción: `backend/docker-compose.prod.yml`, `backend/deploy.sh`.
-- Variables: `backend/.env.example` y documentación de despliegue, sin copiar secretos.
-
-Evita mantener manuales duplicados. Cuando cambie un contrato, actualiza la guía canónica y enlaza las notas históricas si aportan contexto.
+No dupliques manuales. Actualiza la guía canónica cuando cambie un contrato y conserva en el historial únicamente decisiones que aporten contexto.

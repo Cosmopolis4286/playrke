@@ -123,7 +123,7 @@ Cobertura real (auditoría 2026-08-31): `RoomService` tiene una suite sólida
 cobertura parcial. **No hay tests** para `JoinRoomAction` (cobro real),
 `PrizeDistributionService` (cálculo/reparto de premios), `StartGameAction`,
 ni para ningún escenario de concurrencia — ver
-`CHANGELOG_AUDIT_2026_08.md` en este mismo directorio para el detalle de
+`../history/TRIVIA_AUDIT_2026_08.md` en el archivo histórico enlazado para el detalle de
 hallazgos y qué falta blindar antes de confiar en este flujo bajo carga.
 
 ---

@@ -10,7 +10,7 @@ independiente.
 
 > Documento actualizado el 2026-08-31 tras auditoría de flujo completo, para
 > reflejar la implementación real en vez de un diseño planeado. Ver
-> `CHANGELOG_AUDIT_2026_08.md` en este directorio para los hallazgos y fixes
+> `../history/TRIVIA_AUDIT_2026_08.md` para los hallazgos y fixes
 > aplicados sobre este dominio.
 
 ---
