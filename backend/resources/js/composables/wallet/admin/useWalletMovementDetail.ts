@@ -118,7 +118,7 @@ export function useWalletMovementDetail(
     }
   }
 
-  /** Longitud mínima del motivo — misma regla que REJECT_NOTES_RULES en WalletMovementController. */
+  /** Longitud mínima del motivo — misma regla que PLAYER_MESSAGE_RULES en WalletMovementController. */
   const REJECT_REASON_MIN = 5
 
   const canSubmitReject = computed(() => playerMessage.value.trim().length >= REJECT_REASON_MIN)
