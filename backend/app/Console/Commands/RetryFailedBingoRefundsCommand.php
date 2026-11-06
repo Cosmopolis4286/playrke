@@ -33,7 +33,13 @@ class RetryFailedBingoRefundsCommand extends Command
 
         try {
             $failures = BingoLotRefundFailure::pending()
-                ->where('attempts', '<', PrizePayoutRetryPolicy::MAX_ATTEMPTS)
+                ->where(function($query) {
+                    $query->where('attempts', '<', PrizePayoutRetryPolicy::MAX_ATTEMPTS)
+                        // Una wallet inactiva/no disponible es transitoria: no se
+                        // abandona el reembolso ni se deja de reintentar al llegar
+                        // al máximo ordinario de fallos.
+                        ->orWhere('error_message', 'WALLET_UNAVAILABLE');
+                })
                 ->cursor();
 
             foreach ($failures as $failure) {
