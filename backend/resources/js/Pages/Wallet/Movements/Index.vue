@@ -286,10 +286,18 @@ const {
         </div>
 
         <div class="mv-queue__grid">
-          <StatTile label="Aprobados hoy" :value="stats?.approved_today ?? '—'" icon="fa-check"
-            variant="success" />
-          <StatTile label="Rechazados hoy" :value="stats?.rejected_today ?? '—'" icon="fa-xmark"
-            variant="danger" />
+          <StatTile
+            label="Aprobados hoy"
+            :value="stats?.approved_today ?? '—'"
+            icon="fa-check"
+            variant="success"
+          />
+          <StatTile
+            label="Rechazados hoy"
+            :value="stats?.rejected_today ?? '—'"
+            icon="fa-xmark"
+            variant="danger"
+          />
           <StatTile
             label="Tasa de rechazo"
             :value="stats ? `${stats.rejection_rate_today}%` : '—'"
