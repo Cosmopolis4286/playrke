@@ -20,7 +20,7 @@ import type { MovementType } from '@js/types/movementType'
 export function useWalletMovementDetail(
   onUpdated: (updated: Movement) => void,
   movementTypes: Ref<MovementType[]> | MovementType[],
-  pendingQueue?: Ref<Movement[]>,
+  pendingQueue?: Ref<Movement[]>
 ) {
   const showDetail     = ref(false)
   const detailLoading  = ref(false)
