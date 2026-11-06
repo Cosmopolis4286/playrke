@@ -7,6 +7,7 @@ namespace App\Domains\Games\Bingo\Services\Payment;
 use App\Domains\Games\Bingo\Exceptions\Card\BingoCardPaymentException;
 use App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Services\NotificationService;
@@ -146,12 +147,14 @@ final class BingoCardPaymentReviewService
             // bingo:retry-failed-refunds pueda volver a despacharla/procesarla.
             // El job es idempotente, así que también tolera un enqueue ambiguo.
             try {
+                $lot = BingoCardLot::findOrFail((string) $updated->card_lot_id);
+
                 BingoLotRefundFailure::updateOrCreate(
                     ['lot_id' => (string) $updated->card_lot_id, 'room_id' => (string) $updated->room_id],
                     [
-                        'user_id' => (string) $updated->seller_user_id,
-                        'currency_id' => (string) $updated->currency_id,
-                        'amount' => (float) $updated->payment_amount,
+                        'user_id' => (string) $lot->user_id,
+                        'currency_id' => (string) $lot->currency_id,
+                        'amount' => (float) $lot->sale_amount,
                         'error_message' => 'QUEUE_DISPATCH_FAILED: ' . $e->getMessage(),
                         'status' => 'PENDING',
                         'attempts' => 0,
