@@ -1,5 +1,5 @@
 # Marketplace P2P + Escrow + HD Wallet cripto — Auditoría de arquitectura
-> **Estado y advertencia:** auditoría/diseño de arquitectura, no runbook ni certificación de funcionalidades productivas. Los componentes y estados descritos deben contrastarse con el código actual; las integraciones externas pueden estar en modo stub o no habilitadas. No procesar fondos reales ni activar escrow/cripto basándose únicamente en este documento. Consulta [docs/RELEASE_READINESS.md](docs/RELEASE_READINESS.md).
+> **Estado y advertencia:** auditoría/diseño de arquitectura, no runbook ni certificación de funcionalidades productivas. Los componentes y estados descritos deben contrastarse con el código actual; las integraciones externas pueden estar en modo stub o no habilitadas. No procesar fondos reales ni activar escrow/cripto basándose únicamente en este documento. Consulta [../guides/RELEASE_READINESS.md](../guides/RELEASE_READINESS.md).
 
 
 > FASE 0 del plan. Iniciativa nueva, en paralelo al plan de estrategia de producto

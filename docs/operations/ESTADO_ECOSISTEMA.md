@@ -1,6 +1,6 @@
 # Estado del ecosistema PlayRKE
 
-> Documento de contexto técnico fechado y sujeto a cambios. La fuente de verdad es el código/configuración de `master`; para guías mantenidas consulta [docs/README.md](docs/README.md). No usar este resumen como evidencia de que una función está habilitada en producción.
+> Documento de contexto técnico fechado y sujeto a cambios. La fuente de verdad es el código/configuración de `master`; para guías mantenidas consulta [../README.md](../README.md). No usar este resumen como evidencia de que una función está habilitada en producción.
 
 ## Aplicaciones
 
@@ -29,12 +29,12 @@ Las transacciones Laravel no hacen atómicas las operaciones entre MySQL y Postg
 
 ## Referencias
 
-- [Alcance funcional Bingo/Trivia y comercio](ALCANCE_JUEGOS_Y_COMERCIO.md)
-- [Changelog de arquitectura](CHANGELOG_ARQUITECTURA.md)
-- [Auditoría de Marketplace](MARKETPLACE_ARCHITECTURE_AUDIT.md)
-- [Diseño USDT-TRC20](PAYMENTS_USDT_TRC20_DESIGN.md)
-- [Plan de estrategia de producto](progreso/estrategia-producto-plan.md)
-- [Guías técnicas](docs/README.md)
+- [Alcance funcional Bingo/Trivia y comercio](../product/ALCANCE_JUEGOS_Y_COMERCIO.md)
+- [Changelog de arquitectura](../history/CHANGELOG_ARQUITECTURA.md)
+- [Auditoría de Marketplace](../payments/MARKETPLACE_ARCHITECTURE_AUDIT.md)
+- [Diseño USDT-TRC20](../payments/USDT_TRC20_DESIGN.md)
+- [Plan de estrategia de producto](../product/ESTRATEGIA_PLAN.md)
+- [Guías técnicas](../README.md)
 
 ## Advertencia sobre planes
 
