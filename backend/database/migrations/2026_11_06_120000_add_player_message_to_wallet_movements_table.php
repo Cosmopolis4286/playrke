@@ -24,6 +24,32 @@ return new class extends Migration
                 'player_message' => DB::raw('admin_notes'),
                 'admin_notes' => null,
             ]);
+
+        // Las notificaciones antiguas también serializaban admin_notes en su
+        // payload. En rechazos se conserva como player_message; en aprobaciones
+        // se elimina porque podía contener observaciones internas.
+        DB::table('notifications')
+            ->where('type', 'WALLET_UPDATED')
+            ->orderBy('id')
+            ->chunkById(200, function($notifications) {
+                foreach ($notifications as $notification) {
+                    $data = json_decode((string) $notification->data, true);
+
+                    if (! is_array($data) || ! array_key_exists('admin_notes', $data)) {
+                        continue;
+                    }
+
+                    if (($data['movement_status'] ?? null) === 'REJECTED' && ! empty($data['admin_notes'])) {
+                        $data['player_message'] = $data['admin_notes'];
+                    }
+
+                    unset($data['admin_notes']);
+
+                    DB::table('notifications')
+                        ->where('id', $notification->id)
+                        ->update(['data' => json_encode($data, JSON_UNESCAPED_UNICODE)]);
+                }
+            }, 'id');
     }
 
     public function down(): void
