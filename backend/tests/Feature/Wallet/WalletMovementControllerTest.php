@@ -7,6 +7,7 @@ use App\Domains\Wallet\Models\WalletMovement;
 use App\Http\Controllers\WalletController;
 use App\Models\Currency;
 use App\Models\MovementType;
+use App\Models\Notification;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\MovementTypeSeeder;
