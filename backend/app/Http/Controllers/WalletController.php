@@ -75,6 +75,10 @@ class WalletController extends Controller
                 'balance' => (float) $wallet->balance,
             ]);
         } catch (DomainException $e) {
+            if (isset($receiptPath)) {
+                Storage::disk('local')->delete($receiptPath);
+            }
+
             return $this->domainErrorResponse($e);
         } catch (Throwable $e) {
             if (isset($receiptPath)) {
