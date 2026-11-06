@@ -1,79 +1,38 @@
-# 🔧 Laravel IDE Helper
+# Laravel IDE Helper
 
-Este proyecto usa **Laravel IDE Helper** para eliminar los falsos positivos del IDE (VS Code, PHPStorm, etc.) y proporcionar autocompletado completo para Facades, modelos y helpers de Laravel.
+El proyecto usa Laravel IDE Helper para reducir falsos positivos del IDE y mejorar el autocompletado de Facades, modelos y helpers.
 
-## 📦 Archivos Generados
+## Archivos generados
 
-Los siguientes archivos son auto-generados y **NO** deben ser commiteados:
+Los siguientes archivos se generan localmente y no deben versionarse:
+- `_ide_helper.php`
+- `_ide_helper_models.php`
+- `.phpstorm.meta.php`
 
-- `_ide_helper.php` - Definiciones para Facades y helpers globales
-- `_ide_helper_models.php` - PHPDocs para modelos Eloquent
-- `.phpstorm.meta.php` - Metadata para PhpStorm
+## Regenerar
 
-## 🚀 Uso en Docker
-
-### Regenerar archivos de ayuda
+Ejecuta desde `backend/`:
 
 ```bash
-# Opción 1: Usando el script de composer
-docker-compose exec backend composer ide-helper
-
-# Opción 2: Comandos individuales
-docker-compose exec backend php artisan ide-helper:generate
-docker-compose exec backend php artisan ide-helper:meta
-docker-compose exec backend php artisan ide-helper:models --nowrite
+composer ide-helper
+# o, por separado:
+php artisan ide-helper:generate
+php artisan ide-helper:meta
+php artisan ide-helper:models --nowrite
 ```
 
-### Después de cambios importantes
+Si usas el Compose local de la raíz, el servicio Laravel se llama `backend`:
 
-Regenera los helpers después de:
-- ✅ Actualizar dependencias de Composer
-- ✅ Crear o modificar modelos Eloquent
-- ✅ Agregar nuevas Facades personalizadas
-- ✅ Cambiar la estructura de namespaces
-
-## 📝 Configuración del IDE
-
-### VS Code (Intelephense)
-
-Agrega a tu `.vscode/settings.json`:
-
-```json
-{
-  "intelephense.stubs": [
-    "laravel",
-    "Core",
-    "PDO",
-    "mysql",
-    "redis"
-  ],
-  "intelephense.files.associations": [
-    "*.php"
-  ]
-}
+```bash
+docker compose -f docker-compose.dev.yml exec backend php artisan ide-helper:generate
 ```
 
-### PHPStorm
+Comprueba los nombres de servicios del Compose que estés usando antes de ejecutar comandos en contenedores. El stack productivo está en `backend/docker-compose.prod.yml` y tiene servicios distintos.
 
-PHPStorm detecta automáticamente `.phpstorm.meta.php`. No requiere configuración adicional.
+Regenera los helpers después de actualizar Composer, crear/modificar modelos o cambiar namespaces.
 
-## ⚙️ Comandos Disponibles
+## IDE
 
-| Comando | Descripción |
-|---------|-------------|
-| `ide-helper:generate` | Genera `_ide_helper.php` con Facades y helpers |
-| `ide-helper:models` | Genera PHPDocs para modelos (agrega `--write` para escribir) |
-| `ide-helper:meta` | Genera `.phpstorm.meta.php` para PhpStorm |
-| `ide-helper:eloquent` | Genera código de ayuda para Eloquent |
+Para VS Code/Intelephense, asegúrate de tener habilitados los stubs Laravel, PHP, PDO, MySQL y Redis. PhpStorm detecta `.phpstorm.meta.php` automáticamente.
 
-## 🔄 Integración CI/CD
-
-**NO** ejecutes estos comandos en CI/CD ya que:
-- Son solo para desarrollo local
-- Los archivos están en `.gitignore`
-- No afectan la ejecución del código
-
-## 📚 Documentación
-
-- [Laravel IDE Helper](https://github.com/barryvdh/laravel-ide-helper)
-- [Intelephense](https://intelephense.com/)
+Estos archivos son herramientas de desarrollo local; no forman parte del runtime ni deben generarse como paso obligatorio de CI.
