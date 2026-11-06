@@ -1,4 +1,16 @@
-# Changelog
+# Changelog histórico
+
+Este archivo conserva el registro de la primera etapa del frontend separado. **No es un inventario del estado actual** ni un plan de lanzamiento vigente. La entrada `1.0.0` fue escrita el 2025-10-05 y describe una versión inicial de Nuxt 3; desde entonces el repositorio evolucionó: el paquete separado declara Nuxt 4, y la interfaz principal activa está en `backend/resources/js` con Inertia/Vue.
+
+Para el estado actual consulta:
+- [README raíz](../README.md)
+- [Arquitectura vigente](ARCHITECTURE.md)
+- [Estado y límites de lanzamiento](RELEASE_READINESS.md)
+- [README del frontend Nuxt separado](../frontend/README.md)
+
+Las rutas/documentos enumerados en las notas históricas pueden haber sido movidos o eliminados. No reconstruir el entorno actual a partir de esta bitácora. Los cambios nuevos deben registrarse con fecha y alcance verificables, preferiblemente en el changelog del componente correspondiente.
+
+---
 
 Todos los cambios notables en este proyecto serán documentados en este archivo.
 
