@@ -4,6 +4,7 @@ namespace Tests\Feature\Games\Bingo;
 
 use App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Services\Room\BingoRoomCardCapacityGuard;
 use App\Domains\Games\Bingo\Services\Room\Utils\CheckExpiredBingoRoomsService;
 use App\Models\Games\Common\Utils\GameStatus;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -101,6 +102,17 @@ class CheckExpiredBingoRoomsMinimumsTest extends TestCase
 
         $this->assertSame($this->statusId('CANCELLED'), (string) BingoRoom::find($roomId)->status_id);
         Queue::assertPushed(BingoCardLotRefundJob::class);
+    }
+
+    #[Test]
+    public function el_tope_de_cartones_usa_lotes_vigentes_y_no_total_cards() : void
+    {
+        $roomId = $this->makeExpiredRoom(players: 3, cards: 6, minPlayers: 2, minCards: null, roomTotalCards: 0);
+        DB::table('bingo_rooms_config')->where('room_id', $roomId)->update(['max_cards_to_start' => 5]);
+        $room = BingoRoom::findOrFail($roomId);
+
+        $this->expectException(\\App\\Domains\\Games\\Bingo\\Exceptions\\Room\\BingoRoomException::class);
+        DB::transaction(fn () => BingoRoomCardCapacityGuard::assertHasCapacityFor($room, 1));
     }
 
     private function makeExpiredRoom(int $players, int $cards, ?int $minPlayers, ?int $minCards, ?int $roomTotalCards = null) : string
