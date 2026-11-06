@@ -250,6 +250,24 @@ class WalletMovementControllerTest extends TestCase
         $this->assertSame(100.0, (float) $this->wallet->fresh()->balance);
     }
 
+    public function test_player_movement_detail_exposes_player_message_but_not_internal_notes(): void
+    {
+        $movement = $this->makePendingDeposit();
+        $movement->update([
+            'admin_notes' => 'Observación privada para tesorería',
+            'player_message' => 'Pago no recibido en la cuenta destino',
+        ]);
+
+        $this->actingAs($this->player);
+        $response = app(WalletController::class)->showMovement((string) $movement->id);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $data = $response->getData(true)['data'];
+        $this->assertSame('Pago no recibido en la cuenta destino', $data['player_message']);
+        $this->assertArrayNotHasKey('admin_notes', $data);
+        $this->assertStringNotContainsString('Observación privada para tesorería', json_encode($data));
+    }
+
     private function makePendingDeposit(float $amount = 50.0) : WalletMovement
     {
         return WalletMovement::create([
