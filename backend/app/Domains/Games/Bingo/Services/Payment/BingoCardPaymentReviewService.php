@@ -137,8 +137,48 @@ final class BingoCardPaymentReviewService
             return $locked->fresh();
         });
 
-        BingoCardLotRefundJob::dispatch((string) $updated->card_lot_id, (string) $updated->room_id)
-            ->onQueue('bingo-refunds');
+        try {
+            BingoCardLotRefundJob::dispatch((string) $updated->card_lot_id, (string) $updated->room_id)
+                ->onQueue('bingo-refunds');
+        } catch (Throwable $e) {
+            // El rechazo y la anulación ya quedaron confirmados en BD. Si el
+            // broker no acepta el job, persistir una tarea recuperable para que
+            // bingo:retry-failed-refunds pueda volver a despacharla/procesarla.
+            // El job es idempotente, así que también tolera un enqueue ambiguo.
+            try {
+                BingoLotRefundFailure::updateOrCreate(
+                    ['lot_id' => (string) $updated->card_lot_id, 'room_id' => (string) $updated->room_id],
+                    [
+                        'user_id' => (string) $updated->seller_user_id,
+                        'currency_id' => (string) $updated->currency_id,
+                        'amount' => (float) $updated->payment_amount,
+                        'error_message' => 'QUEUE_DISPATCH_FAILED: ' . $e->getMessage(),
+                        'status' => 'PENDING',
+                        'attempts' => 0,
+                        'last_attempted_at' => null,
+                        'resolved_at' => null,
+                    ],
+                );
+            } catch (Throwable $persistenceError) {
+                Log::critical('[BingoCardPaymentReview] No se pudo encolar ni registrar el reembolso pendiente', [
+                    'payment_id' => (string) $updated->id,
+                    'lot_id' => (string) $updated->card_lot_id,
+                    'dispatch_error' => $e->getMessage(),
+                    'persistence_error' => $persistenceError->getMessage(),
+                ]);
+
+                throw new RuntimeException(
+                    'El pago fue rechazado, pero no se pudo programar ni registrar su reembolso. Requiere intervención.',
+                    previous: $persistenceError,
+                );
+            }
+
+            Log::error('[BingoCardPaymentReview] Reembolso guardado para recuperación tras fallo de cola', [
+                'payment_id' => (string) $updated->id,
+                'lot_id' => (string) $updated->card_lot_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         $this->notifySeller($updated, 'REJECTED', $adminNotes);
 
