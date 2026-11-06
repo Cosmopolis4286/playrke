@@ -1,72 +1,73 @@
 # Arquitectura
 
-## Visión general
+## Vista general
 
-PlayRKE es una aplicación Laravel monolítica modular. El backend concentra la lógica de dominio y sirve la interfaz Vue mediante Inertia. Laravel Reverb entrega eventos en tiempo real. MySQL es la persistencia principal; Trivia usa una conexión PostgreSQL dedicada y Redis para coordinación/cache/colas.
+PlayRKE es un monorepo con un backend Laravel modular, una UI Inertia/Vue integrada y un frontend Nuxt separado. La implementación principal documentada/activa está en `backend/`; el código Nuxt existe en `frontend/`, pero el workspace pnpm actual lo excluye.
 
-No describir la aplicación como Laravel + Nuxt: el frontend mantenido está dentro de `backend/resources/js` y se construye con Vite.
+## Aplicaciones y herramientas
 
-## Componentes
+| Componente | Stack | Ubicación | Estado |
+|---|---|---|---|
+| Backend HTTP y dominios | Laravel 11 / PHP | `backend/app` | Aplicación principal |
+| UI integrada | Inertia.js 2, Vue 3, TypeScript, Vite 7 | `backend/resources/js` | Incluida en build Laravel |
+| UI separada | Nuxt 4, Vue 3, TypeScript, Tailwind, Pinia | `frontend/` | Presente; no incluida en workspace pnpm activo |
+| Workspace JS | pnpm 10.25 | raíz + `backend/` | `pnpm-workspace.yaml` incluye solo backend |
+| CI | GitHub Actions | `.github/workflows/ci.yml` | Pipeline mantenido |
+| Producción | Docker Compose | `backend/docker-compose.prod.yml` | Stack de producción |
+| Desarrollo Docker | Docker Compose | `docker-compose.dev.yml` | Stack local |
 
-- Laravel 11 / PHP: HTTP, sesiones, validación, Policies, jobs, scheduler y comandos.
-- Inertia + Vue 3 + TypeScript: SPA integrada en Laravel.
-- Vite + pnpm: compilación de assets y herramientas frontend.
-- MySQL: datos principales de aplicación.
-- PostgreSQL (`pgsql_trivia`): persistencia dedicada a Trivia.
-- Redis: cache, colas, locks y estado efímero.
-- Reverb / Echo: broadcasting y suscripciones en tiempo real.
-- Docker Compose: Traefik, Nginx, PHP-FPM, MySQL, Redis, Reverb, workers y scheduler.
+La raíz `package.json` declara `backend` y `frontend` en `workspaces`, pero pnpm usa `pnpm-workspace.yaml`, que actualmente contiene solo `backend`. No asumir que los comandos pnpm de raíz ejecutan el Nuxt. Antes de activar esa aplicación, definir explícitamente instalación, CI, variables, autenticación, integración API y despliegue.
 
-## Organización
+## Servicios y datos
 
-`backend/routes/web.php` es el índice de rutas y carga autenticación, módulos de plataforma y módulos de Bingo/Trivia/pagos/wallet. El código se organiza entre `app/Domains`, `app/Http`, `app/Models`, `app/Services` y proveedores de servicio.
+- **MySQL:** persistencia principal de Laravel, usuarios, roles, Bingo, wallet y datos de plataforma.
+- **PostgreSQL (`pgsql_trivia`):** persistencia específica de Trivia.
+- **Redis:** cache, colas, locks y estado efímero de juego.
+- **Laravel Reverb / Echo:** broadcasting y suscripciones en tiempo real.
+- **Laravel queues/scheduler:** procesamiento asíncrono y tareas programadas.
 
-La autorización debe permanecer en middleware y Policies del servidor. La interfaz puede ocultar controles, pero nunca constituye el control de acceso.
+## Organización backend
+
+- `app/Domains`: lógica y modelos de dominios (Bingo, Trivia, Wallet, Marketplace, Payments).
+- `app/Http`: controladores, requests, middleware y recursos HTTP.
+- `app/Models`: modelos compartidos y compatibilidad de entidades.
+- `routes/web.php`: índice de rutas web; carga archivos de autenticación y módulos.
+- `routes/modules`: rutas organizadas por dominio.
+- `database`: migraciones, factories y seeders.
+- `resources/js`: páginas, componentes, composables, tipos y utilidades Inertia/Vue.
 
 ## Dominios
 
 ### Bingo
 
-Gestión de salas y cartones, rondas, sorteos, replay, historial, premios y reportes. La elegibilidad de un cartón debe considerar el estado del lote y de todos sus pagos; no basta el estado visual del cartón. La ronda activa delimita fichas y resultados.
-
-Los compradores externos se identifican por la relación de pago/participación correspondiente, no por el usuario vendedor. Los premios externos retenidos o disputados requieren conciliación y no deben acreditarse al vendedor.
+Salas, cartones, lotes/pagos, rondas, sorteos, patrones, participación, premios y reembolsos. La elegibilidad del cartón debe considerar estado del lote y pagos asociados. El sorteo y la reclamación deben delimitarse por ronda. Los compradores externos se resuelven desde su participación/pago, no desde el vendedor que registró la operación.
 
 ### Trivia
 
-Juego multiusuario con salas, lobby, participantes, preguntas, respuestas, puntuaciones, power-ups y resultados. Sus rutas están en `routes/modules/games/trivia.php`. Usa `pgsql_trivia` y Redis para coordinación/estado.
+Salas multiusuario, lobby, participantes, preguntas, respuestas, puntuaciones, equipos, power-ups y resultados. La conexión de persistencia del dominio es `pgsql_trivia`; Redis mantiene estado efímero y Reverb difunde eventos. No existe un microservicio ni un servidor WebSocket independiente: se usa broadcasting estándar de Laravel.
 
-### Pagos y wallet
+### Wallet, pagos y marketplace
 
-Los movimientos deben persistir transaccionalmente, verificar propiedad, impedir doble gasto y mantener trazabilidad. Los procesos asíncronos necesitan idempotencia y estados recuperables; operaciones no resueltas pasan a conciliación.
+La wallet y movimientos financieros están en MySQL. El código incluye reservas/holds, pagos, conciliación, inventario y escrow. La integración USDT-TRC20 debe revisarse según el proveedor activo: la existencia de interfaces/servicios no implica que el adaptador blockchain esté listo para fondos reales. Consulta [Pagos y premios](PAYMENTS_AND_PRIZES.md) y los documentos de diseño enlazados en el índice.
 
-## Datos y conexiones
+## Tiempo real y canales
 
-| Conexión | Uso |
-|---|---|
-| `mysql` | Base principal Laravel |
-| `pgsql_trivia` | Base PostgreSQL de Trivia |
-| `redis` | Cache, colas, locks y estado efímero |
-
-Variables Trivia: `DB_TRIVIA_HOST`, `DB_TRIVIA_PORT`, `DB_TRIVIA_DATABASE`, `DB_TRIVIA_USERNAME`, `DB_TRIVIA_PASSWORD` y `DB_TRIVIA_SCHEMA`.
-
-## Tiempo real
-
-Los canales se declaran en `backend/routes/channels.php`. Hay canales públicos para información de sala/lobby y feed de eventos, canales privados por usuario y administración, y presence channels con autorización. Los canales públicos solo deben transportar datos destinados a todos los clientes; nunca publicar datos personales, financieros o de juego reservados.
+Los canales se declaran en `backend/routes/channels.php`. Hay canales públicos, privados y de presencia. Los canales públicos solo deben transportar información destinada a todos los clientes. Los privados deben verificar identidad, pertenencia y permisos; no confiar solo en que el usuario esté autenticado.
 
 ## Colas de producción
 
-El Compose productivo separa:
-- `queue`: `default,bingo-draw`
-- `bingo-refunds`: reembolsos aislados para no quedar bloqueados por sorteos prolongados
-- `scheduler`: tareas programadas
+El Compose de producción define workers separados para colas generales/Bingo, reembolsos y scheduler. La cola exacta que procesa cada job debe mantenerse alineada entre `onQueue()`, configuración y servicios Compose. Antes de renombrar una cola, actualizar el worker, las pruebas y el runbook.
 
-No cambiar el nombre de una cola sin actualizar workers, despliegue y pruebas.
+## Invariantes de arquitectura
 
-## Invariantes
+1. La UI no sustituye la autorización del servidor.
+2. Saldo, movimiento y estado financiero deben actualizarse de forma atómica dentro de la base propietaria.
+3. Una transacción Laravel no hace atómicas dos conexiones distintas (MySQL y PostgreSQL).
+4. Reintentos y webhooks necesitan claves de idempotencia y estados recuperables.
+5. Eventos y Redis no sustituyen los registros persistentes.
+6. Un estado financiero ambiguo se concilia; no se fuerza a pagado.
+7. No deducir el beneficiario financiero desde el actor que registró la venta.
 
-1. La lógica financiera no debe residir únicamente en controladores.
-2. La autorización del servidor es obligatoria.
-3. Aplicar locks a los recursos concurrentes y mantener un orden consistente.
-4. Eventos y jobs no sustituyen el estado persistente.
-5. Reintentos seguros requieren idempotencia; los casos no resolubles pasan a conciliación.
-6. No inferir beneficiario financiero desde el actor que ejecutó la venta.
+## Fuentes de verdad
+
+La configuración y el código versionados prevalecen sobre los documentos. Para frontend, comparar `package.json`, `pnpm-workspace.yaml`, `backend/package.json` y `frontend/package.json`. Para despliegue, usar `backend/docker-compose.prod.yml` y `backend/deploy.sh`, no el Compose local de raíz.
