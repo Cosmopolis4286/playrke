@@ -97,7 +97,7 @@ function onNotesKeydown(e: KeyboardEvent) {
     <p class="mv-detail__label mb-2">Acciones de administración</p>
 
     <div v-if="actionError" class="alert alert-danger py-2 px-3 mb-2 small">
-      <i class="fas fa-exclamation-circle me-1"></i> {{ actionError }}
+      <i class="fas fa-exclamation-circle me-1" /> {{ actionError }}
     </div>
 
     <!-- Asignación: "en revisión por mí" — evita que dos admins trabajen el
@@ -105,14 +105,14 @@ function onNotesKeydown(e: KeyboardEvent) {
     <div class="mv-assignment mb-2">
       <template v-if="!detail.assigned_to">
         <button class="btn btn-sm btn-outline-primary" :disabled="assignLoading" @click="emit('assign')">
-          <span v-if="assignLoading" class="spinner-border spinner-border-sm me-1"></span>
-          <i v-else class="fas fa-user-check me-1"></i>
+          <span v-if="assignLoading" class="spinner-border spinner-border-sm me-1" />
+          <i v-else class="fas fa-user-check me-1" />
           Tomar caso
         </button>
       </template>
       <template v-else>
         <span class="mv-assignment__badge">
-          <i class="fas fa-user-clock me-1"></i>
+          <i class="fas fa-user-clock me-1" />
           En revisión por {{ adminName(detail.assigned_to) }}
         </span>
         <button
@@ -127,109 +127,109 @@ function onNotesKeydown(e: KeyboardEvent) {
     </div>
 
     <template v-if="isActionable">
-    <!-- Las notas internas nunca se envían al jugador. -->
-    <div class="mb-2">
-      <label class="mv-detail__label mb-1">Notas internas (solo administración)</label>
-      <textarea
-        :value="adminNotes"
-        class="form-control form-control-sm"
-        rows="2"
-        maxlength="512"
-        placeholder="Observaciones internas para el equipo…"
-        :disabled="actionLoading"
-        @input="emit('update:adminNotes', ($event.target as HTMLTextAreaElement).value)"
-      ></textarea>
-      <div class="mv-notes-meta">
-        <span class="mv-notes-meta__count">{{ adminNotes.length }}/512</span>
-      </div>
-    </div>
-
-    <!-- El motivo público se captura por separado y solo al rechazar. -->
-    <div v-if="showRejectForm" class="mb-2">
-      <label class="mv-detail__label mb-1 mv-detail__label--required">
-        Motivo del rechazo (obligatorio · lo verá el jugador)
-      </label>
-      <div class="mv-quick-reasons">
-        <button
-          v-for="reason in quickReasons"
-          :key="reason"
-          type="button"
-          class="mv-quick-reasons__chip"
+      <!-- Las notas internas nunca se envían al jugador. -->
+      <div class="mb-2">
+        <label class="mv-detail__label mb-1">Notas internas (solo administración)</label>
+        <textarea
+          :value="adminNotes"
+          class="form-control form-control-sm"
+          rows="2"
+          maxlength="512"
+          placeholder="Observaciones internas para el equipo…"
           :disabled="actionLoading"
-          @click="applyQuickReason(reason)"
+          @input="emit('update:adminNotes', ($event.target as HTMLTextAreaElement).value)"
+        ></textarea>
+        <div class="mv-notes-meta">
+          <span class="mv-notes-meta__count">{{ adminNotes.length }}/512</span>
+        </div>
+      </div>
+
+      <!-- El motivo público se captura por separado y solo al rechazar. -->
+      <div v-if="showRejectForm" class="mb-2">
+        <label class="mv-detail__label mb-1 mv-detail__label--required">
+          Motivo del rechazo (obligatorio · lo verá el jugador)
+        </label>
+        <div class="mv-quick-reasons">
+          <button
+            v-for="reason in quickReasons"
+            :key="reason"
+            type="button"
+            class="mv-quick-reasons__chip"
+            :disabled="actionLoading"
+            @click="applyQuickReason(reason)"
+          >
+            {{ reason }}
+          </button>
+        </div>
+        <textarea
+          ref="notesRef"
+          :value="playerMessage"
+          class="form-control form-control-sm"
+          :class="{ 'is-invalid': actionError && !canSubmitReject }"
+          rows="2"
+          maxlength="512"
+          placeholder="Escribe una explicación clara que recibirá el jugador…"
+          :disabled="actionLoading"
+          @input="emit('update:playerMessage', ($event.target as HTMLTextAreaElement).value)"
+          @keydown="onNotesKeydown"
+        ></textarea>
+        <div class="mv-notes-meta">
+          <span class="mv-notes-meta__hint">
+            <kbd>Ctrl</kbd>+<kbd>Enter</kbd> para confirmar
+          </span>
+          <span class="mv-notes-meta__count">{{ playerMessage.length }}/512</span>
+        </div>
+      </div>
+
+      <!-- Botones -->
+      <div v-if="!showRejectForm" class="mv-actions__btns">
+        <button
+          class="btn btn-success btn-sm"
+          :disabled="actionLoading"
+          @click="emit('approve')"
         >
-          {{ reason }}
+          <span v-if="actionLoading" class="spinner-border spinner-border-sm me-1" />
+          <i v-else class="fas fa-check me-1" />
+          Aprobar
+          <kbd class="mv-actions__kbd">A</kbd>
         </button>
-      </div>
-      <textarea
-        ref="notesRef"
-        :value="playerMessage"
-        class="form-control form-control-sm"
-        :class="{ 'is-invalid': actionError && !canSubmitReject }"
-        rows="2"
-        maxlength="512"
-        placeholder="Escribe una explicación clara que recibirá el jugador…"
-        :disabled="actionLoading"
-        @input="emit('update:playerMessage', ($event.target as HTMLTextAreaElement).value)"
-        @keydown="onNotesKeydown"
-      ></textarea>
-      <div class="mv-notes-meta">
-        <span class="mv-notes-meta__hint">
-          <kbd>Ctrl</kbd>+<kbd>Enter</kbd> para confirmar
-        </span>
-        <span class="mv-notes-meta__count">{{ playerMessage.length }}/512</span>
-      </div>
-    </div>
-
-    <!-- Botones -->
-    <div v-if="!showRejectForm" class="mv-actions__btns">
-      <button
-        class="btn btn-success btn-sm"
-        :disabled="actionLoading"
-        @click="emit('approve')"
-      >
-        <span v-if="actionLoading" class="spinner-border spinner-border-sm me-1"></span>
-        <i v-else class="fas fa-check me-1"></i>
-        Aprobar
-        <kbd class="mv-actions__kbd">A</kbd>
-      </button>
-      <button
-        class="btn btn-danger btn-sm"
-        :disabled="actionLoading"
-        @click="emit('update:showRejectForm', true)"
-      >
-        <i class="fas fa-times me-1"></i>
-        Rechazar
-        <kbd class="mv-actions__kbd">R</kbd>
-      </button>
-    </div>
-
-    <!-- Confirmar rechazo -->
-    <div v-else class="mv-reject-confirm">
-      <p class="mv-reject-confirm__text">
-        <i class="fas fa-exclamation-triangle text-warning me-1"></i>
-        ¿Rechazar este {{ typeLabel }}? <span v-html="rejectConsequence"></span>
-      </p>
-      <div class="mv-actions__btns">
         <button
           class="btn btn-danger btn-sm"
-          :disabled="actionLoading || !canSubmitReject"
-          :title="canSubmitReject ? '' : 'Escribe el motivo del rechazo (mínimo 5 caracteres)'"
-          @click="emit('reject')"
-        >
-          <span v-if="actionLoading" class="spinner-border spinner-border-sm me-1"></span>
-          <i v-else class="fas fa-times me-1"></i>
-          Confirmar rechazo
-        </button>
-        <button
-          class="btn btn-outline-secondary btn-sm"
           :disabled="actionLoading"
-          @click="emit('update:showRejectForm', false)"
+          @click="emit('update:showRejectForm', true)"
         >
-          Cancelar
+          <i class="fas fa-times me-1" />
+          Rechazar
+          <kbd class="mv-actions__kbd">R</kbd>
         </button>
       </div>
-    </div>
+
+      <!-- Confirmar rechazo -->
+      <div v-else class="mv-reject-confirm">
+        <p class="mv-reject-confirm__text">
+          <i class="fas fa-exclamation-triangle text-warning me-1" />
+          ¿Rechazar este {{ typeLabel }}? <span v-html="rejectConsequence" />
+        </p>
+        <div class="mv-actions__btns">
+          <button
+            class="btn btn-danger btn-sm"
+            :disabled="actionLoading || !canSubmitReject"
+            :title="canSubmitReject ? '' : 'Escribe el motivo del rechazo (mínimo 5 caracteres)'"
+            @click="emit('reject')"
+          >
+            <span v-if="actionLoading" class="spinner-border spinner-border-sm me-1" />
+            <i v-else class="fas fa-times me-1" />
+            Confirmar rechazo
+          </button>
+          <button
+            class="btn btn-outline-secondary btn-sm"
+            :disabled="actionLoading"
+            @click="emit('update:showRejectForm', false)"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
     </template>
   </div>
 </template>

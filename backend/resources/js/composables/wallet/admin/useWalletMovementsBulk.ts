@@ -32,7 +32,7 @@ export function useWalletMovementsBulk(onProcessed: () => void) {
       title: `¿Aprobar ${pending.length} movimiento(s)?`,
       html: buildBulkItemListHtml(itemNames(pending)) + nonPendingNotice(movements, pending),
       icon: 'warning',
-      confirmButtonText: 'Sí, aprobar',
+      confirmButtonText: 'Sí, aprobar'
     })
     if (!confirmed) return false
 
@@ -61,7 +61,7 @@ export function useWalletMovementsBulk(onProcessed: () => void) {
       confirmButtonText: 'Sí, rechazar',
       cancelButtonText: 'Cancelar',
       confirmButtonColor: '#dc2626',
-      reverseButtons: true,
+      reverseButtons: true
     })
     if (!result.isConfirmed || !result.value) return false
 
@@ -97,7 +97,7 @@ export function useWalletMovementsBulk(onProcessed: () => void) {
       const { data } = await backendClient.post<BulkResult>(url, {
         ids: movements.map(m => m.id),
         admin_notes: adminNotes,
-        player_message: playerMessage,
+        player_message: playerMessage
       })
       await reportBulkResult(data, 'movimientos', successVerb)
       onProcessed()

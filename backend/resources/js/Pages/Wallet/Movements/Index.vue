@@ -49,7 +49,7 @@ const {
   movements, meta, loading, isLive,
   columns, tableFilters,
   onQueryChange, updateMovement, fetchMovements, searchByUser,
-  dateFrom, dateTo, applyDateRange, exportUrl, activeParams,
+  dateFrom, dateTo, applyDateRange, exportUrl, activeParams
 } = useWalletMovementsList(
   props.movements,
   props.meta,
@@ -110,7 +110,7 @@ const trendCategories = computed(() => trend.value.map(p => p.date))
 const trendSeries = computed(() => [
   { name: 'Aprobados', data: trend.value.map(p => p.approved) },
   { name: 'Rechazados', data: trend.value.map(p => p.rejected) },
-  { name: 'Resolución media (min)', data: trend.value.map(p => p.avg_resolution_minutes), yAxisIndex: 1 },
+  { name: 'Resolución media (min)', data: trend.value.map(p => p.avg_resolution_minutes), yAxisIndex: 1 }
 ])
 
 // ── Modal de detalle + acciones admin ───────────────────────────────────────
@@ -125,7 +125,7 @@ const {
   adminNotes, playerMessage, actionLoading, actionError, showRejectForm, receiptZoom,
   openDetail, handleApprove, handleReject,
   isReceiptImage, isPending, isActionable,
-  nextPendingId, typeLabel, canSubmitReject,
+  nextPendingId, typeLabel, canSubmitReject
 } = useWalletMovementDetail(handleMovementUpdated, computed(() => props.movementTypes), movements)
 
 /** Acciones solo si el movimiento es procesable Y el admin tiene permiso de gestión. */
@@ -211,7 +211,7 @@ onMounted(() => {
 // ── Helpers visuales ─────────────────────────────────────────────────────────
 const {
   typeConfig, isCreditByCode, prizeTypeConfig, statusConfig, directoryTypeLabel,
-  userName, adminName, formatAmount, formatDate,
+  userName, adminName, formatAmount, formatDate
 } = useMovementFormatters(computed(() => props.movementTypes))
 </script>
 
@@ -229,7 +229,7 @@ const {
   >
     <template #actions>
       <span v-if="!canManage" class="mv-readonly" title="Tu perfil tiene wallet.movements.view sin wallet.movements.manage">
-        <i class="fas fa-eye"></i>Solo lectura
+        <i class="fas fa-eye" />Solo lectura
       </span>
       <!-- Refleja el estado real del canal (antes era un badge fijo): si
            Reverb cae, el admin sabe que la cola puede estar desactualizada. -->
@@ -238,17 +238,17 @@ const {
         :class="{ 'mv-live--off': !isLive }"
         :title="isLive ? 'Lista y KPIs se actualizan en tiempo real' : 'Sin conexión en vivo — los datos se actualizan al filtrar o recargar'"
       >
-        <span class="mv-live__dot"></span>{{ isLive ? 'En vivo' : 'Reconectando…' }}
+        <span class="mv-live__dot" />{{ isLive ? 'En vivo' : 'Reconectando…' }}
       </span>
     </template>
   </PageHeader>
 
   <div class="container-fluid">
     <div v-if="criticalBacklogCount > 0" class="mv-critical-banner">
-      <i class="fas fa-triangle-exclamation me-2"></i>
+      <i class="fas fa-triangle-exclamation me-2" />
       {{ criticalBacklogCount }} movimiento(s) llevan más de 24h sin resolver — revisión urgente requerida.
       <button type="button" class="mv-critical-banner__dismiss" @click="criticalBacklogCount = 0">
-        <i class="fas fa-times"></i>
+        <i class="fas fa-times" />
       </button>
     </div>
 
@@ -265,13 +265,13 @@ const {
           class="mv-queue__hero"
           :class="{ 'mv-queue__hero--active': (stats?.pending_count ?? 0) > 0 }"
         >
-          <div class="mv-queue__hero-icon"><i class="fas fa-hourglass-half"></i></div>
+          <div class="mv-queue__hero-icon"><i class="fas fa-hourglass-half" /></div>
           <div class="mv-queue__hero-body">
             <span class="mv-queue__hero-label">Pendientes de revisión</span>
             <span class="mv-queue__hero-value">{{ stats?.pending_count ?? '—' }}</span>
             <span class="mv-queue__hero-hint">
               <template v-if="!stats">Cargando…</template>
-              <template v-else-if="stats.pending_count === 0">Cola al día <i class="fas fa-circle-check"></i></template>
+              <template v-else-if="stats.pending_count === 0">Cola al día <i class="fas fa-circle-check" /></template>
               <template v-else-if="oldestPending">
                 El más antiguo espera desde
                 <strong :class="`mv-sla mv-sla--${oldestPending.level}`">{{ oldestPending.label.replace('hace ', '') }}</strong>
@@ -279,7 +279,7 @@ const {
               <template v-else>Esperando aprobación o rechazo</template>
             </span>
             <span v-if="stats && stats.critical_pending_count > 0" class="mv-queue__critical">
-              <i class="fas fa-triangle-exclamation"></i>
+              <i class="fas fa-triangle-exclamation" />
               {{ stats.critical_pending_count }} con más de 24h
             </span>
           </div>
@@ -306,9 +306,9 @@ const {
 
       <section class="mv-trend-card">
         <div class="mv-trend-card__header">
-          <p class="mv-trend-card__title"><i class="fas fa-chart-line me-1"></i>{{ trendTitle }}</p>
+          <p class="mv-trend-card__title"><i class="fas fa-chart-line me-1" />{{ trendTitle }}</p>
           <span class="mv-trend-card__hint">
-            <i class="fas fa-calendar-days me-1"></i>Rango según el filtro de fecha de la tabla
+            <i class="fas fa-calendar-days me-1" />Rango según el filtro de fecha de la tabla
           </span>
         </div>
         <DashboardMultiTrendChart
@@ -341,16 +341,14 @@ const {
             type="date"
             class="form-control form-control-sm"
             title="Desde"
-            @change="applyDateRange"
-          />
+            @change="applyDateRange">
           <span class="mv-date-range__sep">—</span>
           <input
             v-model="dateTo"
             type="date"
             class="form-control form-control-sm"
             title="Hasta"
-            @change="applyDateRange"
-          />
+            @change="applyDateRange">
           <button
             v-if="dateFrom || dateTo"
             type="button"
@@ -358,26 +356,26 @@ const {
             title="Quitar filtro de fecha"
             @click="dateFrom = ''; dateTo = ''; applyDateRange()"
           >
-            <i class="fas fa-xmark"></i>
+            <i class="fas fa-xmark" />
           </button>
         </div>
         <a class="btn btn-sm btn-outline-secondary" title="Exportar movimientos filtrados a CSV" :href="exportUrl()">
-          <i class="fas fa-file-csv mr-1"></i>Exportar
+          <i class="fas fa-file-csv mr-1" />Exportar
         </a>
         <a class="btn btn-sm btn-outline-secondary" title="Exportar resumen en PDF" :href="exportPdfUrl()">
-          <i class="fas fa-file-pdf mr-1"></i>PDF
+          <i class="fas fa-file-pdf mr-1" />PDF
         </a>
         <!-- Acciones sobre la selección: Ver detalle (1 fila) + Aprobar/Rechazar
              (1..N), todas en la misma zona en vez de una columna por fila. -->
         <template v-if="selectedIds.length > 0">
-          <span class="mv-selection-sep"></span>
+          <span class="mv-selection-sep" />
           <button
             class="btn btn-sm btn-outline-info"
             :disabled="selectedIds.length !== 1"
             :title="selectedIds.length === 1 ? 'Ver detalle del movimiento' : 'Selecciona un solo movimiento para ver su detalle'"
             @click="openDetail(selectedIds[0])"
           >
-            <i class="fas fa-eye mr-1"></i>Ver detalle
+            <i class="fas fa-eye mr-1" />Ver detalle
           </button>
           <button
             v-if="canManage"
@@ -385,7 +383,7 @@ const {
             :disabled="bulkLoading"
             @click="bulkApprove(selectedMovements(selectedIds))"
           >
-            <i class="fas fa-check mr-1"></i>Aprobar ({{ selectedIds.length }})
+            <i class="fas fa-check mr-1" />Aprobar ({{ selectedIds.length }})
           </button>
           <button
             v-if="canManage"
@@ -393,7 +391,7 @@ const {
             :disabled="bulkLoading"
             @click="bulkReject(selectedMovements(selectedIds))"
           >
-            <i class="fas fa-times mr-1"></i>Rechazar ({{ selectedIds.length }})
+            <i class="fas fa-times mr-1" />Rechazar ({{ selectedIds.length }})
           </button>
         </template>
       </template>
@@ -426,14 +424,14 @@ const {
           :class="typeConfig[(row as Movement).type]?.cls ?? 'mv-badge'"
           :style="typeConfig[(row as Movement).type]?.style"
         >
-          <i :class="typeConfig[(row as Movement).type]?.icon"></i>
+          <i :class="typeConfig[(row as Movement).type]?.icon" />
           {{ typeConfig[(row as Movement).type]?.label ?? (row as Movement).type }}
         </span>
         <span
           v-if="['PRIZE', 'BONUS_PRIZE'].includes((row as Movement).type) && (row as Movement).prize_type"
           class="mv-badge mv-badge--prize-sub"
         >
-          <i :class="prizeTypeConfig[(row as Movement).prize_type!].icon"></i>
+          <i :class="prizeTypeConfig[(row as Movement).prize_type!].icon" />
           {{ prizeTypeConfig[(row as Movement).prize_type!].label }}
         </span>
       </template>
@@ -466,7 +464,7 @@ const {
             <i :class="{
               'fas fa-clock': ageInfo((row as Movement).created_at).level !== 'critical',
               'fas fa-triangle-exclamation': ageInfo((row as Movement).created_at).level === 'critical',
-            }"></i>
+            }" />
             {{ ageInfo((row as Movement).created_at).label }}
           </span>
           <span
@@ -474,7 +472,7 @@ const {
             class="mv-sub mv-assigned"
             :title="`En revisión por ${adminName((row as Movement).assigned_to)}`"
           >
-            <i class="fas fa-user-clock"></i>
+            <i class="fas fa-user-clock" />
             {{ adminName((row as Movement).assigned_to) }}
           </span>
         </div>

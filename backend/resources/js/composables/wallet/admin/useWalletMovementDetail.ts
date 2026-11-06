@@ -94,7 +94,7 @@ export function useWalletMovementDetail(
       title: 'Aprobar movimiento',
       text: `Vas a aprobar: ${typeLabel.value}. Esta acción mueve saldo real y no se puede deshacer.`,
       icon: 'warning',
-      confirmButtonText: 'Sí, aprobar',
+      confirmButtonText: 'Sí, aprobar'
     })
     if (!confirmed) return
 
@@ -102,7 +102,7 @@ export function useWalletMovementDetail(
     actionLoading.value = true
     try {
       const { data } = await backendClient.post(`/wallet-movements/${detail.value.id}/approve`, {
-        admin_notes: adminNotes.value.trim() || null,
+        admin_notes: adminNotes.value.trim() || null
       })
       onUpdated(data.data)
       adminNotes.value = ''
@@ -141,7 +141,7 @@ export function useWalletMovementDetail(
     try {
       const { data } = await backendClient.post(`/wallet-movements/${detail.value.id}/reject`, {
         admin_notes: adminNotes.value.trim() || null,
-        player_message: playerMessage.value.trim(),
+        player_message: playerMessage.value.trim()
       })
       onUpdated(data.data)
       adminNotes.value     = ''
@@ -180,6 +180,6 @@ export function useWalletMovementDetail(
     adminNotes, playerMessage, actionLoading, actionError, showRejectForm, receiptZoom,
     openDetail, handleApprove, handleReject,
     isReceiptImage, isPending, isActionable,
-    nextPendingId, typeLabel, canSubmitReject,
+    nextPendingId, typeLabel, canSubmitReject
   }
 }

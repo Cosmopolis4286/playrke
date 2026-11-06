@@ -16,7 +16,7 @@ defineProps<{
       <p class="mv-detail__label">Directorio destino</p>
       <div class="mv-dir-info">
         <span class="mv-dir-info__type">
-          <i class="fas fa-wallet me-1"></i>
+          <i class="fas fa-wallet me-1" />
           {{ directoryTypeLabel[detail.metadata.directory_type ?? ''] ?? detail.metadata.directory_type }}
         </span>
         <span class="mv-dir-info__id mv-detail__value--mono">

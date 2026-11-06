@@ -63,7 +63,7 @@ defineEmits<{
   >
     <!-- Loading -->
     <div v-if="detailLoading" class="mv-modal-loading">
-      <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+      <div class="spinner-border spinner-border-sm text-primary me-2" />
       Cargando...
     </div>
 
