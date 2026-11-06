@@ -62,10 +62,14 @@ class WalletMovementControllerTest extends TestCase
         $movement = $this->makePendingDeposit(50.0);
 
         $this->actingAs($this->admin)
-            ->postJson(route('wallet-movements.reject', $movement), ['admin_notes' => 'Pago no recibido'])
+            ->postJson(route('wallet-movements.reject', $movement), [
+                'admin_notes' => 'Verificar comprobante en el extracto interno',
+                'player_message' => 'Pago no recibido',
+            ])
             ->assertOk()
             ->assertJsonPath('data.status', WalletMovement::STATUS_REJECTED)
-            ->assertJsonPath('data.admin_notes', 'Pago no recibido');
+            ->assertJsonPath('data.admin_notes', 'Verificar comprobante en el extracto interno')
+            ->assertJsonPath('data.player_message', 'Pago no recibido');
 
         // Un depósito rechazado nunca tocó el balance al crearse, y
         // rechazarlo tampoco debe moverlo.
@@ -122,7 +126,7 @@ class WalletMovementControllerTest extends TestCase
         $this->actingAs($this->admin)
             ->postJson(route('wallet-movements.bulk-reject'), ['ids' => [(string) $movement->id]])
             ->assertStatus(422)
-            ->assertJsonValidationErrors('admin_notes');
+            ->assertJsonValidationErrors('player_message');
     }
 
     public function test_csv_export_includes_related_user_data() : void
