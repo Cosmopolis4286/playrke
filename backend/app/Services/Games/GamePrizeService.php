@@ -55,18 +55,18 @@ final class GamePrizeService
     }
 
     /**
-     * Disputa un premio ya pagado ('claimed') y revierte el débito de la
-     * wallet del ganador. Disparador manual únicamente (2026-08-31): un
-     * admin/superadmin decide esto desde el panel tras revisar un caso —
-     * no hay señal automática de anti-fraude conectada todavía.
+     * Disputa un premio pagado y revierte el débito de la wallet del ganador.
+     * La transición a 'disputed' se persiste antes de la reversión porque
+     * Trivia y wallet pueden vivir en conexiones distintas. Por eso 'disputed'
+     * también es un estado reintentable: si el proceso falla después de marcar
+     * la disputa, una nueva ejecución completa la reversión.
      *
-     * Deliberadamente NO exige saldo suficiente: el jugador puede haber
-     * gastado el premio en otra sala/juego antes de que se detecte el
-     * fraude, y la wallet debe poder quedar en negativo (ver
-     * WalletService::recordPrizeReversal()).
+     * La clave única de recordPrizeReversal() hace segura la repetición:
+     * si el débito ya se confirmó, el reintento recupera el movimiento existente
+     * sin volver a modificar el saldo.
      *
-     * @throws RuntimeException si el premio no está en estado 'claimed' o
-     *                          el ganador ya no tiene wallet activa en la moneda del premio
+     * @throws RuntimeException si el premio no está en 'claimed'/'disputed' o
+     *                          el ganador no tiene wallet activa en la moneda del premio
      */
     public function disputeAndReverse(GamePrizeContract $prizeRecord, string $reason) : void
     {
@@ -76,18 +76,22 @@ final class GamePrizeService
                 ->lockForUpdate()
                 ->first();
 
-            if (! $row || ! $row->isClaimed()) {
-                throw new RuntimeException('Solo se puede disputar un premio en estado "claimed".');
+            if (! $row) {
+                throw new RuntimeException('No se encontró el premio que se desea disputar.');
             }
 
-            $row->markAsDisputed();
+            if ($row->isClaimed()) {
+                $row->markAsDisputed();
+            } elseif (! $row->isDisputed()) {
+                throw new RuntimeException('Solo se puede disputar un premio en estado "claimed" o reintentar uno "disputed".');
+            }
 
             return $row;
         });
 
         $wallet = $this->walletService->findActiveWallet($locked->getUserId(), $locked->getCurrencyId());
         if (! $wallet) {
-            throw new RuntimeException('El ganador no tiene una billetera activa en la moneda del premio — revertir requiere intervención manual directa en la wallet.');
+            throw new RuntimeException('El ganador no tiene una billetera activa en la moneda del premio — la disputa quedó registrada y puede reintentarse cuando la wallet esté activa.');
         }
 
         $this->walletService->recordPrizeReversal(
