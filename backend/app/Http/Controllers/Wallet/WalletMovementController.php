@@ -44,7 +44,7 @@ final class WalletMovementController extends Controller
     private const RECENT_AUDITS_LIMIT = 10;
 
     /**
-     * Motivo obligatorio al rechazar: el jugador recibe admin_notes en la
+     * Motivo obligatorio al rechazar: el jugador recibe player_message en la
      * notificación de resultado (WalletService::broadcastAndNotifyResult()),
      * así que un rechazo sin motivo le llega sin ninguna explicación.
      */
