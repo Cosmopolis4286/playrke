@@ -2,11 +2,10 @@
   "name": "playrke-monorepo",
   "version": "1.0.0",
   "private": true,
-  "description": "PlayRKE - Monorepo Laravel + Nuxt 4",
+  "description": "PlayRKE monorepo: Laravel + Inertia/Vue principal y frontend Nuxt separado",
   "type": "module",
   "workspaces": [
-    "backend",
-    "frontend"
+    "backend"
   ],
   "scripts": {
     "dev": "pnpm run --parallel dev",
