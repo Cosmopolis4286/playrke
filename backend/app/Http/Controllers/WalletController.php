@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
@@ -57,7 +58,7 @@ class WalletController extends Controller
             $receiptPath = Storage::disk('local')->putFileAs('wallet/receipts', $file, $filename);
 
             if (! $receiptPath) {
-                throw new \\RuntimeException('No se pudo almacenar el comprobante de depósito.');
+                throw new RuntimeException('No se pudo almacenar el comprobante de depósito.');
             }
 
             $wallet = $this->walletService->requestDeposit(
