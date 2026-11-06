@@ -56,7 +56,7 @@ class WalletControllerSecurityTest extends TestCase
         $this->actingAs($owner)
             ->get(route('wallet.receipt', ['filename' => $filename]))
             ->assertOk()
-            ->assertSee('private receipt');
+            ->assertHeader('content-type', 'application/pdf');
 
         Storage::disk('public')->assertMissing($receiptPath);
     }
