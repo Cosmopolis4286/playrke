@@ -77,7 +77,20 @@ final class BingoCardLotRefundJob implements ShouldQueue
                 }
 
                 if ($lot->status !== 'ACTIVE') {
-                    // Ya fue reembolsado — idempotencia garantizada.
+                    // Un proceso anterior pudo completar el reembolso y fallar
+                    // antes de resolver una fila histórica de fallos.
+                    if ($lot->status === 'REFUNDED') {
+                        BingoLotRefundFailure::where('lot_id', $lot->id)
+                            ->where('room_id', $room->id)
+                            ->where('status', 'PENDING')
+                            ->whereNull('resolved_at')
+                            ->update([
+                                'status' => 'RESOLVED',
+                                'resolved_at' => now(),
+                            ]);
+                    }
+
+                    // Idempotencia: nunca volver a acreditar un lote no activo.
                     return;
                 }
 
@@ -127,8 +140,8 @@ final class BingoCardLotRefundJob implements ShouldQueue
                 );
 
                 if (! $wallet) {
-                    $this->recordFailure($lot, $room, $amount, 'Wallet no encontrada o inactiva');
-
+                    // El catch exterior registra el fallo y aumenta attempts una
+                    // sola vez. No duplicar el registro antes de propagar la excepción.
                     throw WalletUnavailableException::notFound((string) $lot->user_id, (string) $lot->currency_id);
                 }
 

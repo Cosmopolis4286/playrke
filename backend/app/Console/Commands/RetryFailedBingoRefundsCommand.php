@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
+use App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob;
 use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
@@ -13,13 +13,13 @@ use App\Services\Commands\CommandService;
 use App\Services\NotificationService;
 use App\Traits\ResolvesSuperadminIds;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class RetryFailedBingoRefundsCommand extends Command
 {
     use ResolvesSuperadminIds;
+
     protected $description = 'Reintenta acreditar reembolsos de salas canceladas que fallaron en el primer intento';
 
     protected $signature = 'bingo:retry-failed-refunds';
@@ -33,7 +33,13 @@ class RetryFailedBingoRefundsCommand extends Command
 
         try {
             $failures = BingoLotRefundFailure::pending()
-                ->where('attempts', '<', PrizePayoutRetryPolicy::MAX_ATTEMPTS)
+                ->where(function ($query) {
+                    $query->where('attempts', '<', PrizePayoutRetryPolicy::MAX_ATTEMPTS)
+                        // Una wallet inactiva/no disponible es transitoria: no se
+                        // abandona el reembolso ni se deja de reintentar al llegar
+                        // al máximo ordinario de fallos.
+                        ->orWhere('error_message', 'WALLET_UNAVAILABLE');
+                })
                 ->cursor();
 
             foreach ($failures as $failure) {
@@ -43,120 +49,76 @@ class RetryFailedBingoRefundsCommand extends Command
                     continue;
                 }
 
-                // Cachear la sala una sola vez por failure (evita N queries duplicadas en success + abandon path)
                 $room = BingoRoom::find($failure->room_id);
+                if (! $room) {
+                    Log::warning('[RetryFailedBingoRefunds] Sala no encontrada para reintentar reembolso', [
+                        'failure_id' => (string) $failure->id,
+                        'room_id' => (string) $failure->room_id,
+                    ]);
+                    $skipped++;
+
+                    continue;
+                }
 
                 try {
-                    $newAttempts = DB::transaction(function() use ($failure, $walletService) : int {
-                        // lockForUpdate en failure previene que dos ejecuciones concurrentes del cron
-                        // procesen el mismo failure simultáneamente.
-                        $locked = BingoLotRefundFailure::where('id', $failure->id)
-                            ->lockForUpdate()
-                            ->first();
+                    // Reutilizar el job original evita duplicar la lógica financiera.
+                    // El job revierte métricas, comisiones, RKE/jackpot, registra
+                    // obligaciones de compradores externos y acredita la wallet.
+                    (new BingoCardLotRefundJob(
+                        (string) $failure->lot_id,
+                        (string) $failure->room_id,
+                    ))->handle($walletService, $auditLogger);
 
-                        if (! $locked || $locked->status !== 'PENDING') {
-                            // Otro proceso ya resolvió este failure — saltar.
-                            return 0;
-                        }
-
-                        $newAttempts = $locked->attempts + 1;
-
-                        $lot = BingoCardLot::where('id', $failure->lot_id)
-                            ->where('status', 'ACTIVE')
-                            ->lockForUpdate()
-                            ->first();
-
-                        if (! $lot) {
-                            // Ya fue reembolsado por otro proceso — marcar resuelto.
-                            $locked->update(['status' => 'RESOLVED', 'resolved_at' => now()]);
-
-                            return 0;
-                        }
-
-                        $wallet = $walletService->findActiveWallet(
-                            (string) $failure->user_id,
-                            (string) $failure->currency_id,
-                        );
-
-                        if (! $wallet) {
-                            // Actualizar contador DENTRO de la transacción para que sea atómico
-                            // con el check del lot. Si la transacción revierte, el contador no queda quemado.
-                            $locked->update([
-                                'attempts' => $newAttempts,
-                                'last_attempted_at' => now(),
-                            ]);
-
-                            throw WalletUnavailableException::notFound(
-                                (string) $failure->user_id,
-                                (string) $failure->currency_id,
-                            );
-                        }
-
-                        $walletService->recordRefund(
-                            wallet: $wallet,
-                            amount: (float) $failure->amount,
-                            gameId: (string) $failure->room_id,
-                            description: "Reembolso Bingo (reintento) — Sala cancelada #{$failure->room_id}",
-                            bonusPortion: (float) $lot->bonus_amount,
-                        );
-
-                        $lot->update(['status' => 'REFUNDED']);
-                        $locked->update(['status' => 'RESOLVED', 'resolved_at' => now(), 'attempts' => $newAttempts, 'last_attempted_at' => now()]);
-
-                        return $newAttempts;
-                    });
-
-                    if ($newAttempts === 0) {
-                        // Resuelto por otro proceso o ya procesado — no contar como reintento
-                        continue;
-                    }
-
-                    $retried++;
-                    $this->info("Reembolso #{$failure->id} acreditado exitosamente.");
-
-                    if ($room) {
-                        $auditLogger->log($room, BingoRoomAuditLogger::EVENT_REFUND_COMPLETED, 'system', 'Reembolso acreditado por comando de reintento', [
-                            'failure_id' => (string) $failure->id,
-                            'lot_id' => (string) $failure->lot_id,
-                            'amount' => (float) $failure->amount,
-                            'attempts' => $newAttempts,
-                        ]);
+                    $failure->refresh();
+                    if ($failure->status === 'RESOLVED') {
+                        $retried++;
+                        $this->info("Reembolso #{$failure->id} procesado correctamente.");
+                    } else {
+                        // El job puede terminar sin movimiento si otro proceso ya
+                        // procesó el lote. No declarar éxito mientras siga pendiente.
+                        $skipped++;
                     }
                 } catch (WalletUnavailableException $e) {
-                    // Fallo transitorio de infraestructura: NO abandonar aunque se hayan agotado
-                    // los intentos — el jugador merece el reembolso cuando el wallet vuelva.
-                    $this->warn("Reembolso #{$failure->id}: wallet aún no disponible — se reintentará más tarde.");
+                    // La indisponibilidad de wallet es transitoria: no abandonar
+                    // el reembolso, aunque se hayan agotado los intentos ordinarios.
+                    $this->warn("Reembolso #{$failure->id}: wallet aún no disponible; se reintentará más tarde.");
                     $skipped++;
                 } catch (Throwable $e) {
                     Log::error('[RetryFailedBingoRefunds] Fallo en reintento', [
-                        'failure_id' => $failure->id,
+                        'failure_id' => (string) $failure->id,
                         'error' => $e->getMessage(),
                     ]);
                     $skipped++;
 
-                    // Recuperar el número de intentos actualizado desde la BD para decidir si abandonar
-                    $currentAttempts = BingoLotRefundFailure::where('id', $failure->id)->value('attempts') ?? ($failure->attempts + 1);
+                    // El job registra el intento fallido. Consultar el valor persistido
+                    // evita calcular intentos sobre una instancia obsoleta.
+                    $current = BingoLotRefundFailure::find($failure->id);
+                    $currentAttempts = (int) ($current?->attempts ?? $failure->attempts);
 
-                    if (PrizePayoutRetryPolicy::shouldAbandon((int) $currentAttempts)) {
-                        BingoLotRefundFailure::where('id', $failure->id)->update(['status' => 'ABANDONED']);
-                        $abandoned++;
-                        $this->error("Reembolso #{$failure->id} abandonado tras {$currentAttempts} intentos.");
+                    if ($current && PrizePayoutRetryPolicy::shouldAbandon($currentAttempts)) {
+                        $updated = BingoLotRefundFailure::whereKey($current->id)
+                            ->where('status', 'PENDING')
+                            ->update(['status' => 'ABANDONED']);
+                        if ($updated > 0) {
+                            $abandoned++;
+                            $this->error("Reembolso #{$failure->id} abandonado tras {$currentAttempts} intentos.");
 
-                        if ($room) {
-                            $auditLogger->log($room, BingoRoomAuditLogger::EVENT_REFUND_FAILED, 'system', "Reembolso abandonado tras {$currentAttempts} intentos", [
-                                'failure_id' => (string) $failure->id,
-                                'lot_id' => (string) $failure->lot_id,
-                                'amount' => (float) $failure->amount,
-                                'error' => $e->getMessage(),
-                            ]);
+                            try {
+                                $auditLogger->log($room, BingoRoomAuditLogger::EVENT_REFUND_FAILED, 'system', "Reembolso abandonado tras {$currentAttempts} intentos", [
+                                    'failure_id' => (string) $failure->id,
+                                    'lot_id' => (string) $failure->lot_id,
+                                    'amount' => (float) $failure->amount,
+                                    'error' => $e->getMessage(),
+                                ]);
+                            } catch (Throwable $auditException) {
+                                Log::warning('[RetryFailedBingoRefunds] No se pudo registrar auditoría de abandono', [
+                                    'failure_id' => (string) $failure->id,
+                                    'error' => $auditException->getMessage(),
+                                ]);
+                            }
+
+                            $this->notifyAbandonedRefund($failure, $currentAttempts, $e->getMessage());
                         }
-
-                        // Dedupe natural: el update a ABANDONED de arriba saca esta
-                        // fila del scope pending(), así que esta notificación solo
-                        // se dispara una vez por reembolso — no hace falta columna
-                        // de dedupe adicional (mismo criterio que el resto del
-                        // proyecto usa el propio cambio de estado como marca).
-                        $this->notifyAbandonedRefund($failure, $currentAttempts, $e->getMessage());
                     }
                 }
             }
@@ -168,9 +130,6 @@ class RetryFailedBingoRefundsCommand extends Command
             $this->error($output);
         }
 
-        // Envuelto en try/catch: si logCommandExecution() fallara por
-        // cualquier motivo, el error visible al operador debe ser el
-        // original de la tarea, no uno de logging que lo enmascare.
         try {
             app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
         } catch (Throwable $logEx) {
@@ -183,11 +142,8 @@ class RetryFailedBingoRefundsCommand extends Command
     }
 
     /**
-     * Reembolso agotó reintentos y quedó ABANDONED — antes esto solo
-     * quedaba visible en auditoría (BingoRoomAuditLogger), invisible hasta
-     * que un admin revisara manualmente. Dinero real de un jugador sin
-     * devolver: se notifica a superadmins con los mismos datos que ya se
-     * pasan al audit logger, sin queries adicionales.
+     * Un reembolso agotó los reintentos y quedó ABANDONED: notificar a
+     * superadmins porque el dinero del jugador requiere intervención manual.
      */
     private function notifyAbandonedRefund(BingoLotRefundFailure $failure, int $attempts, string $lastError) : void
     {
