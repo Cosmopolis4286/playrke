@@ -122,7 +122,7 @@ function handleMovementUpdated(updated: Movement) {
 
 const {
   showDetail, detailLoading, detail,
-  adminNotes, actionLoading, actionError, showRejectForm, receiptZoom,
+  adminNotes, playerMessage, actionLoading, actionError, showRejectForm, receiptZoom,
   openDetail, handleApprove, handleReject,
   isReceiptImage, isPending, isActionable,
   nextPendingId, typeLabel, canSubmitReject,
@@ -494,6 +494,7 @@ const {
     :is-receipt-image="isReceiptImage"
     :receipt-zoom="receiptZoom"
     :admin-notes="adminNotes"
+    :player-message="playerMessage"
     :action-loading="actionLoading"
     :action-error="actionError"
     :show-reject-form="showRejectForm"
@@ -510,6 +511,7 @@ const {
     :assign-loading="assignLoading"
     @update:receipt-zoom="receiptZoom = $event"
     @update:admin-notes="adminNotes = $event"
+    @update:player-message="playerMessage = $event"
     @update:show-reject-form="showRejectForm = $event"
     @approve="handleApprove"
     @reject="handleReject"
