@@ -42,6 +42,8 @@ final class BingoDrawService
 
     /** Número de fichas entre cada verificación de compras mid-sorteo. */
     private const ACTIVE_CARDS_REFRESH_INTERVAL = 5;
+    private const DRAW_LOCK_MIN_TTL_SECONDS = 5400;
+    private const DRAW_LOCK_SAFETY_MARGIN_SECONDS = 1800;
     // En local se usa BINGO_DEV_INTERVAL_SECONDS si no hay time_chip en la config.
     private const CHIP_INTERVAL_DEV = 3;
     private const CHIP_INTERVAL_SECONDS = 5; // fallback si time_chip no está configurado
@@ -521,15 +523,23 @@ final class BingoDrawService
         @set_time_limit(0);
         ignore_user_abort(true);
 
-        $roomId = $room->id;
+        $roomId = (string) $room->id;
 
-        // Lock de proceso: serializa llamadas concurrentes a startDraw() para la
-        // misma sala. ShouldBeUniqueUntilProcessing libera el lock del queue al
-        // inicio del job, así que el cron puede encolar una segunda instancia
-        // mientras la primera sigue corriendo. Este Cache::lock garantiza que
-        // solo un worker ejecute el cuerpo del sorteo a la vez.
-        // TTL = 5 400 s (90 min) > sorteo más largo posible (90 × 60 s).
-        $drawLock = Cache::lock("bingo:draw-lock:{$roomId}", 5400);
+        if (! $room->relationLoaded('config')) {
+            $room->load('config');
+        }
+
+        // ShouldBeUniqueUntilProcessing libera el lock de cola al comenzar el job.
+        // El lock distribuido debe cubrir la duración real del sorteo: 90 bolas
+        // a 60 s ya superan los 90 min fijos anteriores, permitiendo que otro
+        // worker entre mientras el primer sorteo sigue activo.
+        $variant = $room->config?->game_variant ?? BingoVariant::BINGO_75;
+        $expectedDrawSeconds = BingoVariant::totalChips($variant) * $this->resolveChipInterval($room);
+        $lockTtl = max(
+            self::DRAW_LOCK_MIN_TTL_SECONDS,
+            $expectedDrawSeconds + self::DRAW_LOCK_SAFETY_MARGIN_SECONDS,
+        );
+        $drawLock = Cache::lock("bingo:draw-lock:{$roomId}", $lockTtl);
 
         if (! $drawLock->get()) {
             Log::warning('[BingoDrawService] Otro worker ya tiene el lock del sorteo — abortando duplicado', [
@@ -1064,6 +1074,20 @@ final class BingoDrawService
         return ['usd_amount' => $usdAmount, 'local_amount' => $this->convertToLocal($usdAmount, (string) $card->currency_id)];
     }
 
+    /**
+     * Intervalo efectivo entre bolas, compartido por el TTL del lock y el loop.
+     */
+    private function resolveChipInterval(BingoRoom $room) : int
+    {
+        $configInterval = (int) ($room->config?->time_chip ?? 0);
+
+        return $configInterval > 0
+            ? $configInterval
+            : (app()->environment('local')
+                ? (int) env('BINGO_DEV_INTERVAL_SECONDS', self::CHIP_INTERVAL_DEV)
+                : self::CHIP_INTERVAL_SECONDS);
+    }
+
     private function runDraw(BingoRoom $room) : array
     {
         // Limpiar caches de instancia al inicio de cada sorteo para que los datos
@@ -1246,15 +1270,8 @@ final class BingoDrawService
         }
 
         // Resolver el intervalo aquí — antes del bloque if($resuming) — para que
-        // el TTL del cache de resume use el valor real configurado en la sala y no
-        // el default de la instancia (5s), lo que causaba que la cache expirara
-        // muy pronto si time_chip era mayor (ej. 60s → TTL quedaba en 7s en vez de 62s).
-        $configInterval = (int) ($room->config?->time_chip ?? 0);
-        $this->currentInterval = $configInterval > 0
-            ? $configInterval
-            : (app()->environment('local')
-                ? (int) env('BINGO_DEV_INTERVAL_SECONDS', self::CHIP_INTERVAL_DEV)
-                : self::CHIP_INTERVAL_SECONDS);
+        // el TTL del cache de resume y el lock distribuido usen el mismo valor.
+        $this->currentInterval = $this->resolveChipInterval($room);
 
         if ($allDone) {
             // Todos los chips ya están en bingo_draws pero la ronda/sala no se cerró.
