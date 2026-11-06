@@ -83,14 +83,35 @@ class GamePrizeServiceDisputeTest extends TestCase
         [$participant, $wallet] = $this->makeClaimedParticipant(amount: 50.0, walletBalance: 100.0);
 
         app(GamePrizeService::class)->disputeAndReverse($participant, 'primera disputa');
-
-        // Un segundo intento sobre un premio ya 'disputed' (no 'claimed') debe
-        // rechazarse — la FSM ya no permite re-disputar el mismo registro.
-        $this->expectException(RuntimeException::class);
-        app(GamePrizeService::class)->disputeAndReverse($participant->fresh(), 'segundo intento');
+        app(GamePrizeService::class)->disputeAndReverse($participant->fresh(), 'reintento de disputa');
 
         $wallet->refresh();
         $this->assertEqualsWithDelta(50.0, (float) $wallet->balance, 0.001);
+        $this->assertSame(1, WalletMovement::where('idempotency_key', 'trivia_prize_reversal:' . $participant->id)->count());
+    }
+
+    public function test_dispute_can_be_retried_after_wallet_is_temporarily_unavailable() : void
+    {
+        [$participant, $wallet] = $this->makeClaimedParticipant(amount: 50.0, walletBalance: 100.0);
+        $wallet->update(['status' => 'INACTIVE']);
+
+        try {
+            app(GamePrizeService::class)->disputeAndReverse($participant, 'Fraude detectado');
+            $this->fail('Se esperaba un error mientras la wallet está inactiva.');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('puede reintentarse', $e->getMessage());
+        }
+
+        $participant->refresh();
+        $this->assertTrue($participant->isDisputed());
+        $this->assertSame(0, WalletMovement::where('idempotency_key', 'trivia_prize_reversal:' . $participant->id)->count());
+
+        $wallet->update(['status' => 'ACTIVE']);
+        app(GamePrizeService::class)->disputeAndReverse($participant->fresh(), 'Reintento tras reactivar wallet');
+
+        $wallet->refresh();
+        $this->assertEqualsWithDelta(50.0, (float) $wallet->balance, 0.001);
+        $this->assertSame(1, WalletMovement::where('idempotency_key', 'trivia_prize_reversal:' . $participant->id)->count());
     }
 
     public function test_dispute_marks_participant_as_disputed() : void
