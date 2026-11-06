@@ -244,7 +244,7 @@ jobs:
             BASE="$(git rev-parse HEAD^)"
           fi
           CHANGED="$(git diff --name-only "$BASE" HEAD)"
-          if grep -Eq '^(backend/Dockerfile.prod|backend/docker-compose.prod.yml|backend/deploy.sh|backend/README-DOCKER.md|\.dockerignore|\.github/workflows/ci\.yml)$' <<< "$CHANGED"; then
+          if grep -Eq '^(backend/Dockerfile.prod|backend/docker-compose.prod.yml|backend/deploy.sh|backend/README-DOCKER.md|backend/vite.config.ts|backend/package.json|pnpm-lock.yaml|package.json|\.dockerignore|\.github/workflows/ci\.yml)$' <<< "$CHANGED"; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"

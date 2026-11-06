@@ -5,16 +5,23 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import fs from 'fs'
 import path from 'path'
 
+import type { PluginOption } from 'vite'
 import obfuscatorPluginRaw from 'vite-plugin-javascript-obfuscator'
-const obfuscatorPlugin = obfuscatorPluginRaw as unknown as (options: any) => any
 import { visualizer } from 'rollup-plugin-visualizer'
+
+const obfuscatorPlugin = obfuscatorPluginRaw as unknown as (options: {
+  include: string[]
+  exclude: RegExp[]
+  apply: 'build'
+  options: Record<string, unknown>
+}) => PluginOption
 
 // ---------------------------------------------
 // Archivos CSS globales que siempre se incluyen
 // ---------------------------------------------
 const cssFiles = [
   'resources/css/global/styles.css',
-  'resources/css/global/loader.css',
+  'resources/css/global/loader.css'
 ]
 
 // ---------------------------------------------
@@ -73,60 +80,50 @@ export default defineConfig(({ mode }) => {
       }),
       vue(), // Plugin Vue 3
       vueJsx(), // Soporte JSX en Vue
-      ...(isProduction
+      // La ofuscación se deja opt-in porque el plugin reescribe declaraciones
+      // const y genera advertencias masivas de Rollup en módulos Vue/TypeScript.
+      // La minificación nativa de Vite se mantiene en todas las compilaciones productivas.
+      ...(isProduction && process.env.VITE_ENABLE_OBFUSCATION === 'true'
         ? [
-            // Ofuscador para proteger todos los JS y TS en resources/js (recursivamente)
-            obfuscatorPlugin({
-              include: ['resources/js/**/*.ts', 'resources/js/**/*.js'],
-              exclude: [/node_modules/],
-              apply: 'build',
-              options: {
-                // Ofuscación de identificadores
-                identifierNamesGenerator: 'mangled-shuffled',
-                reservedNames: ['^$', '_', 'console', 'window', 'document'], // Proteger símbolos críticos
-                reservedStrings: ['route', 'Ziggy', 'csrf', 'api'], // Palabras clave de la app
-                
-                // Protección contra debugging
-                debugProtection: true,
-                debugProtectionInterval: 2000, // Chequeo cada 2 segundos
-                selfDefending: true,
-                
-                // Ofuscación de strings
-                stringArray: true,
-                stringArrayEncoding: ['rc4', 'base64'],
-                stringArrayThreshold: 0.75, // 75% de strings ofuscados
-                
-                // Protección adicional
-                deadCodeInjection: true,
-                deadCodeInjectionThreshold: 0.4, // 40% código muerto
-                controlFlowFlattening: true,
-                controlFlowFlatteningThreshold: 0.75,
-                
-                // Compactación
-                compact: true,
-                simplify: true,
-                
-                // Deshabilitar funciones de desarrollo
-                disableConsoleOutput: true, // Elimina console.*
-                
-                // Transformaciones
-                numbersToExpressions: true,
-                transformObjectKeys: true,
-                shuffleStringArray: true,
-                rotateStringArray: true,
-                
-                // Opciones de dominio (opcional - descomenta si quieres bloquear dominios)
-                // domainLock: ['playrke.com', 'www.playrke.com'],
-              }
-            }),
-            // Visualizador del bundle para análisis (abrir después de build)
-            visualizer({
-              filename: './build-stats.html',
-              open: true,
-              gzipSize: true,
-              brotliSize: true
-            })
-          ]
+          obfuscatorPlugin({
+            include: ['resources/js/**/*.ts', 'resources/js/**/*.js'],
+            exclude: [/node_modules/],
+            apply: 'build',
+            options: {
+              identifierNamesGenerator: 'mangled-shuffled',
+              reservedNames: ['^$', '_', 'console', 'window', 'document'],
+              reservedStrings: ['route', 'Ziggy', 'csrf', 'api'],
+              debugProtection: true,
+              debugProtectionInterval: 2000,
+              selfDefending: true,
+              stringArray: true,
+              stringArrayEncoding: ['rc4', 'base64'],
+              stringArrayThreshold: 0.75,
+              deadCodeInjection: true,
+              deadCodeInjectionThreshold: 0.4,
+              controlFlowFlattening: true,
+              controlFlowFlatteningThreshold: 0.75,
+              compact: true,
+              simplify: true,
+              disableConsoleOutput: true,
+              numbersToExpressions: true,
+              transformObjectKeys: true,
+              shuffleStringArray: true,
+              rotateStringArray: true
+            }
+          })
+        ]
+        : []),
+      // El informe del bundle solo se genera bajo demanda.
+      ...(isProduction && process.env.VITE_ANALYZE_BUNDLE === 'true'
+        ? [
+          visualizer({
+            filename: './build-stats.html',
+            open: false,
+            gzipSize: true,
+            brotliSize: true
+          })
+        ]
         : [])
     ],
 
@@ -138,7 +135,7 @@ export default defineConfig(({ mode }) => {
           // División de chunks por juego y carpeta 'rke'
           manualChunks(id) {
             if (id.includes('resources/js/games/')) {
-              const match = id.match(/resources\/js\/games\/([^\/]+)\//)
+              const match = id.match(/resources\/js\/games\/([^/]+)\//)
               if (match) {
                 const game = match[1]
                 if (id.includes('/components/')) return `${game}-components`
@@ -165,10 +162,10 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       hmr: {
         host: 'localhost',
-        port: 5173,
+        port: 5173
       },
       cors: true,
-      allowedHosts: ['localhost', '127.0.0.1', 'host.docker.internal', '.localhost'],
+      allowedHosts: ['localhost', '127.0.0.1', 'host.docker.internal', '.localhost']
     }
   }
 })
