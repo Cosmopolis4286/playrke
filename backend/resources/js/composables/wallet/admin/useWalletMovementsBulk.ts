@@ -36,7 +36,7 @@ export function useWalletMovementsBulk(onProcessed: () => void) {
     })
     if (!confirmed) return false
 
-    return send('/wallet-movements/bulk/approve', pending, null, 'aprobar', 'aprobados')
+    return send('/wallet-movements/bulk/approve', pending, null, null, 'aprobar', 'aprobados')
   }
 
   async function bulkReject(movements: Movement[]): Promise<boolean> {
@@ -65,7 +65,7 @@ export function useWalletMovementsBulk(onProcessed: () => void) {
     })
     if (!result.isConfirmed || !result.value) return false
 
-    return send('/wallet-movements/bulk/reject', pending, String(result.value).trim(), 'rechazar', 'rechazados')
+    return send('/wallet-movements/bulk/reject', pending, null, String(result.value).trim(), 'rechazar', 'rechazados')
   }
 
   function onlyPending(movements: Movement[]): Movement[] | null {
@@ -91,12 +91,13 @@ export function useWalletMovementsBulk(onProcessed: () => void) {
       : ''
   }
 
-  async function send(url: string, movements: Movement[], adminNotes: string | null, verb: string, successVerb: string): Promise<boolean> {
+  async function send(url: string, movements: Movement[], adminNotes: string | null, playerMessage: string | null, verb: string, successVerb: string): Promise<boolean> {
     bulkLoading.value = true
     try {
       const { data } = await backendClient.post<BulkResult>(url, {
         ids: movements.map(m => m.id),
         admin_notes: adminNotes,
+        player_message: playerMessage,
       })
       await reportBulkResult(data, 'movimientos', successVerb)
       onProcessed()
