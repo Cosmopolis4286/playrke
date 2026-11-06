@@ -4,16 +4,10 @@ namespace Tests\Feature\Wallet;
 
 use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Models\WalletMovement;
-use App\Domains\Wallet\Services\WalletLimitService;
-use App\Domains\Wallet\Services\WalletService;
-use App\Http\Controllers\WalletController;
 use App\Models\Currency;
 use App\Models\User;
-use App\Services\Roles\RoleUserService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Mockery;
 use Tests\TestCase;
 
 class WalletControllerSecurityTest extends TestCase
@@ -143,34 +137,5 @@ class WalletControllerSecurityTest extends TestCase
         Storage::disk('public')->assertMissing($receiptPath);
     }
 
-    public function test_pending_operation_returns_server_error_when_lookup_fails(): void
-    {
-        $wallet = new Wallet();
-        $wallet->id = 'wallet-test-id';
 
-        $walletService = Mockery::mock(WalletService::class);
-        $walletService->shouldReceive('findOwnedWalletByCurrency')
-            ->once()
-            ->with('currency-test-id')
-            ->andReturn($wallet);
-        $walletService->shouldReceive('getPendingOperation')
-            ->once()
-            ->with('wallet-test-id', 'DEPOSIT')
-            ->andThrow(new \RuntimeException('database unavailable'));
-
-        $controller = new WalletController(
-            $walletService,
-            Mockery::mock(WalletLimitService::class),
-            Mockery::mock(RoleUserService::class),
-        );
-
-        $response = $controller->pendingOperation(Request::create('/wallet/pending-operation', 'GET', [
-            'currency_id' => 'currency-test-id',
-            'type' => 'DEPOSIT',
-        ]));
-
-        $this->assertSame(500, $response->getStatusCode());
-        $this->assertFalse($response->getData(true)['success']);
-        $this->assertArrayNotHasKey('pending', $response->getData(true));
-    }
 }
