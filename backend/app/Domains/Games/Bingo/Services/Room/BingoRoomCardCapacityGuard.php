@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Games\Bingo\Services\Room;
 
 use App\Domains\Games\Bingo\Exceptions\Room\BingoRoomException;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 
 /**
@@ -46,11 +47,14 @@ final class BingoRoomCardCapacityGuard
             return;
         }
 
-        // Re-lee total_cards con lock para serializar escrituras concurrentes
-        // (mismo criterio que BingoRoomCapacityGuard::assertHasCapacity()).
-        $current = BingoRoom::where('id', $room->id)
-            ->lockForUpdate()
-            ->value('total_cards') ?? 0;
+        // El lock de la sala serializa todas las compras que pasan por este guard.
+        // El contador total_cards es denormalizado y puede quedar desfasado tras
+        // reembolsos/reparaciones; usar los lotes no reembolsados evita bloquear
+        // ventas válidas o permitir overselling por un contador incorrecto.
+        BingoRoom::where('id', $room->id)->lockForUpdate()->first();
+        $current = BingoCardLot::where('room_id', $room->id)
+            ->where('status', '!=', 'REFUNDED')
+            ->sum('card_count');
 
         if ((int) $current + $cardCount > (int) $maxCards) {
             $remaining = max(0, (int) $maxCards - (int) $current);
