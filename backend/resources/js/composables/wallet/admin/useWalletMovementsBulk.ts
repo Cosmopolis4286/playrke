@@ -80,7 +80,7 @@ export function useWalletMovementsBulk(onProcessed: () => void) {
 
   /** buildBulkItemListHtml interpola sin escapar — se escapa aquí lo que viene del usuario. */
   function itemNames(movements: Movement[]): string[] {
-    const escape = (s: string) => s.replace(/[&<>'\'']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
+    const escape = (s: string) => s.replace(/[&<>\"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', [String.fromCharCode(39)]: '&#39;' }[c]!))
     return movements.map(m => escape(`${m.type} · ${m.user?.email ?? m.id}`))
   }
 
