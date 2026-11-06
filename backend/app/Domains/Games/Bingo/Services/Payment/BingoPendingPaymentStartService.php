@@ -64,24 +64,35 @@ final class BingoPendingPaymentStartService
             ->with(['room:id,uuid_code', 'room.config:id,room_id,unix_date'])
             ->get();
 
+        $notifiedPaymentIds = [];
         foreach ($this->groupByReviewer($payments) as $reviewerUserId => $byRoom) {
             foreach ($byRoom as $roomPayments) {
                 $room = $roomPayments->first()->room;
                 $minutes = max(1, (int) ceil(((int) $room->config->unix_date - $now) / 60));
-                $this->notify(
+                $sent = $this->notify(
                     $reviewerUserId,
                     'Pagos por revisar antes del sorteo',
                     "La sala #{$room->uuid_code} inicia en {$minutes} min y tiene {$roomPayments->count()} pago(s) sin revisar. "
                     . 'Si no los apruebas, esos compradores no podrán jugar.',
                 );
+
+                if ($sent) {
+                    $notifiedPaymentIds = array_merge($notifiedPaymentIds, $roomPayments->pluck('id')->all());
+                }
             }
         }
 
-        if ($payments->isNotEmpty()) {
-            BingoCardPayment::whereIn('id', $payments->pluck('id'))->update(['start_alert_sent_at' => now()]);
+        // Marcar únicamente pagos cuyo aviso se entregó. Si el servicio de
+        // notificaciones falla, el cron del siguiente minuto debe reintentarlo.
+        // Los pagos sin comercializadora revisora también quedan pendientes en
+        // lugar de descartarse silenciosamente.
+        if ($notifiedPaymentIds !== []) {
+            BingoCardPayment::whereIn('id', array_unique($notifiedPaymentIds))
+                ->whereNull('start_alert_sent_at')
+                ->update(['start_alert_sent_at' => now()]);
         }
 
-        return $payments->count();
+        return count(array_unique($notifiedPaymentIds));
     }
 
     /** @return array{rejected: int, kept: int, failed: int} */
@@ -181,8 +192,12 @@ final class BingoPendingPaymentStartService
 
         try {
             $this->notifications->create($userId, 'GAME_ALERT', $title, $message, ['url' => '/bingo/card-payments']);
+
+            return true;
         } catch (Throwable $e) {
-            Log::warning('[BingoPendingPaymentStart] No se pudo notificar', ['user_id' => $userId, 'error' => $e->getMessage()]);
+            Log::warning('[BingoPendingPaymentStart] No se pudo notificar; el aviso seguirá pendiente para reintento', ['user_id' => $userId, 'error' => $e->getMessage()]);
+
+            return false;
         }
     }
 
