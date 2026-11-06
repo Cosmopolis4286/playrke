@@ -1,66 +1,48 @@
-# Dominio: Bingo
+# Dominio Bingo
 
 ## Propósito
-Este dominio encapsula toda la lógica de negocio relacionada con el juego de Bingo del sistema RKE.
 
-## Estructura
+Este dominio contiene las reglas y servicios del juego Bingo: salas, cartones, rondas, sorteos, patrones, participación, pagos, premios y operaciones relacionadas.
 
-```
-Bingo/
-├── Models/          # Entidades del dominio (BingoRoom, BingoCard, etc.)
-├── Services/        # Lógica de negocio (GameEngine, RoomManager)
-├── Repositories/    # Acceso a datos
-├── Events/          # Eventos de dominio
-├── Listeners/       # Handlers de eventos
-├── DTOs/            # Objetos de transferencia de datos
-├── Actions/         # Acciones específicas (Commands)
-└── README.md        # Esta documentación
-```
+## Ubicación y organización
 
-## Estado de Migración
+El código está bajo `backend/app/Domains/Games/Bingo/`. La estructura real se organiza por responsabilidad e incluye:
+- `Models/`: modelos del dominio;
+- `Services/`: reglas de negocio y casos de uso;
+- `Repositories/`: acceso a datos;
+- `Contracts/`: contratos;
+- `DTOs/`: transferencia de datos;
+- `Events/`: eventos;
+- `Jobs/`: trabajo asíncrono;
+- `Policies/`: autorización por recurso;
+- `StateMachine/` y `ValueObjects/`: estados y conceptos del dominio.
 
-### Completado ✅
-- [x] Estructura de directorios
-- [x] BingoRoom → Domains/Games/Bingo/Models/BingoRoom.php
-- [x] BingoRoomConfig → Domains/Games/Bingo/Models/BingoRoomConfig.php
-- [x] Capa de compatibilidad para transición gradual
+Los controladores HTTP se encuentran fuera del dominio, en `backend/app/Http/Controllers/Games/Bingo/`; las rutas se cargan desde `backend/routes/modules/games/bingo.php` y el índice principal `backend/routes/web.php`.
 
-### Pendiente ⏳
-- [ ] Migrar resto de modelos (Card, Round, Draw, etc.)
-- [ ] Crear Services (BingoGameEngine, RoomManager)
-- [ ] Crear Repositories
-- [ ] Mover lógica de Controllers a Actions/Services
-- [ ] Tests unitarios del dominio
+## Flujo funcional
 
-## Capa de Compatibilidad
+1. Se crea/configura una sala y sus rondas.
+2. Los participantes se incorporan y compran o reciben cartones según su modalidad.
+3. Los pagos y lotes determinan la elegibilidad de los cartones.
+4. El sorteo emite números y eventos de actualización en tiempo real.
+5. La verificación de patrones determina ganadores dentro de la ronda correspondiente.
+6. Los premios se procesan con los servicios financieros compartidos y jobs; los estados retenidos/disputados necesitan conciliación.
+7. Reembolsos y recuperaciones se procesan mediante colas específicas.
 
-Durante la migración, los modelos en `app/Models/Games/Bingo/*` extienden los del dominio.
+## Invariantes críticas
 
-```php
-// Código antiguo (sigue funcionando)
-use App\Models\Games\Bingo\Room\BingoRoom;
+- La elegibilidad depende del lote y de los pagos asociados, no solo del estado visible del cartón.
+- El sorteo y la reclamación deben quedar aislados por ronda.
+- La autorización de una sala requiere permiso y Policy/validación de pertenencia donde corresponda.
+- El beneficiario del premio se resuelve desde la participación/pago del cartón, no desde el vendedor que registró la venta.
+- Los reintentos deben ser idempotentes; los estados ambiguos pasan a revisión manual.
+- La UI no sustituye controles del backend.
 
-// Código nuevo (recomendado)
-use App\Domains\Games\Bingo\Models\BingoRoom;
-```
+## Documentación relacionada
 
-Ambos apuntan a la misma tabla y tienen el mismo comportamiento.
+- [Arquitectura general](../../../../../docs/ARCHITECTURE.md)
+- [Autenticación específica de Bingo](../../../../docs/security/BINGO_AUTHENTICATION.md)
+- [Pagos y premios](../../../../../docs/PAYMENTS_AND_PRIZES.md)
+- [Preparación para lanzamiento](../../../../../docs/RELEASE_READINESS.md)
 
-## Principios
-
-1. **Single Responsibility**: Cada clase tiene un propósito claro
-2. **Dependency Inversion**: Depender de abstracciones, no concreciones
-3. **Domain First**: La lógica de negocio vive aquí, no en controllers
-4. **Backward Compatibility**: Transición gradual sin romper código existente
-
-## Relaciones con otros dominios
-
-- `Common`: Usa GameStatus, GameMode, RoomType (shared kernel)
-- `Trivia`: Mismo patrón de arquitectura
-- `Wallet`: Integración para pagos y premios
-
-## Notas Técnicas
-
-- Stack: Laravel + Vue 3 + Inertia + Reverb
-- Tablas: `bingo_rooms`, `bingo_cards`, `bingo_rounds`, etc.
-- WebSocket: Canal `bingo.{room_id}` para actualizaciones en tiempo real
+Este documento reemplaza el antiguo checklist de migración del dominio, que describía como pendientes directorios y capas que ya existen en la estructura actual.

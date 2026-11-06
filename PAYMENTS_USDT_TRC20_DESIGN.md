@@ -1,4 +1,6 @@
 # Módulo de Pagos USDT-TRC20 (TRON mainnet) — Diseño
+> **Estado y advertencia:** este archivo es un documento de diseño fechado, no una especificación operativa ni una prueba de que USDT-TRC20 esté habilitado. El código debe inspeccionarse para identificar el adaptador/proveedor actualmente enlazado; el provider descrito en esta auditoría puede seguir siendo un stub. No depositar fondos reales ni asumir custodia/conciliación productiva a partir de este documento. La guía canónica de riesgos es [docs/PAYMENTS_AND_PRIZES.md](docs/PAYMENTS_AND_PRIZES.md).
+
 
 > Alcance confirmado con el usuario: **mainnet real, fondos reales desde el día 1**.
 > Custodia: **HD real con XPUB** provisto por el usuario (la seed permanece fuera del
