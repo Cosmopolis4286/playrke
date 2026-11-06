@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Domains\Wallet\Models\WalletMovement;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 use Throwable;
 
 class MigrateWalletReceiptsToPrivateStorageCommand extends Command
@@ -52,7 +53,7 @@ class MigrateWalletReceiptsToPrivateStorageCommand extends Command
                             $stream = $public->readStream($path);
 
                             if (! is_resource($stream)) {
-                                throw new \RuntimeException('No se pudo leer el archivo de origen.');
+                                throw new RuntimeException('No se pudo leer el archivo de origen.');
                             }
 
                             try {
@@ -62,14 +63,14 @@ class MigrateWalletReceiptsToPrivateStorageCommand extends Command
                             }
 
                             if (! $written || ! $private->exists($path)) {
-                                throw new \RuntimeException('No se pudo verificar la copia privada.');
+                                throw new RuntimeException('No se pudo verificar la copia privada.');
                             }
                         }
 
                         // La copia pública solo se elimina después de confirmar
                         // que el archivo privado existe.
                         if (! $public->delete($path)) {
-                            throw new \RuntimeException('La copia privada existe, pero no se pudo eliminar la copia pública.');
+                            throw new RuntimeException('La copia privada existe, pero no se pudo eliminar la copia pública.');
                         }
 
                         $stats['migrated']++;
