@@ -20,7 +20,7 @@ Pull Requests hacia `master`, pushes a `master` y ejecución manual. El workflow
 - Verificación de traducciones de errores de dominio.
 - Pint sobre PHP modificado.
 
-### Frontend build / tests / typecheck
+### Frontend integrado (Inertia/Vite) build / tests / typecheck
 
 - Node 20.19 y pnpm 10.25.
 - Instalación con lockfile congelado.
