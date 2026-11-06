@@ -12,6 +12,8 @@ use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Domains\Games\Bingo\Services\Game\BingoDrawService;
+use App\Domains\Games\Bingo\Services\Payment\BingoCardPaymentReviewService;
+use App\Domains\Games\Bingo\Exceptions\Card\BingoCardPaymentException;
 use App\Domains\Games\Bingo\Services\Game\BingoWinnerDetectionService;
 use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
 use App\Models\Country;
@@ -181,6 +183,44 @@ class BingoWinnerDetectionServiceTest extends TestCase
         $this->assertDatabaseMissing('anti_cheat_flags', [
             'user_id' => (string) $user->id,
         ]);
+    }
+
+    public function test_pending_payment_cannot_be_approved_without_confirmation_after_draw_starts() : void
+    {
+        $user = User::factory()->create();
+        ['room' => $room, 'round' => $round, 'card' => $card] =
+            $this->makeRoomWithCard($this->winningCardNumbers(), $user, 'DEMO');
+
+        BingoCardPayment::create([
+            'payment_method' => 'mobile_payment',
+            'description' => 'Comprobante pendiente de revisión',
+            'room_id' => $room->id,
+            'seller_user_id' => $user->id,
+            'user_id' => $user->id,
+            'currency_id' => $card->currency_id,
+            'card_lot_id' => $card->card_lot_id,
+            'payment_amount' => 1,
+            'payment_proof' => 'private/receipts/bingo/test.jpg',
+            'payment_status' => 'PENDING',
+        ]);
+
+        // Ejecutar las 75 fichas sin esperas: el intervalo 0 solo se usa en este test.
+        config(['app.env' => 'local']);
+        putenv('BINGO_DEV_INTERVAL_SECONDS=0');
+        $room->config->update(['time_chip' => 0]);
+
+        try {
+            app(BingoDrawService::class)->startDraw($room->fresh());
+        } finally {
+            putenv('BINGO_DEV_INTERVAL_SECONDS');
+        }
+
+        $this->assertSame('FINISHED', $round->fresh()->status);
+
+        $this->expectException(BingoCardPaymentException::class);
+        app(BingoCardPaymentReviewService::class)->approve(
+            BingoCardPayment::where('card_lot_id', $card->card_lot_id)->firstOrFail(),
+        );
     }
 
     public function test_pending_payment_carton_cannot_be_claimed_manually_or_atomically() : void
