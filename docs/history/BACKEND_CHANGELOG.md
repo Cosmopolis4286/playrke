@@ -40,7 +40,7 @@ sembrado, confirmando cero regresión. Se probó además el toggle real en
 ambas direcciones (ocultar/mostrar un item vía BD → `generateMenu()`
 refleja el cambio inmediatamente).
 
-Ver `backend/docs/SIDEBAR_MENU_VISIBILITY.md` para el detalle de
+Ver `docs/security/SIDEBAR_MENU_VISIBILITY.md` para el detalle de
 arquitectura, mapa de archivos y comandos de verificación.
 
 ### Archivos clave

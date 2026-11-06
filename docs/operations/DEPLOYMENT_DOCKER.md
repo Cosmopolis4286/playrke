@@ -2,7 +2,7 @@
 
 Esta guía corresponde exclusivamente al stack de producción ubicado en backend/docker-compose.prod.yml.
 
-> **Importante:** el archivo docker-compose.prod.yml de la raíz del monorepo es un entorno de desarrollo y no debe utilizarse para desplegar producción. El stack de producción está dentro de backend/.
+> **Importante:** el único Compose de producción mantenido es `backend/docker-compose.prod.yml`. El archivo `docker-compose.dev.yml` de la raíz es exclusivamente para desarrollo local.
 
 ## Arquitectura
 
