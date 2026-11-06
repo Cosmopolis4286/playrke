@@ -48,26 +48,22 @@ class WalletController extends Controller
                 ], 422);
             }
 
-            $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
-            $destination = storage_path('app/public/wallet/receipts');
+            $filename = Str::uuid() . '.' . $file->extension();
 
-            if (! is_dir($destination)) {
-                mkdir($destination, 0755, true);
-            }
-
-            // Hash del archivo ANTES de moverlo (más simple que releerlo del
-            // destino) — permite al panel admin detectar si este mismo
-            // comprobante (misma captura de pantalla) ya se usó en otro
-            // depósito, sin depender del nombre de archivo (que siempre es
-            // un UUID nuevo).
+            // Los comprobantes contienen datos bancarios y personales. Se
+            // guardan en el disco privado "local", nunca bajo app/public ni
+            // dentro del symlink público /storage.
             $receiptHash = hash_file('sha256', $file->getRealPath()) ?: null;
+            $receiptPath = Storage::disk('local')->putFileAs('wallet/receipts', $file, $filename);
 
-            $file->move($destination, $filename);
+            if (! $receiptPath) {
+                throw new \\RuntimeException('No se pudo almacenar el comprobante de depósito.');
+            }
 
             $wallet = $this->walletService->requestDeposit(
                 wallet: $wallet,
                 amount: (float) $request->input('amount'),
-                receipt: 'wallet/receipts/' . $filename,
+                receipt: $receiptPath,
                 receiptHash: $receiptHash,
                 reference: $request->input('reference'),
                 notes: $request->input('notes'),
@@ -81,6 +77,10 @@ class WalletController extends Controller
         } catch (DomainException $e) {
             return $this->domainErrorResponse($e);
         } catch (Throwable $e) {
+            if (isset($receiptPath)) {
+                Storage::disk('local')->delete($receiptPath);
+            }
+
             Log::error('[WalletController@deposit] ' . $e->getMessage(), ['exception' => $e]);
 
             return response()->json(['success' => false, 'message' => 'Error interno. Intenta de nuevo.'], 500);
@@ -224,8 +224,20 @@ class WalletController extends Controller
                     'created_at' => $pending->created_at,
                 ] : null,
             ]);
-        } catch (Throwable) {
-            return response()->json(['success' => true, 'pending' => null]);
+        } catch (DomainException $e) {
+            return $this->domainErrorResponse($e);
+        } catch (Throwable $e) {
+            Log::error('[WalletController@pendingOperation] ' . $e->getMessage(), [
+                'exception' => $e,
+                'user_id' => Auth::id(),
+                'currency_id' => $currencyId,
+                'type' => $type,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo consultar la operación pendiente. Intenta de nuevo.',
+            ], 500);
         }
     }
 
