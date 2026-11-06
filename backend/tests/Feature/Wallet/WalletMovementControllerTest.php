@@ -4,8 +4,10 @@ namespace Tests\Feature\Wallet;
 
 use App\Domains\Wallet\Models\Wallet;
 use App\Domains\Wallet\Models\WalletMovement;
+use App\Http\Controllers\WalletController;
 use App\Models\Currency;
 use App\Models\MovementType;
+use App\Models\Notification;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\MovementTypeSeeder;
@@ -50,9 +52,16 @@ class WalletMovementControllerTest extends TestCase
         $movement = $this->makePendingDeposit(50.0);
 
         $this->actingAs($this->admin)
-            ->postJson(route('wallet-movements.approve', $movement))
+            ->postJson(route('wallet-movements.approve', $movement), [
+                'admin_notes' => 'Revisión interna completada por tesorería',
+            ])
             ->assertOk()
-            ->assertJsonPath('data.status', WalletMovement::STATUS_COMPLETED);
+            ->assertJsonPath('data.status', WalletMovement::STATUS_COMPLETED)
+            ->assertJsonPath('data.admin_notes', 'Revisión interna completada por tesorería');
+
+        $notification = Notification::where('user_id', $this->player->id)->latest()->firstOrFail();
+        $this->assertStringNotContainsString('Revisión interna completada por tesorería', $notification->message);
+        $this->assertArrayNotHasKey('admin_notes', $notification->data ?? []);
 
         $this->assertSame(150.0, (float) $this->wallet->fresh()->balance);
     }
@@ -62,10 +71,20 @@ class WalletMovementControllerTest extends TestCase
         $movement = $this->makePendingDeposit(50.0);
 
         $this->actingAs($this->admin)
-            ->postJson(route('wallet-movements.reject', $movement), ['admin_notes' => 'Pago no recibido'])
+            ->postJson(route('wallet-movements.reject', $movement), [
+                'admin_notes' => 'Verificar comprobante en el extracto interno',
+                'player_message' => 'Pago no recibido',
+            ])
             ->assertOk()
             ->assertJsonPath('data.status', WalletMovement::STATUS_REJECTED)
-            ->assertJsonPath('data.admin_notes', 'Pago no recibido');
+            ->assertJsonPath('data.admin_notes', 'Verificar comprobante en el extracto interno')
+            ->assertJsonPath('data.player_message', 'Pago no recibido');
+
+        $notification = Notification::where('user_id', $this->player->id)->latest()->firstOrFail();
+        $this->assertStringContainsString('Pago no recibido', $notification->message);
+        $this->assertStringNotContainsString('Verificar comprobante en el extracto interno', $notification->message);
+        $this->assertSame('Pago no recibido', $notification->data['player_message'] ?? null);
+        $this->assertArrayNotHasKey('admin_notes', $notification->data ?? []);
 
         // Un depósito rechazado nunca tocó el balance al crearse, y
         // rechazarlo tampoco debe moverlo.
@@ -122,7 +141,7 @@ class WalletMovementControllerTest extends TestCase
         $this->actingAs($this->admin)
             ->postJson(route('wallet-movements.bulk-reject'), ['ids' => [(string) $movement->id]])
             ->assertStatus(422)
-            ->assertJsonValidationErrors('admin_notes');
+            ->assertJsonValidationErrors('player_message');
     }
 
     public function test_csv_export_includes_related_user_data() : void
@@ -166,10 +185,10 @@ class WalletMovementControllerTest extends TestCase
         $this->actingAs($this->admin)
             ->postJson(route('wallet-movements.reject', $movement))
             ->assertStatus(422)
-            ->assertJsonValidationErrors('admin_notes');
+            ->assertJsonValidationErrors('player_message');
 
         $this->actingAs($this->admin)
-            ->postJson(route('wallet-movements.reject', $movement), ['admin_notes' => 'no'])
+            ->postJson(route('wallet-movements.reject', $movement), ['player_message' => 'no'])
             ->assertStatus(422);
 
         $this->assertSame(WalletMovement::STATUS_PENDING, $movement->fresh()->status);
@@ -244,6 +263,24 @@ class WalletMovementControllerTest extends TestCase
 
         $this->assertSame(WalletMovement::STATUS_PENDING, $movement->fresh()->status);
         $this->assertSame(100.0, (float) $this->wallet->fresh()->balance);
+    }
+
+    public function test_player_movement_detail_exposes_player_message_but_not_internal_notes(): void
+    {
+        $movement = $this->makePendingDeposit();
+        $movement->update([
+            'admin_notes' => 'Observación privada para tesorería',
+            'player_message' => 'Pago no recibido en la cuenta destino',
+        ]);
+
+        $this->actingAs($this->player);
+        $response = app(WalletController::class)->showMovement((string) $movement->id);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $data = $response->getData(true)['data'];
+        $this->assertSame('Pago no recibido en la cuenta destino', $data['player_message']);
+        $this->assertArrayNotHasKey('admin_notes', $data);
+        $this->assertStringNotContainsString('Observación privada para tesorería', json_encode($data));
     }
 
     private function makePendingDeposit(float $amount = 50.0) : WalletMovement

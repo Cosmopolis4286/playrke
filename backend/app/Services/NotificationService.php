@@ -243,7 +243,7 @@ final class NotificationService
         string $status,       // COMPLETED | REJECTED
         float $amount,
         string $currencySymbol,
-        ?string $adminNotes = null,
+        ?string $playerMessage = null,
         ?string $movementId = null,
     ) : Notification {
         $approved = $status === 'COMPLETED';
@@ -251,7 +251,7 @@ final class NotificationService
         $title = $approved ? '✅ Depósito Aprobado' : '❌ Depósito Rechazado';
         $message = $approved
             ? "Tu depósito de {$currencySymbol}{$amount} ha sido acreditado a tu billetera."
-            : "Tu depósito de {$currencySymbol}{$amount} fue rechazado." . ($adminNotes ? " Motivo: {$adminNotes}" : '');
+            : "Tu depósito de {$currencySymbol}{$amount} fue rechazado." . ($playerMessage ? " Motivo: {$playerMessage}" : '');
 
         return $this->create(
             userId: $userId,
@@ -263,7 +263,7 @@ final class NotificationService
                 'movement_status' => $status,
                 'amount' => $amount,
                 'currency_symbol' => $currencySymbol,
-                'admin_notes' => $adminNotes,
+                'player_message' => $playerMessage,
                 'movement_id' => $movementId,
                 'url' => $movementId ? "/wallet#movement/{$movementId}" : '/wallet',
             ],
@@ -325,7 +325,7 @@ final class NotificationService
         float $amount,
         string $currencySymbol,
         string $typeLabel,
-        ?string $adminNotes = null,
+        ?string $playerMessage = null,
         ?string $movementId = null,
     ) : Notification {
         $approved = $status === 'COMPLETED';
@@ -333,7 +333,7 @@ final class NotificationService
         $title = $approved ? "✅ {$typeLabel} aprobado" : "❌ {$typeLabel} rechazado";
         $message = $approved
             ? "Tu movimiento de {$currencySymbol}{$amount} ({$typeLabel}) fue procesado exitosamente."
-            : "Tu movimiento de {$currencySymbol}{$amount} ({$typeLabel}) fue rechazado." . ($adminNotes ? " Motivo: {$adminNotes}" : '');
+            : "Tu movimiento de {$currencySymbol}{$amount} ({$typeLabel}) fue rechazado." . ($playerMessage ? " Motivo: {$playerMessage}" : '');
 
         return $this->create(
             userId: $userId,
@@ -345,7 +345,7 @@ final class NotificationService
                 'movement_status' => $status,
                 'amount' => $amount,
                 'currency_symbol' => $currencySymbol,
-                'admin_notes' => $adminNotes,
+                'player_message' => $playerMessage,
                 'movement_id' => $movementId,
                 'url' => $movementId ? "/wallet#movement/{$movementId}" : '/wallet',
             ],
@@ -515,7 +515,7 @@ final class NotificationService
         string $status,       // COMPLETED | REJECTED
         float $amount,
         string $currencySymbol,
-        ?string $adminNotes = null,
+        ?string $playerMessage = null,
         ?string $movementId = null,
     ) : Notification {
         $approved = $status === 'COMPLETED';
@@ -523,7 +523,7 @@ final class NotificationService
         $title = $approved ? '✅ Retiro Aprobado' : '↩️ Retiro Rechazado — Saldo Reintegrado';
         $message = $approved
             ? "Tu retiro de {$currencySymbol}{$amount} fue procesado exitosamente."
-            : "Tu retiro de {$currencySymbol}{$amount} fue rechazado y el saldo fue devuelto a tu billetera." . ($adminNotes ? " Motivo: {$adminNotes}" : '');
+            : "Tu retiro de {$currencySymbol}{$amount} fue rechazado y el saldo fue devuelto a tu billetera." . ($playerMessage ? " Motivo: {$playerMessage}" : '');
 
         return $this->create(
             userId: $userId,
@@ -535,7 +535,7 @@ final class NotificationService
                 'movement_status' => $status,
                 'amount' => $amount,
                 'currency_symbol' => $currencySymbol,
-                'admin_notes' => $adminNotes,
+                'player_message' => $playerMessage,
                 'movement_id' => $movementId,
                 'url' => $movementId ? "/wallet#movement/{$movementId}" : '/wallet',
             ],

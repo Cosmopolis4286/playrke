@@ -110,7 +110,7 @@ export interface WalletMovement {
   reference_id: string | null
   receipt_path: string | null
   receipt_url: string | null
-  admin_notes: string | null
+  player_message: string | null
   processed_at: string | null
   // Solo presentes cuando type === 'PRIZE' (derivados de metadata en backend)
   prize_type?: PrizeType | null

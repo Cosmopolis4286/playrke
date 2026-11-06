@@ -72,6 +72,7 @@ export interface Movement {
   prize_type:            'DIGITAL' | 'PHYSICAL' | null
   game_id:               string | null
   admin_notes:           string | null
+  player_message:        string | null
   processed_at:          string | null
   processed_by:          MovementAdmin | null
   assigned_at:           string | null

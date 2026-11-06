@@ -44,11 +44,11 @@ final class WalletMovementController extends Controller
     private const RECENT_AUDITS_LIMIT = 10;
 
     /**
-     * Motivo obligatorio al rechazar: el jugador recibe admin_notes en la
+     * Motivo obligatorio al rechazar: el jugador recibe player_message en la
      * notificación de resultado (WalletService::broadcastAndNotifyResult()),
      * así que un rechazo sin motivo le llega sin ninguna explicación.
      */
-    private const REJECT_NOTES_RULES = ['required', 'string', 'min:5', 'max:512'];
+    private const PLAYER_MESSAGE_RULES = ['required', 'string', 'min:5', 'max:512'];
 
     public function __construct(
         private readonly WalletService $walletService,
@@ -166,16 +166,18 @@ final class WalletMovementController extends Controller
         $request->validate([
             'ids' => 'required|array|min:1|max:100',
             'ids.*' => 'string',
-            'admin_notes' => self::REJECT_NOTES_RULES,
+            'admin_notes' => self::APPROVE_NOTES_RULES,
+            'player_message' => self::PLAYER_MESSAGE_RULES,
         ], [
-            'admin_notes.required' => 'Indica el motivo del rechazo: cada jugador lo recibe en su notificación.',
-            'admin_notes.min' => 'El motivo del rechazo debe tener al menos :min caracteres.',
+            'player_message.required' => 'Indica el motivo que recibirá cada jugador.',
+            'player_message.min' => 'El motivo para los jugadores debe tener al menos :min caracteres.',
         ]);
 
         return $this->handleServiceJson(fn () => $this->processBulk(
             $request->input('ids'),
-            trim((string) $request->input('admin_notes')),
+            trim((string) $request->input('admin_notes', '')) ?: null,
             'reject',
+            trim((string) $request->input('player_message')),
         ));
     }
 
@@ -197,7 +199,7 @@ final class WalletMovementController extends Controller
             'movimientos-billetera',
             [
                 'ID', 'Usuario', 'Email', 'Tipo', 'Estado', 'Monto', 'Moneda', 'Referencia',
-                'Notas admin', 'Procesado por', 'Asignado a', 'Asignado el',
+                'Notas admin', 'Motivo comunicado al jugador', 'Procesado por', 'Asignado a', 'Asignado el',
                 'Balance antes', 'Balance después', 'Hash recibo', 'Creado', 'Procesado',
             ],
             // cursor() ignora el with() de ADMIN_PANEL_RELATIONS (no puede
@@ -217,6 +219,7 @@ final class WalletMovementController extends Controller
                 $m->wallet?->currency?->iso_code,
                 $m->reference_id,
                 $m->admin_notes,
+                $m->player_message,
                 trim(($m->processedBy?->first_name ?? '') . ' ' . ($m->processedBy?->last_name ?? '')),
                 $m->assignedTo ? trim("{$m->assignedTo->first_name} {$m->assignedTo->last_name}") : null,
                 $m->assigned_at?->format('Y-m-d H:i:s'),
@@ -325,20 +328,24 @@ final class WalletMovementController extends Controller
     {
         $this->authorize('reject', $movement);
 
-        $request->validate(['admin_notes' => self::REJECT_NOTES_RULES], [
-            'admin_notes.required' => 'Indica el motivo del rechazo: el jugador lo recibe en su notificación.',
-            'admin_notes.min' => 'El motivo del rechazo debe tener al menos :min caracteres.',
+        $request->validate([
+            'admin_notes' => self::APPROVE_NOTES_RULES,
+            'player_message' => self::PLAYER_MESSAGE_RULES,
+        ], [
+            'player_message.required' => 'Indica el motivo que recibirá el jugador.',
+            'player_message.min' => 'El motivo para el jugador debe tener al menos :min caracteres.',
         ]);
 
         return $this->handleServiceJson(function() use ($request, $movement) {
-            $adminNotes = trim((string) $request->input('admin_notes'));
+            $adminNotes = trim((string) $request->input('admin_notes', '')) ?: null;
+            $playerMessage = trim((string) $request->input('player_message'));
 
             $this->assertRequiresApproval($movement);
 
             $updated = match ($movement->type) {
-                WalletMovement::TYPE_DEPOSIT => $this->walletService->rejectDeposit($movement, $adminNotes),
-                WalletMovement::TYPE_WITHDRAWAL => $this->walletService->rejectWithdrawal($movement, $adminNotes),
-                default => $this->walletService->rejectGeneric($movement, $adminNotes),
+                WalletMovement::TYPE_DEPOSIT => $this->walletService->rejectDeposit($movement, $adminNotes, $playerMessage),
+                WalletMovement::TYPE_WITHDRAWAL => $this->walletService->rejectWithdrawal($movement, $adminNotes, $playerMessage),
+                default => $this->walletService->rejectGeneric($movement, $adminNotes, $playerMessage),
             };
 
             $this->movementRepository->loadForAdminPanel($updated);
@@ -597,6 +604,7 @@ final class WalletMovementController extends Controller
             'prize_type' => $m->prize_type,
             'game_id' => $m->game_id,
             'admin_notes' => $m->admin_notes,
+            'player_message' => $m->player_message,
             'processed_at' => $m->processed_at?->toISOString(),
             'processed_by' => $m->processedBy ? [
                 'id' => (string) $m->processedBy->id,
@@ -661,7 +669,7 @@ final class WalletMovementController extends Controller
      * retenidos hasta el final del lote. Ahora cada item confirma por separado,
      * que es justo el aislamiento por item que promete el contrato `skipped`.
      */
-    private function processBulk(array $ids, ?string $adminNotes, string $action) : array
+    private function processBulk(array $ids, ?string $adminNotes, string $action, ?string $playerMessage = null) : array
     {
         $ids = array_values(array_unique(array_map('strval', $ids)));
         $updated = 0;
@@ -696,9 +704,9 @@ final class WalletMovementController extends Controller
                     };
                 } else {
                     match ($movement->type) {
-                        WalletMovement::TYPE_DEPOSIT => $this->walletService->rejectDeposit($movement, $adminNotes),
-                        WalletMovement::TYPE_WITHDRAWAL => $this->walletService->rejectWithdrawal($movement, $adminNotes),
-                        default => $this->walletService->rejectGeneric($movement, $adminNotes),
+                        WalletMovement::TYPE_DEPOSIT => $this->walletService->rejectDeposit($movement, $adminNotes, $playerMessage),
+                        WalletMovement::TYPE_WITHDRAWAL => $this->walletService->rejectWithdrawal($movement, $adminNotes, $playerMessage),
+                        default => $this->walletService->rejectGeneric($movement, $adminNotes, $playerMessage),
                     };
                 }
 

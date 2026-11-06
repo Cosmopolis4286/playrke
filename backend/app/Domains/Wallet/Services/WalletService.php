@@ -117,7 +117,7 @@ final class WalletService
             return $locked->fresh(['wallet', 'wallet.currency']);
         });
 
-        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_COMPLETED, $adminNotes);
+        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_COMPLETED, null);
 
         return $updated;
     }
@@ -161,7 +161,7 @@ final class WalletService
             return $locked->fresh(['wallet', 'wallet.currency']);
         });
 
-        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_COMPLETED, $adminNotes);
+        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_COMPLETED, null);
 
         return $updated;
     }
@@ -200,7 +200,7 @@ final class WalletService
             return $locked->fresh(['wallet', 'wallet.currency']);
         });
 
-        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_COMPLETED, $adminNotes);
+        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_COMPLETED, null);
 
         return $updated;
     }
@@ -1184,7 +1184,7 @@ final class WalletService
     /**
      * Rechazar un depósito PENDING: no toca el saldo, marca REJECTED.
      */
-    public function rejectDeposit(WalletMovement $movement, ?string $adminNotes = null) : WalletMovement
+    public function rejectDeposit(WalletMovement $movement, ?string $adminNotes = null, ?string $playerMessage = null) : WalletMovement
     {
         if ($movement->type !== WalletMovement::TYPE_DEPOSIT) {
             throw WalletDomainException::movementNotDeposit();
@@ -1192,7 +1192,7 @@ final class WalletService
 
         $this->guardNotLockedByOther($movement);
 
-        $updated = DB::transaction(function() use ($movement, $adminNotes) {
+        $updated = DB::transaction(function() use ($movement, $adminNotes, $playerMessage) {
             $locked = WalletMovement::where('id', $movement->id)->lockForUpdate()->firstOrFail();
 
             if ($locked->status !== WalletMovement::STATUS_PENDING) {
@@ -1203,6 +1203,7 @@ final class WalletService
                 'status' => WalletMovement::STATUS_REJECTED,
                 'description' => 'Depósito rechazado',
                 'admin_notes' => $adminNotes,
+                'player_message' => $playerMessage,
                 'processed_by' => (string) Auth::id(),
                 'processed_at' => now(),
             ]);
@@ -1210,7 +1211,7 @@ final class WalletService
             return $locked->fresh(['wallet', 'wallet.currency']);
         });
 
-        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_REJECTED, $adminNotes);
+        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_REJECTED, $playerMessage);
 
         return $updated;
     }
@@ -1220,11 +1221,11 @@ final class WalletService
      * saldo fue descontado al solicitarse y se reintegra aquí (igual que
      * WITHDRAWAL); si es true nunca se tocó el saldo y no hay nada que revertir.
      */
-    public function rejectGeneric(WalletMovement $movement, ?string $adminNotes = null) : WalletMovement
+    public function rejectGeneric(WalletMovement $movement, ?string $adminNotes = null, ?string $playerMessage = null) : WalletMovement
     {
         $this->guardNotLockedByOther($movement);
 
-        $updated = DB::transaction(function() use ($movement, $adminNotes) {
+        $updated = DB::transaction(function() use ($movement, $adminNotes, $playerMessage) {
             $locked = WalletMovement::where('id', $movement->id)->lockForUpdate()->firstOrFail();
 
             if ($locked->status !== WalletMovement::STATUS_PENDING) {
@@ -1244,6 +1245,7 @@ final class WalletService
             $locked->update([
                 'status' => WalletMovement::STATUS_REJECTED,
                 'admin_notes' => $adminNotes,
+                'player_message' => $playerMessage,
                 'processed_by' => (string) Auth::id(),
                 'processed_at' => now(),
             ]);
@@ -1251,7 +1253,7 @@ final class WalletService
             return $locked->fresh(['wallet', 'wallet.currency']);
         });
 
-        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_REJECTED, $adminNotes);
+        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_REJECTED, $playerMessage);
 
         return $updated;
     }
@@ -1264,7 +1266,7 @@ final class WalletService
      * así que dos rechazos concurrentes del mismo retiro podían ambos pasar
      * el check y ambos reintegrar el monto (doble crédito).
      */
-    public function rejectWithdrawal(WalletMovement $movement, ?string $adminNotes = null) : WalletMovement
+    public function rejectWithdrawal(WalletMovement $movement, ?string $adminNotes = null, ?string $playerMessage = null) : WalletMovement
     {
         if ($movement->type !== WalletMovement::TYPE_WITHDRAWAL) {
             throw WalletDomainException::movementNotWithdrawal();
@@ -1272,7 +1274,7 @@ final class WalletService
 
         $this->guardNotLockedByOther($movement);
 
-        $updated = DB::transaction(function() use ($movement, $adminNotes) {
+        $updated = DB::transaction(function() use ($movement, $adminNotes, $playerMessage) {
             $locked = WalletMovement::where('id', $movement->id)->lockForUpdate()->firstOrFail();
 
             if ($locked->status !== WalletMovement::STATUS_PENDING) {
@@ -1292,6 +1294,7 @@ final class WalletService
                 'status' => WalletMovement::STATUS_REJECTED,
                 'description' => 'Retiro rechazado — saldo reintegrado',
                 'admin_notes' => $adminNotes,
+                'player_message' => $playerMessage,
                 'processed_by' => (string) Auth::id(),
                 'processed_at' => now(),
             ]);
@@ -1304,7 +1307,7 @@ final class WalletService
         // bloquea al usuario contra un límite que ya no debería aplicar.
         $this->walletLimitService->invalidateWithdrawalSums((string) $updated->wallet_id);
 
-        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_REJECTED, $adminNotes);
+        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_REJECTED, $playerMessage);
 
         return $updated;
     }
@@ -1713,7 +1716,7 @@ final class WalletService
     /**
      * Broadcast WebSocket + notificación persistente al usuario tras aprobar/rechazar.
      */
-    private function broadcastAndNotifyResult(WalletMovement $movement, string $status, ?string $adminNotes) : void
+    private function broadcastAndNotifyResult(WalletMovement $movement, string $status, ?string $playerMessage) : void
     {
         $wallet = $movement->wallet;
         $currencySymbol = $wallet?->currency?->symbol ?? '';
@@ -1745,7 +1748,7 @@ final class WalletService
                 status: $status,
                 amount: $amount,
                 currencySymbol: $currencySymbol,
-                adminNotes: $adminNotes,
+                playerMessage: $playerMessage,
                 movementId: $movementId,
             );
         } elseif ($movement->type === WalletMovement::TYPE_WITHDRAWAL) {
@@ -1754,7 +1757,7 @@ final class WalletService
                 status: $status,
                 amount: $amount,
                 currencySymbol: $currencySymbol,
-                adminNotes: $adminNotes,
+                playerMessage: $playerMessage,
                 movementId: $movementId,
             );
         } else {
@@ -1766,7 +1769,7 @@ final class WalletService
                 amount: $amount,
                 currencySymbol: $currencySymbol,
                 typeLabel: $type?->label ?? $movement->type,
-                adminNotes: $adminNotes,
+                playerMessage: $playerMessage,
                 movementId: $movementId,
             );
         }

@@ -32,11 +32,11 @@ export function useWalletMovementsBulk(onProcessed: () => void) {
       title: `¿Aprobar ${pending.length} movimiento(s)?`,
       html: buildBulkItemListHtml(itemNames(pending)) + nonPendingNotice(movements, pending),
       icon: 'warning',
-      confirmButtonText: 'Sí, aprobar',
+      confirmButtonText: 'Sí, aprobar'
     })
     if (!confirmed) return false
 
-    return send('/wallet-movements/bulk/approve', pending, null, 'aprobar', 'aprobados')
+    return send('/wallet-movements/bulk/approve', pending, null, null, 'aprobar', 'aprobados')
   }
 
   async function bulkReject(movements: Movement[]): Promise<boolean> {
@@ -61,11 +61,11 @@ export function useWalletMovementsBulk(onProcessed: () => void) {
       confirmButtonText: 'Sí, rechazar',
       cancelButtonText: 'Cancelar',
       confirmButtonColor: '#dc2626',
-      reverseButtons: true,
+      reverseButtons: true
     })
     if (!result.isConfirmed || !result.value) return false
 
-    return send('/wallet-movements/bulk/reject', pending, String(result.value).trim(), 'rechazar', 'rechazados')
+    return send('/wallet-movements/bulk/reject', pending, null, String(result.value).trim(), 'rechazar', 'rechazados')
   }
 
   function onlyPending(movements: Movement[]): Movement[] | null {
@@ -80,7 +80,7 @@ export function useWalletMovementsBulk(onProcessed: () => void) {
 
   /** buildBulkItemListHtml interpola sin escapar — se escapa aquí lo que viene del usuario. */
   function itemNames(movements: Movement[]): string[] {
-    const escape = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
+    const escape = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', [String.fromCharCode(34)]: '&quot;', [String.fromCharCode(39)]: '&#39;' }[c]!))
     return movements.map(m => escape(`${m.type} · ${m.user?.email ?? m.id}`))
   }
 
@@ -91,12 +91,13 @@ export function useWalletMovementsBulk(onProcessed: () => void) {
       : ''
   }
 
-  async function send(url: string, movements: Movement[], adminNotes: string | null, verb: string, successVerb: string): Promise<boolean> {
+  async function send(url: string, movements: Movement[], adminNotes: string | null, playerMessage: string | null, verb: string, successVerb: string): Promise<boolean> {
     bulkLoading.value = true
     try {
       const { data } = await backendClient.post<BulkResult>(url, {
         ids: movements.map(m => m.id),
         admin_notes: adminNotes,
+        player_message: playerMessage
       })
       await reportBulkResult(data, 'movimientos', successVerb)
       onProcessed()

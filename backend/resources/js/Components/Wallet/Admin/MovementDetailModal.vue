@@ -17,6 +17,7 @@ defineProps<{
   isReceiptImage: boolean
   receiptZoom: boolean
   adminNotes: string
+  playerMessage: string
   actionLoading: boolean
   actionError: string
   showRejectForm: boolean
@@ -41,6 +42,7 @@ defineEmits<{
   'update:modelValue': [value: boolean]
   'update:receiptZoom': [value: boolean]
   'update:adminNotes': [value: string]
+  'update:playerMessage': [value: string]
   'update:showRejectForm': [value: boolean]
   approve: []
   reject: []
@@ -61,7 +63,7 @@ defineEmits<{
   >
     <!-- Loading -->
     <div v-if="detailLoading" class="mv-modal-loading">
-      <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+      <div class="spinner-border spinner-border-sm text-primary me-2" />
       Cargando...
     </div>
 
@@ -110,12 +112,14 @@ defineEmits<{
         :can-submit-reject="canSubmitReject ?? true"
         :is-credit="!!isCreditByCode[detail.type]"
         :admin-notes="adminNotes"
+        :player-message="playerMessage"
         :action-loading="actionLoading"
         :action-error="actionError"
         :show-reject-form="showRejectForm"
         :current-user-id="currentUserId"
         :assign-loading="assignLoading"
         @update:admin-notes="$emit('update:adminNotes', $event)"
+        @update:player-message="$emit('update:playerMessage', $event)"
         @update:show-reject-form="$emit('update:showRejectForm', $event)"
         @approve="$emit('approve')"
         @reject="$emit('reject')"

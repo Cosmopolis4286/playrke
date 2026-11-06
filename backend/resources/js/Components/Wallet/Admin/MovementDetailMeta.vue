@@ -16,7 +16,7 @@ defineProps<{
       <p class="mv-detail__label">Directorio destino</p>
       <div class="mv-dir-info">
         <span class="mv-dir-info__type">
-          <i class="fas fa-wallet me-1"></i>
+          <i class="fas fa-wallet me-1" />
           {{ directoryTypeLabel[detail.metadata.directory_type ?? ''] ?? detail.metadata.directory_type }}
         </span>
         <span class="mv-dir-info__id mv-detail__value--mono">
@@ -48,8 +48,12 @@ defineProps<{
       </div>
     </div>
     <div v-if="detail.admin_notes" class="mv-detail__section mt-2">
-      <p class="mv-detail__label">Notas del administrador</p>
+      <p class="mv-detail__label">Notas internas (solo administración)</p>
       <p class="mv-detail__value mv-admin-notes">{{ detail.admin_notes }}</p>
+    </div>
+    <div v-if="detail.player_message" class="mv-detail__section mt-2">
+      <p class="mv-detail__label">Motivo comunicado al jugador</p>
+      <p class="mv-detail__value mv-admin-notes">{{ detail.player_message }}</p>
     </div>
     <div class="mv-detail__divider" />
   </template>
