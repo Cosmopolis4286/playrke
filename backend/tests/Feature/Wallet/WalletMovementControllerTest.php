@@ -52,9 +52,16 @@ class WalletMovementControllerTest extends TestCase
         $movement = $this->makePendingDeposit(50.0);
 
         $this->actingAs($this->admin)
-            ->postJson(route('wallet-movements.approve', $movement))
+            ->postJson(route('wallet-movements.approve', $movement), [
+                'admin_notes' => 'Revisión interna completada por tesorería',
+            ])
             ->assertOk()
-            ->assertJsonPath('data.status', WalletMovement::STATUS_COMPLETED);
+            ->assertJsonPath('data.status', WalletMovement::STATUS_COMPLETED)
+            ->assertJsonPath('data.admin_notes', 'Revisión interna completada por tesorería');
+
+        $notification = Notification::where('user_id', $this->player->id)->latest()->firstOrFail();
+        $this->assertStringNotContainsString('Revisión interna completada por tesorería', $notification->message);
+        $this->assertArrayNotHasKey('admin_notes', $notification->data ?? []);
 
         $this->assertSame(150.0, (float) $this->wallet->fresh()->balance);
     }
