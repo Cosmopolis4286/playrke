@@ -72,6 +72,12 @@ class WalletMovementControllerTest extends TestCase
             ->assertJsonPath('data.admin_notes', 'Verificar comprobante en el extracto interno')
             ->assertJsonPath('data.player_message', 'Pago no recibido');
 
+        $notification = Notification::where('user_id', $this->player->id)->latest()->firstOrFail();
+        $this->assertStringContainsString('Pago no recibido', $notification->message);
+        $this->assertStringNotContainsString('Verificar comprobante en el extracto interno', $notification->message);
+        $this->assertSame('Pago no recibido', $notification->data['player_message'] ?? null);
+        $this->assertArrayNotHasKey('admin_notes', $notification->data ?? []);
+
         // Un depósito rechazado nunca tocó el balance al crearse, y
         // rechazarlo tampoco debe moverlo.
         $this->assertSame(100.0, (float) $this->wallet->fresh()->balance);
