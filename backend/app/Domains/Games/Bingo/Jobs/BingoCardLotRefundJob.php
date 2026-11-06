@@ -140,8 +140,8 @@ final class BingoCardLotRefundJob implements ShouldQueue
                 );
 
                 if (! $wallet) {
-                    $this->recordFailure($lot, $room, $amount, 'Wallet no encontrada o inactiva');
-
+                    // El catch exterior registra el fallo y aumenta attempts una
+                    // sola vez. No duplicar el registro antes de propagar la excepción.
                     throw WalletUnavailableException::notFound((string) $lot->user_id, (string) $lot->currency_id);
                 }
 
