@@ -155,7 +155,6 @@ final class BingoCardGenerationService
             // Verificar cupo antes de registrar nuevo jugador (dentro de la transacción con lock).
             if ($isNewRoomUser) {
                 BingoRoomCapacityGuard::assertHasCapacity($room);
-                $this->roomMetrics->updatePlayerCount($room);
             }
 
             // Validar que el usuario autenticado exista en la tabla users
@@ -232,6 +231,11 @@ final class BingoCardGenerationService
                     );
                 }
             }
+
+            // Los contadores de participantes/cartones se reconstruyen desde los lotes
+            // y participaciones ya persistidos. Nunca se incrementan por deltas.
+            app(\\App\\Domains\\Games\\Bingo\\Services\\Room\\Metrics\\BingoRoomStateCoordinator::class)
+                ->synchronizeCounters((string) $room->id);
 
             // El descuento de billetera para jugadores internos NO ocurre aquí: el único
             // caller que usa creator.type='player' (BingoCardGenerateService::playerBuyFromGameRooms)

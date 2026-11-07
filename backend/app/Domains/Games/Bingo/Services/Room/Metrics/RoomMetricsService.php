@@ -113,7 +113,9 @@ class RoomMetricsService implements RoomMetricsInterface
     public function updatePlayerCount(BingoRoom $room) : bool
     {
         try {
-            return $room->increment('total_players') > 0;
+            app(BingoRoomStateCoordinator::class)->synchronizeCounters((string) $room->id);
+
+            return true;
         } catch (Throwable $e) {
             Log::error('Error al actualizar contador de jugadores: ' . $e->getMessage(), [
                 'roomId' => $room->id,
@@ -183,9 +185,7 @@ class RoomMetricsService implements RoomMetricsInterface
             if (($saleData['saleChannel'] ?? null) === 'demo') {
                 $breakdown = ['version' => 1, 'channel' => 'demo'];
 
-                return $room->update([
-                    'total_cards' => ($room->total_cards ?? 0) + $saleData['cardCount'],
-                ]);
+                return true;
             }
 
             // Persistir métricas monetarias de bingo_rooms en USD.
@@ -363,7 +363,6 @@ class RoomMetricsService implements RoomMetricsInterface
             // Actualizar métricas generales
             $updateData = array_merge($updateData, [
                 'total_sales' => ($room->total_sales ?? 0) + $saleAmount,
-                'total_cards' => ($room->total_cards ?? 0) + $saleData['cardCount'],
             ]);
 
             if (isset($saleData['seller'])) {
@@ -587,7 +586,9 @@ class RoomMetricsService implements RoomMetricsInterface
                 return false;
             }
 
-            return $room->increment('total_cards', $additionalCards) > 0;
+            app(BingoRoomStateCoordinator::class)->synchronizeCounters((string) $room->id);
+
+            return true;
         } catch (Throwable $e) {
             Log::error('Error al actualizar total de cartones: ' . $e->getMessage(), [
                 'roomId' => $room->id,
