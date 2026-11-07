@@ -58,16 +58,22 @@ final class BingoCardGenerationService
      */
     public function generateCards(array $cardOrder) : array
     {
-        // Todas las compras serializan por sala. Evita crear dos room_user
-        // para el mismo jugador y perder/duplicar el contador bajo concurrencia.
-        if (DB::transactionLevel() === 0) {
-            return $this->generateInTransaction($cardOrder);
-        }
+        // El lockForUpdate solo protege si existe una transacción activa.
+        // Encerrar el flujo completo evita ventas/contadores parciales concurrentes.
+        return DB::transaction(function () use ($cardOrder) : array {
+            return $this->generateCardsWithinTransaction($cardOrder);
+        }, 3);
+    }
 
+    private function generateCardsWithinTransaction(array $cardOrder) : array
+    {
         $roomId = $cardOrder['roomId'];
 
         // Cargamos la sala con su estado directamente
         try {
+            // Bloquear la sala desde el inicio: registro del participante,
+            // guardas de capacidad, venta y sincronización deben serializarse
+            // bajo la misma fila para evitar duplicados/overbooking concurrente.
             $room = BingoRoom::with(['status', 'config'])
                 ->where('id', $roomId)
                 ->lockForUpdate()
@@ -123,7 +129,7 @@ final class BingoCardGenerationService
             }
 
             $roomUserId = $roomUserResult['id'];
-            $isNewPlayer = (bool) ($roomUserResult['isNewPlayer'] ?? $roomUserResult['isNew']);
+            $isNewRoomUser = $roomUserResult['isNew'];
 
             // Anexar atributo al array
             $cardOrder['roomUser'] = $roomUserId;
@@ -144,10 +150,8 @@ final class BingoCardGenerationService
                 'commerce' => (float) ($networkSplit['commerce_amount'] ?? 0),
             ];
 
-            // Verificar tope de cartones ANTES de tocar total_cards — debe ir
-            // antes de updateRoomMetricsWithCommissions() (que ya incrementa
-            // total_cards) o el guard llegaría tarde: la venta ya habría
-            // quedado contabilizada aunque excediera el tope configurado.
+            // Verificar el tope antes de registrar métricas financieras o crear
+            // el lote. El guard usa los lotes ACTIVE bajo el lock de la sala.
             BingoRoomCardCapacityGuard::assertHasCapacityFor($room, $cardCount);
 
             // Actualizar acumulado y comisiones de la sala
@@ -160,10 +164,13 @@ final class BingoCardGenerationService
                 throw new DomainException('Error al actualizar los valores de la sala');
             }
 
-            // Verificar cupo antes de registrar nuevo jugador (dentro de la transacción con lock).
-            if ($isNewPlayer || ! empty($cardOrder['externalPlayerId'])) {
-                BingoRoomCapacityGuard::assertHasCapacity($room, ! empty($cardOrder['externalPlayerId']) ? (string) $cardOrder['externalPlayerId'] : null, (string) ($cardOrder['creator']['id'] ?? ''));
-            }
+            // Validar el cupo para cada compra: el coordinador deduplica a
+            // jugadores existentes y distingue compradores POS del vendedor.
+            BingoRoomCapacityGuard::assertHasCapacity(
+                $room,
+                empty($cardOrder['externalPlayerId']) ? (string) $creator['id'] : null,
+                ! empty($cardOrder['externalPlayerId']) ? (string) $cardOrder['externalPlayerId'] : null,
+            );
 
             // Validar que el usuario autenticado exista en la tabla users
             $authenticatedUserId = auth()->id();
@@ -240,6 +247,12 @@ final class BingoCardGenerationService
                 }
             }
 
+            // Los contadores de participantes/cartones se reconstruyen desde los lotes
+            // y participaciones ya persistidos. Nunca se incrementan por deltas.
+            // Reconstruir contadores y métricas financieras desde los lotes
+            // ACTIVE, sin perder el historial financiero ya registrado.
+            app(BingoRoomMetricsSynchronizer::class)->synchronize((string) $room->id);
+
             // El descuento de billetera para jugadores internos NO ocurre aquí: el único
             // caller que usa creator.type='player' (BingoCardGenerateService::playerBuyFromGameRooms)
             // siempre marca playerLink=true y descuenta vía WalletService::recordCardPurchase()
@@ -256,11 +269,6 @@ final class BingoCardGenerationService
                     $currency,
                 );
             }
-
-            // Recalcular desde lotes/participaciones ya persistidos: evita que
-            // los deltas de ventas, DEMO y compras externas dejen contadores
-            // distintos a su fuente de verdad.
-            app(BingoRoomMetricsSynchronizer::class)->synchronize($room);
 
             return ['room_user_id' => $roomUserId];
         } catch (\App\Exceptions\Domain\DomainException $e) {
@@ -284,7 +292,7 @@ final class BingoCardGenerationService
      */
     public function generateInTransaction(array $cardOrder) : array
     {
-        return DB::transaction(fn () => $this->generateCards($cardOrder));
+        return $this->generateCards($cardOrder);
     }
 
     /**

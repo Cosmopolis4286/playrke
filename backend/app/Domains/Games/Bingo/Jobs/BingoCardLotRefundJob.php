@@ -263,6 +263,9 @@ final class BingoCardLotRefundJob implements ShouldQueue
     {
         $lot->update(['status' => 'REFUNDED']);
 
+        // El evento updated de BingoCardLot sincroniza contadores y finanzas
+        // dentro de esta misma transacción al cambiar ACTIVE -> REFUNDED.
+
         BingoLotRefundFailure::where('lot_id', $lot->id)
             ->where('room_id', $room->id)
             ->whereNull('resolved_at')

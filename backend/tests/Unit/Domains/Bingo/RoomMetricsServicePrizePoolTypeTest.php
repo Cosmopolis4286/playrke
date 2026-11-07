@@ -7,6 +7,7 @@ use App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\Metrics\BingoLotSaleReversalService;
 use App\Domains\Games\Bingo\Services\Room\Metrics\RoomMetricsService;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
@@ -119,14 +120,39 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
         $room = $this->makeRoom('ACCUMULATIVE', jackpotPct: 5);
         $jackpotTypeId = '930000000000000999';
 
-        // Los lotes son la fuente de verdad que BingoRoomMetricsSynchronizer
-        // recalcula tras la reversa: cada venta queda persistida con su desglose.
-        $this->persistLot($room, '930000000000000776', 40.0, $this->sell($room->fresh(), 40.0));          // venta que se queda
-        $breakdown = $this->sell($room->fresh(), 100.0);                                                    // venta que se reembolsa
-        $lot = $this->persistLot($room, '930000000000000777', 100.0, $breakdown);
+        $keptBreakdown = $this->sell($room->fresh(), 40.0);
+        $refundBreakdown = $this->sell($room->fresh(), 100.0);
+
+        $keptLot = BingoCardLot::create([
+            'room_id' => $room->id,
+            'user_id' => '1',
+            'room_user_id' => '930000000000000701',
+            'currency_id' => $this->currencyId,
+            'card_count' => 1,
+            'card_price' => 40,
+            'exchange_rate' => 1,
+            'sale_amount' => 40,
+            'status' => 'ACTIVE',
+            'financial_breakdown' => $keptBreakdown,
+        ]);
+        $lot = BingoCardLot::create([
+            'room_id' => $room->id,
+            'user_id' => '1',
+            'room_user_id' => '930000000000000702',
+            'currency_id' => $this->currencyId,
+            'card_count' => 1,
+            'card_price' => 100,
+            'exchange_rate' => 1,
+            'sale_amount' => 100,
+            'status' => 'ACTIVE',
+            'financial_breakdown' => $refundBreakdown,
+        ]);
+        app(BingoRoomStateCoordinator::class)->synchronizeCounters((string) $room->id);
 
         $jackpotBefore = (float) DB::table('jackpots')->where('jackpot_type_id', $jackpotTypeId)->value('amount');
         $this->assertTrue(app(BingoLotSaleReversalService::class)->reverse($lot, $room->fresh())['reversed']);
+        $lot->update(['status' => 'REFUNDED']);
+        app(BingoRoomStateCoordinator::class)->synchronizeCounters((string) $room->id);
 
         // La sala queda como si solo existiera la venta de 40.
         $fresh = $room->fresh();
@@ -180,18 +206,6 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
         }
 
         return BingoRoom::find($roomId);
-    }
-
-    private function persistLot(BingoRoom $room, string $lotId, float $amount, ?array $breakdown) : BingoCardLot
-    {
-        DB::table('bingo_card_lots')->insert([
-            'id' => $lotId, 'room_id' => $room->id, 'user_id' => '1', 'room_user_id' => (string) ((int) $lotId + 1000),
-            'currency_id' => $this->currencyId, 'card_count' => 1, 'card_price' => $amount, 'exchange_rate' => 1,
-            'sale_amount' => $amount, 'status' => 'ACTIVE', 'financial_breakdown' => json_encode($breakdown),
-            'created_at' => now(), 'updated_at' => now(),
-        ]);
-
-        return BingoCardLot::findOrFail($lotId);
     }
 
     private function sell(BingoRoom $room, float $amount) : ?array

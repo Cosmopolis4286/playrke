@@ -6,8 +6,9 @@ use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
-use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomMetricsSynchronizer;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator;
 use App\Domains\Games\Bingo\Services\Room\Metrics\RoomMetricsService;
+use App\Domains\Games\Bingo\Services\Room\User\RoomUserRegistrationService;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Games\Common\ConnectionType\ConnectionType;
@@ -44,8 +45,6 @@ class RoomMetricsServiceConcurrencyTest extends TestCase
 
     private int|string $currencyId;
 
-    private int|string $userId;
-
     /** @test */
     public function two_concurrent_purchases_do_not_lose_either_increment()
     {
@@ -71,88 +70,43 @@ class RoomMetricsServiceConcurrencyTest extends TestCase
         $resultB = $service->updateRoomMetricsWithCommissions($roomSnapshotB, $saleDataB, 30.0);
         $this->assertTrue($resultB);
 
+        // La venta financiera acumula correctamente, pero total_cards no se
+        // modifica por delta: solo se reconstruye después de persistir el lote.
+        $roomUser = BingoRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $room->creator_user_id,
+            'role' => BingoRoomUser::ROLE_PLAYER,
+            'cards_purchased' => 5,
+            'automarker' => 1,
+        ]);
+        BingoCardLot::create([
+            'room_id' => $room->id,
+            'user_id' => $room->creator_user_id,
+            'room_user_id' => $roomUser->id,
+            'currency_id' => $this->currencyId,
+            'card_count' => 5,
+            'card_price' => 10,
+            'exchange_rate' => 1,
+            'sale_amount' => 50,
+            'status' => 'ACTIVE',
+        ]);
+
+        $coordinator = app(BingoRoomStateCoordinator::class);
+        $counts = $coordinator->synchronizeCounters((string) $room->id);
+        $again = $coordinator->synchronizeCounters((string) $room->id);
         $fresh = $room->fresh();
 
-        // Sin el fix: total_cards/total_sales de B pisarían a los de A (quedarían
-        // en 3/30 en vez de 2+3=5 / 20+30=50). Con el fix (relectura con
-        // lockForUpdate() dentro del método), ambos incrementos se acumulan.
-        $this->assertEquals(5, $fresh->total_cards, 'total_cards debe acumular ambas compras, no perder la primera.');
-        $this->assertEquals(50.0, (float) $fresh->total_sales, 'total_sales debe acumular ambas compras, no perder la primera.');
+        $this->assertSame(5, $counts['total_cards']);
+        $this->assertSame(1, $counts['total_players']);
+        $this->assertSame($counts, $again, 'La sincronización debe ser idempotente.');
+        $this->assertSame(5, (int) $fresh->total_cards);
+        $this->assertSame(1, (int) $fresh->total_players);
+        $this->assertEquals(50.0, (float) $fresh->total_sales, 'total_sales debe acumular ambas ventas.');
 
         // rke_commission (5%) y room_commission (10%) también deben acumularse
         // sobre el total real ($50), no solo sobre la última venta procesada ($30).
         $this->assertEqualsWithDelta(2.5, (float) $fresh->rke_commission, 0.01, 'rke_commission debe acumular ambas ventas.');
         $this->assertEqualsWithDelta(5.0, (float) $fresh->room_commission, 0.01, 'room_commission debe acumular ambas ventas.');
-    }
-
-
-    /** @test */
-    public function synchronizer_repairs_room_counters_and_financial_totals_from_active_lots()
-    {
-        $room = $this->makeRoom();
-        $room->update([
-            'total_players' => 77,
-            'total_cards' => 99,
-            'total_sales' => 999,
-            'rke_commission' => 99,
-            'room_commission' => 99,
-            'prize_pool' => 999,
-        ]);
-
-        $roomUser = BingoRoomUser::create([
-            'room_id' => $room->id,
-            'user_id' => $this->userId,
-            'role' => BingoRoomUser::ROLE_PLAYER,
-            'cards_purchased' => 2,
-        ]);
-
-        BingoCardLot::create([
-            'room_id' => $room->id,
-            'user_id' => $this->userId,
-            'room_user_id' => $roomUser->id,
-            'currency_id' => $this->currencyId,
-            'card_count' => 2,
-            'card_price' => 5,
-            'exchange_rate' => 1,
-            'sale_amount' => 10,
-            'status' => 'ACTIVE',
-            'financial_breakdown' => [
-                'version' => 1,
-                'channel' => 'wallet',
-                'currency_id' => (string) $this->currencyId,
-                'room_usd' => [
-                    'total_sales' => 10,
-                    'total_cards' => 2,
-                    'rke_commission' => 0.5,
-                    'room_commission' => 1,
-                    'seller_commission' => 0,
-                    'subsidiary_commission' => 0,
-                    'commerce_commission' => 0,
-                    'prize_pool' => 8.5,
-                ],
-                'room_local' => [
-                    'total_sales' => 10,
-                    'total_cards' => 2,
-                    'prize_pool' => 8.5,
-                    'full_house_prize' => 8.5,
-                    'rke_commission' => 0.5,
-                    'room_commission' => 1,
-                    'seller_commission' => 0,
-                    'jackpot_contribution' => 0,
-                ],
-            ],
-        ]);
-
-        $result = app(BingoRoomMetricsSynchronizer::class)->synchronize($room);
-        $fresh = $room->fresh();
-
-        $this->assertSame(1, $fresh->total_players);
-        $this->assertSame(2, $fresh->total_cards);
-        $this->assertEquals(10.0, (float) $fresh->total_sales);
-        $this->assertEquals(0.5, (float) $fresh->rke_commission);
-        $this->assertEquals(1.0, (float) $fresh->room_commission);
-        $this->assertEquals(8.5, (float) $fresh->prize_pool);
-        $this->assertTrue($result['financials_reconciled']);
     }
 
     /** @test */
@@ -176,6 +130,30 @@ class RoomMetricsServiceConcurrencyTest extends TestCase
         $this->assertSame(0.0, (float) $room->fresh()->total_sales);
     }
 
+    /** @test */
+    public function pos_seller_role_is_not_counted_as_player_and_promotes_when_the_seller_plays()
+    {
+        $room = $this->makeRoom();
+        $service = app(RoomUserRegistrationService::class);
+        $userData = [
+            'roomId' => (string) $room->id,
+            'creator' => ['id' => (string) $room->creator_user_id],
+            'cardCount' => 1,
+            'externalPlayerId' => 'external-buyer-1',
+        ];
+
+        $result = $service->registerOrUpdateRoomUser($userData);
+        $this->assertNotNull($result);
+        $roomUser = BingoRoomUser::findOrFail($result['id']);
+        $this->assertSame(BingoRoomUser::ROLE_SELLER, $roomUser->role);
+
+        unset($userData['externalPlayerId']);
+        $userData['roomUser'] = (string) $roomUser->id;
+        $service->registerOrUpdateRoomUser($userData);
+
+        $this->assertSame(BingoRoomUser::ROLE_PLAYER_SELLER, $roomUser->fresh()->role);
+    }
+
     private function makeRoom() : BingoRoom
     {
         $country = Country::firstOrCreate(
@@ -184,7 +162,6 @@ class RoomMetricsServiceConcurrencyTest extends TestCase
         );
 
         $user = User::factory()->create(['country_id' => $country->id]);
-        $this->userId = $user->id;
 
         $status = GameStatus::firstOrCreate(['code' => 'ACTIVE'], ['label' => 'Activa']);
         $roomType = RoomType::firstOrCreate(['code' => 'PUBLIC'], ['label' => 'Pública']);
