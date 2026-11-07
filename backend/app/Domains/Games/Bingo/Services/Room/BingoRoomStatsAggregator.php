@@ -25,7 +25,7 @@ final class BingoRoomStatsAggregator
     {
         $roomId = (string) $room->id;
 
-        $counts = app(\\App\\Domains\\Games\\Bingo\\Services\\Room\\Metrics\\BingoRoomStateCoordinator::class)
+        $counts = app(\App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator::class)
             ->synchronizeCounters($roomId);
         $room->refresh();
 

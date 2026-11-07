@@ -234,7 +234,7 @@ final class BingoCardGenerationService
 
             // Los contadores de participantes/cartones se reconstruyen desde los lotes
             // y participaciones ya persistidos. Nunca se incrementan por deltas.
-            app(\\App\\Domains\\Games\\Bingo\\Services\\Room\\Metrics\\BingoRoomStateCoordinator::class)
+            app(\App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator::class)
                 ->synchronizeCounters((string) $room->id);
 
             // El descuento de billetera para jugadores internos NO ocurre aquí: el único

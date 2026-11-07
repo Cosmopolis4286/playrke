@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\\Domains\\Games\\Bingo\\Services\\Room\\Metrics;
+namespace App\Domains\Games\Bingo\Services\Room\Metrics;
 
-use App\\Domains\\Games\\Bingo\\Models\\Card\\BingoCard;
-use App\\Domains\\Games\\Bingo\\Models\\Card\\BingoCardLot;
-use App\\Domains\\Games\\Bingo\\Models\\Room\\BingoRoom;
-use App\\Domains\\Games\\Bingo\\Models\\Room\\User\\BingoRoomUser;
-use App\\Models\\Roles\\Player\\External\\ExternalPlayer;
-use Illuminate\\Support\\Facades\\DB;
+use App\Domains\Games\Bingo\Models\Card\BingoCard;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
+use App\Models\Roles\Player\External\ExternalPlayer;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Punto de entrada único para reconstruir los contadores denormalizados de una sala.
