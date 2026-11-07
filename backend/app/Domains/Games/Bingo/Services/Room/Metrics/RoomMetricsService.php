@@ -68,29 +68,30 @@ class RoomMetricsService implements RoomMetricsInterface
     public function updateAllMetrics(BingoRoom $room, array $saleData) : bool
     {
         try {
-            $success = true;
+            DB::transaction(function() use ($room, $saleData) : void {
+                // Las métricas representan una única venta: no dejar incrementos
+                // parciales si falla cualquiera de sus escrituras.
+                if (isset($saleData['cardCount']) && $saleData['cardCount'] > 0
+                    && ! $this->updateTotalCards($room, (int) $saleData['cardCount'])) {
+                    throw new \\RuntimeException('No se pudo actualizar el total de cartones.');
+                }
 
-            // Actualizar total de cartones
-            if (isset($saleData['cardCount']) && $saleData['cardCount'] > 0) {
-                $success = $this->updateTotalCards($room, $saleData['cardCount']) && $success;
-            }
+                if (isset($saleData['saleAmount']) && $saleData['saleAmount'] > 0
+                    && ! $this->updateTotalSales($room, (float) $saleData['saleAmount'])) {
+                    throw new \\RuntimeException('No se pudo actualizar el total de ventas.');
+                }
 
-            // Actualizar total de ventas
-            if (isset($saleData['saleAmount']) && $saleData['saleAmount'] > 0) {
-                $success = $this->updateTotalSales($room, $saleData['saleAmount']) && $success;
-            }
+                if (isset($saleData['prizePoolAmount']) && $saleData['prizePoolAmount'] > 0
+                    && ! $this->updatePrizePool($room, (float) $saleData['prizePoolAmount'])) {
+                    throw new \\RuntimeException('No se pudo actualizar el pozo de premios.');
+                }
 
-            // Actualizar pozo de premios
-            if (isset($saleData['prizePoolAmount']) && $saleData['prizePoolAmount'] > 0) {
-                $success = $this->updatePrizePool($room, $saleData['prizePoolAmount']) && $success;
-            }
+                if (! empty($saleData['isNewUser']) && ! $this->updatePlayerCount($room)) {
+                    throw new \\RuntimeException('No se pudo actualizar el contador de jugadores.');
+                }
+            });
 
-            // Actualizar contador de jugadores (solo para nuevos usuarios)
-            if (isset($saleData['isNewUser']) && $saleData['isNewUser']) {
-                $success = $this->updatePlayerCount($room) && $success;
-            }
-
-            return $success;
+            return true;
         } catch (Throwable $e) {
             Log::error('Error al actualizar todas las métricas: ' . $e->getMessage(), [
                 'roomId' => $room->id,
