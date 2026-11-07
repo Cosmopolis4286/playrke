@@ -8,6 +8,7 @@ use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Services\Game\BingoRoomHealthCheckService;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Mockery;
 use Tests\TestCase;
@@ -49,6 +50,17 @@ class BingoRoomHealthCheckServiceTest extends TestCase
         $this->assertStringContainsString('tiene 1', $errors[0]);
         $this->assertStringContainsString('tiene 1', $errors[1]);
     }
+
+        $coordinator = Mockery::mock(BingoRoomStateCoordinator::class);
+        $coordinator->shouldReceive('synchronizeCounters')
+            ->once()
+            ->with('health-check-room')
+            ->andReturn(['total_players' => $actualPlayers, 'total_cards' => $actualCards]);
+        $coordinator->shouldReceive('countEligibleCardsForDraw')
+            ->once()
+            ->with('health-check-room')
+            ->andReturn($actualCards);
+        $this->app->instance(BingoRoomStateCoordinator::class, $coordinator);
 
     private function makeRoom(
         int $denormalizedPlayers,

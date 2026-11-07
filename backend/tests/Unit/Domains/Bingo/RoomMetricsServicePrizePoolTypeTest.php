@@ -7,6 +7,7 @@ use App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\Metrics\BingoLotSaleReversalService;
 use App\Domains\Games\Bingo\Services\Room\Metrics\RoomMetricsService;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
@@ -119,14 +120,37 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
         $room = $this->makeRoom('ACCUMULATIVE', jackpotPct: 5);
         $jackpotTypeId = '930000000000000999';
 
-        $this->sell($room->fresh(), 40.0);          // venta que se queda
-        $breakdown = $this->sell($room->fresh(), 100.0); // venta que se reembolsa
+        $keptBreakdown = $this->sell($room->fresh(), 40.0);
+        $refundBreakdown = $this->sell($room->fresh(), 100.0);
 
-        $lot = new BingoCardLot(['financial_breakdown' => $breakdown]);
-        $lot->id = '930000000000000777';
+        $keptLot = BingoCardLot::create([
+            'room_id' => $room->id,
+            'user_id' => '1',
+            'currency_id' => $this->currencyId,
+            'card_count' => 1,
+            'card_price' => 40,
+            'exchange_rate' => 1,
+            'sale_amount' => 40,
+            'status' => 'ACTIVE',
+            'financial_breakdown' => $keptBreakdown,
+        ]);
+        $lot = BingoCardLot::create([
+            'room_id' => $room->id,
+            'user_id' => '1',
+            'currency_id' => $this->currencyId,
+            'card_count' => 1,
+            'card_price' => 100,
+            'exchange_rate' => 1,
+            'sale_amount' => 100,
+            'status' => 'ACTIVE',
+            'financial_breakdown' => $refundBreakdown,
+        ]);
+        app(BingoRoomStateCoordinator::class)->synchronizeCounters((string) $room->id);
 
         $jackpotBefore = (float) DB::table('jackpots')->where('jackpot_type_id', $jackpotTypeId)->value('amount');
         $this->assertTrue(app(BingoLotSaleReversalService::class)->reverse($lot, $room->fresh())['reversed']);
+        $lot->update(['status' => 'REFUNDED']);
+        app(BingoRoomStateCoordinator::class)->synchronizeCounters((string) $room->id);
 
         // La sala queda como si solo existiera la venta de 40.
         $fresh = $room->fresh();
