@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Games\Trivia\Room;
 
 use App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface;
 use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
+use App\Domains\Games\Trivia\Exceptions\Room\TriviaRoomException;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Games\Trivia\Services\TriviaRoomRefundService;
 use App\Http\Controllers\Controller;
@@ -69,6 +70,7 @@ final class TriviaRoomAdminController extends Controller
         // dejar pasar la respuesta 403 real de Laravel.
         $room = TriviaRoom::findOrFail($id);
         $this->authorize('delete', $room);
+        $this->ensureNotPlaying($room);
 
         try {
             $refunded = $this->refundService->refundConfirmedParticipants(
@@ -116,7 +118,7 @@ final class TriviaRoomAdminController extends Controller
     }
 
     /**
-     * Forzar cierre de sala (para salas playing o waiting).
+     * Forzar cierre de sala (solo salas que no están en juego — ver ensureNotPlaying()).
      *
      * Reembolsa el entry fee de cada participante confirmado antes de
      * cerrar — ver docblock de destroy() para el porqué.
@@ -127,6 +129,7 @@ final class TriviaRoomAdminController extends Controller
         // no sea absorbido por el catch(\Exception) genérico de abajo.
         $room = TriviaRoom::findOrFail($id);
         $this->authorize('forceClose', $room);
+        $this->ensureNotPlaying($room);
 
         try {
             $refunded = $this->refundService->refundConfirmedParticipants(
@@ -271,7 +274,7 @@ final class TriviaRoomAdminController extends Controller
             'prize_payouts' => 'nullable|array',
             'prize_payouts.*.rank' => 'required_with:prize_payouts|integer|min:1',
             'prize_payouts.*.percent' => 'required_with:prize_payouts|numeric|min:0|max:1',
-            'scheduled_at' => 'nullable|date',
+            'scheduled_at' => 'required|date',
             'settings' => 'nullable|array',
         ]);
 
@@ -454,6 +457,26 @@ final class TriviaRoomAdminController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * Bloquea cerrar/eliminar una sala con partida en curso (409).
+     *
+     * closeRoom() solo cambia el estado de la sala: la partida seguiría
+     * corriendo (jobs de preguntas, puntajes y distribución de premios al
+     * final) mientras las entradas ya se reembolsaron — los jugadores
+     * cobrarían reembolso Y premio. Para v1 se opta por impedirlo en vez de
+     * cancelar la partida: GameEngineService::cancelGame() depende del estado
+     * en Redis (si no existe, retorna sin marcar la partida en BD) y no
+     * detiene los jobs ya encolados, así que no garantiza un corte limpio.
+     * Lanzado FUERA del try para que el handler global responda 409 con el
+     * mensaje traducido en vez de que el catch genérico lo absorba.
+     */
+    private function ensureNotPlaying(TriviaRoom $room) : void
+    {
+        if ($room->status === 'playing') {
+            throw TriviaRoomException::cannotCloseWhilePlaying();
+        }
     }
 
     /**

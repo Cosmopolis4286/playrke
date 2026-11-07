@@ -20,6 +20,17 @@ use App\Exceptions\Domain\DomainException;
 final class TriviaRoomException extends DomainException
 {
     /**
+     * Un admin intentó cerrar/eliminar una sala con una partida en curso.
+     * Cerrar solo cambia el estado de la sala y reembolsa entradas, pero NO
+     * detiene la partida (preguntas, puntajes y distribución de premios
+     * seguirían corriendo) — se bloquea hasta que la partida termine.
+     */
+    public static function cannotCloseWhilePlaying() : self
+    {
+        return new self('TRIVIA_ROOM_CANNOT_CLOSE_WHILE_PLAYING', 409);
+    }
+
+    /**
      * Saldo insuficiente en la wallet elegida para cubrir la tarifa de
      * entrada de la sala.
      */

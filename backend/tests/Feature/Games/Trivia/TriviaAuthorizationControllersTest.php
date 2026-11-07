@@ -214,8 +214,9 @@ class TriviaAuthorizationControllersTest extends TestCase
     public function superadmin_can_force_close_a_trivia_room() : void
     {
         $superadmin = $this->makeUserWithRole('superadmin');
+        // Sala en 'waiting': una sala 'playing' ya no se puede cerrar (409,
+        // ver TriviaRoomAdminGuardsTest) — aquí solo se verifica autorización.
         $room = $this->makeRoom();
-        $room->update(['status' => 'playing']);
 
         $response = $this->actingAs($superadmin)
             ->post("/trivia-rooms/{$room->id}/force-close");

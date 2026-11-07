@@ -175,4 +175,7 @@ return [
 
     // Wallet (generic, App\Domains\Wallet\Exceptions)
     'WALLET_UNAVAILABLE' => 'We could not reach the wallet right now. Please try again later.',
+
+    // Trivia (rooms)
+    'TRIVIA_ROOM_CANNOT_CLOSE_WHILE_PLAYING' => 'A trivia room cannot be closed or deleted while a game is in progress. Wait for the game to finish.',
 ];

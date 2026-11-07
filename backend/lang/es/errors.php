@@ -175,4 +175,7 @@ return [
 
     // Wallet (genérico, App\Domains\Wallet\Exceptions)
     'WALLET_UNAVAILABLE' => 'No se pudo acceder a la billetera en este momento. Intenta más tarde.',
+
+    // Trivia (salas)
+    'TRIVIA_ROOM_CANNOT_CLOSE_WHILE_PLAYING' => 'No se puede cerrar ni eliminar una sala de trivia con una partida en curso. Espera a que la partida termine.',
 ];

@@ -133,8 +133,9 @@ const formatTime = (timestamp: number | null) => {
           >
             Editar
           </Link>
+          <!-- Oculto en 'playing': cerrar no detiene la partida en curso (el backend responde 409) -->
           <button
-            v-if="room.status !== 'closed'"
+            v-if="room.status !== 'closed' && room.status !== 'playing'"
             @click="confirmClose"
             class="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700"
           >

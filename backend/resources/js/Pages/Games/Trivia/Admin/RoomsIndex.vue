@@ -31,6 +31,10 @@ const toggle = id => {
 }
 const selectedRooms = computed(() => props.rooms.data.filter(r => selected.value.has(r.id)))
 const selCount = computed(() => selected.value.size)
+// Salas en juego no se pueden cerrar (el backend responde 409): cerrar no
+// detiene la partida en curso, solo reembolsaría entradas.
+const isClosable = r => r.status !== 'closed' && r.status !== 'playing'
+const closableSelected = computed(() => selectedRooms.value.filter(isClosable))
 
 // ── Búsqueda ──────────────────────────────────────────────────────────────────
 const doSearch = debounce(() => {
@@ -43,7 +47,7 @@ const setStatus = s => { status.value = s; doSearch() }
 const goShow = () => selCount.value === 1 && router.get(getRoute('roomsShow', { id: selectedRooms.value[0].id }))
 const goEdit = () => selCount.value === 1 && selectedRooms.value[0].status === 'waiting' && router.get(getRoute('roomsEdit', { id: selectedRooms.value[0].id }))
 const doClose = async () => {
-  const closable = selectedRooms.value.filter(r => r.status !== 'closed')
+  const closable = closableSelected.value
   if (!closable.length) return
 
   const confirmed = await showToastConfirmAction({
@@ -186,9 +190,9 @@ const scheduledLabel = r => {
               class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 transition-all">
               Editar
             </button>
-            <button @click="doClose"
+            <button v-if="closableSelected.length" @click="doClose"
               class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-700 text-white transition-all">
-              Cerrar{{ selCount > 1 ? ` (${selCount})` : '' }}
+              Cerrar{{ closableSelected.length > 1 ? ` (${closableSelected.length})` : '' }}
             </button>
             <button @click="selected = new Set()" class="text-xs ri-text-faint hover:opacity-70 ml-1">✕</button>
           </div>
@@ -348,7 +352,7 @@ const scheduledLabel = r => {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                       </svg>
                     </Link>
-                    <button v-if="room.status !== 'closed'" @click="() => { selected = new Set([room.id]); doClose() }"
+                    <button v-if="isClosable(room)" @click="() => { selected = new Set([room.id]); doClose() }"
                       class="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                       title="Cerrar">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
