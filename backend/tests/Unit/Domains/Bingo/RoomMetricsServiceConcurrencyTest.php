@@ -4,6 +4,9 @@ namespace Tests\Unit\Domains\Bingo;
 
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
+use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator;
 use App\Domains\Games\Bingo\Services\Room\Metrics\RoomMetricsService;
 use App\Models\Country;
 use App\Models\Currency;
