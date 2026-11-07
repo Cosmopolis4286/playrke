@@ -299,16 +299,5 @@ final class BingoCardLotRefundJob implements ShouldQueue
      */
     private function resolveExternalBuyer(BingoCardLot $lot) : ?ExternalPlayer
     {
-        $firstCardId = BingoCard::where('card_lot_id', $lot->id)->value('id');
-        if (! $firstCardId) {
-            return null;
-        }
-
-        $externalPlayerId = ExternalPlayerParticipation::withTrashed()
-            ->ofParticipable(BingoCard::class)
-            ->whereRaw('JSON_UNQUOTE(participable_id) = ?', [(string) $firstCardId])
-            ->value('external_player_id');
-
-        return $externalPlayerId ? ExternalPlayer::withTrashed()->find($externalPlayerId) : null;
-    }
-}
+        return app(ExternalPlayerLotBuyerResolver::class)->resolve($lot);
+    }}
