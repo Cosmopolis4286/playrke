@@ -169,6 +169,7 @@ final class BingoWinnerDetectionService
         $lastDraw = BingoDraw::where('room_id', $room->id)
             ->where('round_id', (string) $round->id)
             ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->first();
         if (! $lastDraw) {
             return null;

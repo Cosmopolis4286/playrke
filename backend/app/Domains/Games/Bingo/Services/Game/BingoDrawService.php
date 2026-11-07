@@ -1461,6 +1461,7 @@ final class BingoDrawService
         $lastDraw = BingoDraw::where('room_id', (string) $roomId)
             ->where('round_id', $roundId)
             ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->first();
 
         $this->closeRoundAndRoom($round, $room);
