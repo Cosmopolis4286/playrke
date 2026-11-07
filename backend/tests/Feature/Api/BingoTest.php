@@ -4,10 +4,10 @@ namespace Tests\Feature\Api;
 
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
-use Illuminate\Support\Facades\Cache;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Wallet\Models\Wallet;
+use Illuminate\Support\Facades\Cache;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Games\Common\Utils\GameStatus;
