@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Domains\Bingo;
 
+use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Services\Game\BingoRoomHealthCheckService;
@@ -65,6 +66,8 @@ class BingoRoomHealthCheckServiceTest extends TestCase
         $players->shouldReceive('count')->once()->andReturn($actualPlayers);
 
         $cards = Mockery::mock(HasMany::class);
+        $cards->shouldReceive('where')->once()->with('status', BingoCard::STATUS_ACTIVE)->andReturnSelf();
+        $cards->shouldReceive('eligibleForDraw')->once()->andReturnSelf();
         $cards->shouldReceive('count')->once()->andReturn($actualCards);
 
         /** @var BingoRoom&\Mockery\MockInterface $room */

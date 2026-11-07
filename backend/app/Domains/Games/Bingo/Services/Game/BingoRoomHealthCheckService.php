@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Games\Bingo\Services\Game;
 
+use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use Closure;
@@ -165,7 +166,10 @@ final class BingoRoomHealthCheckService
         $registeredPlayers = $room->players()
             ->whereIn('role', [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER])
             ->count();
-        $totalCards = $room->cards()->count();
+        $totalCards = $room->cards()
+            ->where('status', BingoCard::STATUS_ACTIVE)
+            ->eligibleForDraw()
+            ->count();
 
         return [
             fn () => $this->assertValidStatus($room),
