@@ -124,6 +124,31 @@ class BingoRoomPrizePoolEditGuardTest extends TestCase
     }
 
     #[Test]
+    public function cambiar_las_rondas_se_rechaza_si_ya_comenzo_un_sorteo() : void
+    {
+        $this->expectException(BingoRoomException::class);
+
+        (new ReflectionMethod(BingoRoomCrudService::class, 'guardRoundsLockedByProgress'))
+            ->invoke(
+                app(BingoRoomCrudService::class),
+                $this->room(),
+                $this->dto(['roundsConfig' => [
+                    ['prizeType' => 'percentage', 'bingoPattern' => '501', 'prizeValue' => 55],
+                    ['prizeType' => 'prize', 'bingoPattern' => '502', 'prizeId' => '777'],
+                ]]),
+            );
+    }
+
+    #[Test]
+    public function reenviar_las_mismas_rondas_se_permite_si_ya_comenzo_un_sorteo() : void
+    {
+        (new ReflectionMethod(BingoRoomCrudService::class, 'guardRoundsLockedByProgress'))
+            ->invoke(app(BingoRoomCrudService::class), $this->room(), $this->dto());
+
+        $this->addToAssertionCount(1);
+    }
+
+    #[Test]
     public function reenviar_el_formulario_sin_cambios_pasa() : void
     {
         // Incluye cambios en campos editables (comisión) y datos que solo son de
