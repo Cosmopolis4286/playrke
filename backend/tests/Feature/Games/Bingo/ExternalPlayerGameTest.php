@@ -3,6 +3,8 @@
 namespace Tests\Feature\Games\Bingo;
 
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
+use App\Domains\Games\Bingo\Services\Payment\ExternalPlayerLotBuyerResolver;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
@@ -166,6 +168,30 @@ class ExternalPlayerGameTest extends TestCase
         $attributes = $prize->buildPaymentAttributes(null, 'pending', 'Beneficiario ambiguo');
         $this->assertNull($attributes['user_id']);
         $this->assertNull($attributes['external_player_id']);
+    }
+
+    /** @test */
+    public function refund_buyer_resolver_rejects_a_lot_linked_to_multiple_external_players() : void
+    {
+        $room = $this->makeRoom();
+        $roomUser = $this->makeSharedRoomUser($room);
+        $buyerA = $this->makeExternalPlayer($room, $roomUser, '+1000000191');
+        $buyerB = $this->makeExternalPlayer($room, $roomUser, '+1000000192');
+
+        $cardA = $this->makeCardForPlayer($room, $roomUser, $buyerA);
+        $cardB = $this->makeCardForPlayer($room, $roomUser, $buyerB);
+        $lotId = $this->nextId();
+
+        $cardA->update(['card_lot_id' => $lotId]);
+        $cardB->update(['card_lot_id' => $lotId]);
+
+        $lot = new BingoCardLot;
+        $lot->id = $lotId;
+
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('varios compradores externos');
+
+        app(ExternalPlayerLotBuyerResolver::class)->resolve($lot);
     }
 
     /** @test */

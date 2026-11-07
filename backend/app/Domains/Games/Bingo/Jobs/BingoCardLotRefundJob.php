@@ -9,11 +9,11 @@ use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
+use App\Domains\Games\Bingo\Services\Payment\ExternalPlayerLotBuyerResolver;
 use App\Domains\Games\Bingo\Services\Room\Metrics\BingoLotSaleReversalService;
 use App\Domains\Wallet\Exceptions\WalletUnavailableException;
 use App\Domains\Wallet\Services\WalletService;
 use App\Models\Roles\Player\External\ExternalPlayer;
-use App\Models\Roles\Player\External\ExternalPlayerParticipation;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -292,23 +292,12 @@ final class BingoCardLotRefundJob implements ShouldQueue
     /**
      * Resuelve el ExternalPlayer comprador real de este lote, si aplica.
      * Un lote vendedor→externo vincula CADA cartón individual a su
-     * ExternalPlayer (ver BingoCardGenerationService::generateCards()) — con
-     * que uno tenga participación basta para identificar al comprador, ya
-     * que todos los cartones de un mismo lote pertenecen al mismo comprador
-     * (una sola llamada a generateCards() por compra).
+     * ExternalPlayer (ver BingoCardGenerationService::generateCards()).
+     * El resolver verifica todos los cartones y falla de forma segura si
+     * encuentra más de un comprador asociado al mismo lote.
      */
     private function resolveExternalBuyer(BingoCardLot $lot) : ?ExternalPlayer
     {
-        $firstCardId = BingoCard::where('card_lot_id', $lot->id)->value('id');
-        if (! $firstCardId) {
-            return null;
-        }
-
-        $externalPlayerId = ExternalPlayerParticipation::withTrashed()
-            ->ofParticipable(BingoCard::class)
-            ->whereRaw('JSON_UNQUOTE(participable_id) = ?', [(string) $firstCardId])
-            ->value('external_player_id');
-
-        return $externalPlayerId ? ExternalPlayer::withTrashed()->find($externalPlayerId) : null;
+        return app(ExternalPlayerLotBuyerResolver::class)->resolve($lot);
     }
 }
