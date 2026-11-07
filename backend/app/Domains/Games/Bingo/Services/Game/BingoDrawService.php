@@ -24,6 +24,7 @@ use App\Domains\Platform\WinEvent\Services\WinEventService;
 use App\Exceptions\Domain\ExchangeRate\ExchangeRateException;
 use App\Models\GameParticipation;
 use App\Models\Games\Common\Utils\GameStatus;
+use App\Models\Games\Common\Utils\GameStatus;
 use App\Models\Roles\Player\External\ExternalPlayerParticipation;
 use App\Models\User;
 use App\Services\ExchangeRate\CurrencyExchangeRateService;
@@ -1155,6 +1156,32 @@ final class BingoDrawService
         // manualmente antes de su hora programada.
         if ($round->status !== 'IN_PROGRESS') {
             DB::transaction(function() use ($roomId, $round) {
+                // El lock de la sala es el mutex del ciclo de vida: edición,
+                // eliminación y comienzo del sorteo adquieren primero esta misma fila.
+                // Así no existe una ventana donde una edición lea ACTIVE y reconstruya
+                // rondas mientras el worker ya está iniciando el sorteo.
+                $lockedRoom = BingoRoom::whereKey((string) $roomId)
+                    ->with('status')
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if (! in_array($lockedRoom->status?->code, ['ACTIVE', 'IN_PROGRESS'], true)) {
+                    throw new DomainException(
+                        "No se puede iniciar el sorteo de la sala {$roomId} desde el estado {$lockedRoom->status?->code}.",
+                    );
+                }
+
+                $inProgressStatusId = GameStatus::codeToId('IN_PROGRESS');
+                if (! $inProgressStatusId) {
+                    throw new DomainException('No existe GameStatus con code=IN_PROGRESS.');
+                }
+
+                // El estado global cambia al comenzar la PRIMERA ronda. Se conserva
+                // IN_PROGRESS durante las rondas siguientes y los reintentos.
+                if ($lockedRoom->status?->code === 'ACTIVE') {
+                    $lockedRoom->forceFill(['status_id' => $inProgressStatusId])->save();
+                }
+
                 // Serializar el inicio contra aprobaciones/rechazos de comprobantes.
                 // approve() bloquea primero el pago y luego consulta hasStarted(); al
                 // tomar aquí los mismos pagos PENDING antes de marcar la ronda,
