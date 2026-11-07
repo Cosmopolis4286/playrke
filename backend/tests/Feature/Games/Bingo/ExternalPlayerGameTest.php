@@ -3,6 +3,8 @@
 namespace Tests\Feature\Games\Bingo;
 
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
+use App\Domains\Games\Bingo\Services\Payment\ExternalPlayerLotBuyerResolver;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
@@ -186,7 +188,7 @@ class ExternalPlayerGameTest extends TestCase
         $lot = new BingoCardLot;
         $lot->id = $lotId;
 
-        $this->expectException(\\DomainException::class);
+        $this->expectException(\DomainException::class);
         $this->expectExceptionMessage('varios compradores externos');
 
         app(ExternalPlayerLotBuyerResolver::class)->resolve($lot);
