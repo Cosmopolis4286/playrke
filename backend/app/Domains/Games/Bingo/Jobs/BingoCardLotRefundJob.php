@@ -263,10 +263,8 @@ final class BingoCardLotRefundJob implements ShouldQueue
     {
         $lot->update(['status' => 'REFUNDED']);
 
-        // Mantener los agregados alineados con los lotes ACTIVE tras el reembolso.
-        // Reconstruir contadores y métricas monetarias tras retirar el lote ACTIVE.
-        app(\App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomMetricsSynchronizer::class)
-            ->synchronize((string) $room->id);
+        // El evento updated de BingoCardLot sincroniza contadores y finanzas
+        // dentro de esta misma transacción al cambiar ACTIVE -> REFUNDED.
 
         BingoLotRefundFailure::where('lot_id', $lot->id)
             ->where('room_id', $room->id)
