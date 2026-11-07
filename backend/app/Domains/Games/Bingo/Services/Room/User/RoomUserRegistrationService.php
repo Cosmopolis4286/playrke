@@ -24,6 +24,9 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
                 'room_id' => $userData['roomId'],
                 'user_id' => $userData['creator']['id'],
                 'cards_purchased' => $userData['cardCount'],
+                'role' => ! empty($userData['externalPlayerId'])
+                    ? BingoRoomUser::ROLE_SELLER
+                    : BingoRoomUser::ROLE_PLAYER,
                 'automarker' => 1,
             ];
 
@@ -96,6 +99,14 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
                 }
             }
 
+            // Una fila puede representar a un jugador directo, a un vendedor
+            // que agrupa compradores externos o a ambos. No contar al vendedor
+            // POS como participante, pero conservar el rol mixto si también juega.
+            $resolvedRole = $this->resolveRole($userData, $roomUser);
+            if ($roomUser->role !== $resolvedRole) {
+                $roomUser->update(['role' => $resolvedRole]);
+            }
+
             return ['id' => $roomUser->id, 'isNew' => $isNew];
         } catch (Throwable $e) {
             Log::error('Error al registrar o actualizar el usuario de sala: ' . $e->getMessage());
@@ -103,6 +114,33 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
 
             return null;
         }
+    }
+
+
+    private function resolveRole(array $userData, BingoRoomUser $roomUser) : string
+    {
+        if ($roomUser->role === BingoRoomUser::ROLE_ADMIN) {
+            return BingoRoomUser::ROLE_ADMIN;
+        }
+
+        $isExternalSale = ! empty($userData['externalPlayerId']);
+        $hasPlayerRole = in_array($roomUser->role, [
+            BingoRoomUser::ROLE_PLAYER,
+            BingoRoomUser::ROLE_PLAYER_SELLER,
+        ], true);
+        $hasSellerRole = in_array($roomUser->role, [
+            BingoRoomUser::ROLE_SELLER,
+            BingoRoomUser::ROLE_PLAYER_SELLER,
+        ], true);
+
+        $hasPlayerRole = $hasPlayerRole || ! $isExternalSale;
+        $hasSellerRole = $hasSellerRole || $isExternalSale;
+
+        return match (true) {
+            $hasPlayerRole && $hasSellerRole => BingoRoomUser::ROLE_PLAYER_SELLER,
+            $hasSellerRole => BingoRoomUser::ROLE_SELLER,
+            default => BingoRoomUser::ROLE_PLAYER,
+        };
     }
 
     /**
