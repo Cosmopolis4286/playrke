@@ -26,11 +26,22 @@ use Throwable;
  * El backoff/reintento en sí lo maneja GamePrizeService::payout() (FSM
  * waiting→processing→claimed) — este comando solo decide QUÉ ganadores
  * necesitan que se llame payoutOne(), no CUÁNDO reintentar cada uno.
+ *
+ * Premios que quedaron en 'processing' con prize_won = 0 (bug previo en el que
+ * finishGame() escribía final_rank antes de distribute() y payoutOne() nunca
+ * asignaba el monto): payoutOne() recalcula y asigna el monto desde
+ * resolvePrizePayouts() antes de reintentar, así que este mismo comando los
+ * recupera sin intervención manual.
+ *
+ * --days limita la revisión a partidas creadas en los últimos N días (por
+ * defecto 90) para no recorrer toda la historia en cada corrida del cron.
+ * Para recuperar premios más antiguos: --days=0 (sin límite) en una corrida manual.
  */
 class RetryFailedTriviaPrizePayoutsCommand extends Command
 {
     protected $description = 'Reintenta acreditar a la wallet los premios de trivia cuyo pago automático falló';
-    protected $signature = 'trivia:retry-failed-prize-payouts';
+    protected $signature = 'trivia:retry-failed-prize-payouts
+                            {--days=90 : Solo revisa partidas creadas en los últimos N días (0 = sin límite)}';
 
     public function handle(PrizeDistributionService $prizeService) : void
     {
@@ -39,7 +50,10 @@ class RetryFailedTriviaPrizePayoutsCommand extends Command
         $skipped = 0;
 
         try {
+            $days = max(0, (int) $this->option('days'));
+
             $gameIds = TriviaGame::where('status', 'finished')
+                ->when($days > 0, fn ($q) => $q->where('created_at', '>=', now()->subDays($days)))
                 ->pluck('room_id', 'id');
 
             foreach ($gameIds as $gameId => $roomId) {
@@ -122,7 +136,7 @@ class RetryFailedTriviaPrizePayoutsCommand extends Command
         // cualquier motivo, el error visible al operador debe ser el
         // original de la tarea, no uno de logging que lo enmascare.
         try {
-            app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
+            app(CommandService::class)->logCommandExecution((string) $this->getName(), $output, $status);
         } catch (Throwable $logEx) {
             $this->error('No se pudo registrar la ejecución del comando: ' . $logEx->getMessage());
         }

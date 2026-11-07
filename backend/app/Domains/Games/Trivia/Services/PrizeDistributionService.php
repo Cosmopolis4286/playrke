@@ -140,15 +140,16 @@ final class PrizeDistributionService
             return null;
         }
 
-        // Preparar el registro para el FSM de GamePrizeService: solo se
-        // reinicia a 'waiting' si aún no se intentó pagar (evita pisar
-        // 'processing'/'claimed' si esto se llama dos veces sobre el mismo ganador).
-        if ($participant->final_rank === null) {
+        // Preparar el registro para el FSM de GamePrizeService. La decisión
+        // depende del estado del PAGO, no de final_rank: GameEngineService::finishGame()
+        // ya escribe final_rank antes de llamar a distribute(), así que condicionar
+        // a final_rank === null dejaba prize_won en 0 y recordPrize() fallaba siempre.
+        if ($this->needsPrizePreparation($participant)) {
             $participant->update([
                 'final_rank' => $rank,
                 'prize_won' => $amount,
                 'status' => 'winner',
-                'prize_status' => 'waiting',
+                'prize_status' => $participant->isProcessing() ? 'processing' : 'waiting',
             ]);
         }
 
@@ -255,6 +256,31 @@ final class PrizeDistributionService
         }
 
         return $positions;
+    }
+
+    /**
+     * Indica si el participante debe recibir (o recuperar) el monto del premio
+     * antes de pasar por GamePrizeService::payout().
+     *
+     * • 'waiting' sin pago completado → aún no se intentó pagar: preparar.
+     * • 'processing' con prize_won <= 0 y sin pago completado → registro
+     *   afectado por el bug de final_rank (recordPrize() lanzó por monto no
+     *   positivo, la wallet nunca se tocó): asignar el monto para el reintento.
+     * • 'processing' con monto > 0, 'claimed', 'cancelled', 'suspended',
+     *   'disputed' o con pago completado → no se toca (otro worker puede
+     *   estar pagando, o el premio ya está resuelto / en revisión manual).
+     */
+    private function needsPrizePreparation(TriviaParticipant $participant) : bool
+    {
+        if ($participant->hasCompletedPayment()) {
+            return false;
+        }
+
+        if ($participant->prize_status === null || $participant->isWaiting()) {
+            return true;
+        }
+
+        return $participant->isProcessing() && (float) $participant->prize_won <= 0;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

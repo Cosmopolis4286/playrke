@@ -3,6 +3,7 @@
 namespace Tests\Feature\Console;
 
 use App\Domains\Games\Trivia\Models\TriviaGame;
+use App\Domains\Games\Trivia\Models\TriviaPrizePayment;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Games\Trivia\Models\TriviaScore;
 use App\Domains\Wallet\Models\Wallet;
@@ -64,6 +65,52 @@ class RetryFailedTriviaPrizePayoutsCommandTest extends TestCase
             'command' => 'trivia:retry-failed-prize-payouts',
             'status' => 'SUCCESS',
         ]);
+    }
+
+    #[Test]
+    public function days_option_skips_games_older_than_the_window() : void
+    {
+        $user = $this->makeUser();
+        $currency = Currency::create([
+            'iso_code' => 'TS6', 'name' => 'Test Coin 6', 'type' => 'FIAT', 'country_id' => $user->country_id,
+        ]);
+
+        $room = $this->makeRoom(['prize_currency_id' => (string) $currency->id]);
+        $game = $this->makeFinishedGame($room);
+        TriviaGame::where('id', $game->id)->update(['created_at' => now()->subDays(10)]);
+
+        TriviaScore::create([
+            'game_id' => (string) $game->id,
+            'player_id' => (string) $user->id,
+            'final_score' => 100,
+            'correct_answers' => 3,
+            'wrong_answers' => 0,
+            'position' => 1,
+            'total_questions' => 3,
+        ]);
+
+        TriviaParticipant::create([
+            'room_id' => $room->id,
+            'user_id' => (string) $user->id,
+            'status' => 'playing',
+        ]);
+
+        Wallet::create([
+            'user_id' => $user->id,
+            'currency_id' => $currency->id,
+            'balance' => 0,
+            'status' => 'ACTIVE',
+        ]);
+
+        // Fuera de la ventana: no se revisa.
+        $this->artisan('trivia:retry-failed-prize-payouts', ['--days' => 5])
+            ->expectsOutputToContain('acreditados: 0')
+            ->assertExitCode(0);
+
+        // --days=0: sin límite, sí se recupera.
+        $this->artisan('trivia:retry-failed-prize-payouts', ['--days' => 0])
+            ->expectsOutputToContain('acreditados: 1')
+            ->assertExitCode(0);
     }
 
     #[Test]
@@ -210,6 +257,70 @@ class RetryFailedTriviaPrizePayoutsCommandTest extends TestCase
 
         $participant = TriviaParticipant::where('room_id', $room->id)->where('user_id', $user->id)->first();
         $this->assertEquals('claimed', $participant->prize_status);
+    }
+
+    #[Test]
+    public function retries_prize_left_processing_with_zero_amount_by_final_rank_bug() : void
+    {
+        $user = $this->makeUser();
+        $currency = Currency::create([
+            'iso_code' => 'TS5', 'name' => 'Test Coin 5', 'type' => 'FIAT', 'country_id' => $user->country_id,
+        ]);
+
+        $room = $this->makeRoom(['prize_currency_id' => (string) $currency->id]);
+        $game = $this->makeFinishedGame($room);
+
+        TriviaScore::create([
+            'game_id' => (string) $game->id,
+            'player_id' => (string) $user->id,
+            'final_score' => 100,
+            'correct_answers' => 3,
+            'wrong_answers' => 0,
+            'position' => 1,
+            'total_questions' => 3,
+        ]);
+
+        // Estado que dejó en producción el bug de final_rank: finishGame()
+        // escribió final_rank, payoutOne() no asignó el monto, y el intento
+        // de pago con prize_won = 0 falló dejando el premio en 'processing'
+        // con un payment 'failed' (la wallet nunca se tocó).
+        $participant = TriviaParticipant::create([
+            'room_id' => $room->id,
+            'user_id' => (string) $user->id,
+            'status' => 'playing',
+            'final_rank' => 1,
+            'prize_won' => 0,
+            'prize_status' => 'processing',
+        ]);
+
+        TriviaPrizePayment::create([
+            'participant_id' => $participant->id,
+            'room_id' => $room->id,
+            'user_id' => (string) $user->id,
+            'currency_id' => (string) $currency->id,
+            'payment_amount' => 0,
+            'payment_status' => 'failed',
+            'payment_notes' => 'El monto del premio debe ser positivo.',
+        ]);
+
+        $wallet = Wallet::create([
+            'user_id' => $user->id,
+            'currency_id' => $currency->id,
+            'balance' => 0,
+            'status' => 'ACTIVE',
+        ]);
+
+        $this->artisan('trivia:retry-failed-prize-payouts')
+            ->expectsOutputToContain('acreditados: 1')
+            ->assertExitCode(0);
+
+        $wallet->refresh();
+        $this->assertEquals(6.0, (float) $wallet->balance);
+
+        $participant->refresh();
+        $this->assertEquals(6.0, (float) $participant->prize_won);
+        $this->assertSame('claimed', $participant->prize_status);
+        $this->assertSame('winner', $participant->status);
     }
 
     #[Test]
