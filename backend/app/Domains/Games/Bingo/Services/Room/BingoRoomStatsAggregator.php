@@ -9,6 +9,7 @@ use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomStat;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomMetricsSynchronizer;
 
 /**
  * Calcula y persiste las estadísticas finales de una sala de bingo.
@@ -23,6 +24,8 @@ final class BingoRoomStatsAggregator
      */
     public function aggregate(BingoRoom $room) : BingoRoomStat
     {
+        app(BingoRoomMetricsSynchronizer::class)->synchronize($room);
+        $room->refresh();
         $roomId = (string) $room->id;
 
         // Lotes + cartones + ingresos — una sola query agregada

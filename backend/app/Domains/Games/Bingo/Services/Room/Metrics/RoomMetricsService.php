@@ -13,6 +13,7 @@ use App\Services\Jackpot\JackpotLedgerService;
 use App\Services\Platform\PlatformWalletService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -74,21 +75,21 @@ class RoomMetricsService implements RoomMetricsInterface
                 // parciales si falla cualquiera de sus escrituras.
                 if (isset($saleData['cardCount']) && $saleData['cardCount'] > 0
                     && ! $this->updateTotalCards($room, (int) $saleData['cardCount'])) {
-                    throw new \RuntimeException('No se pudo actualizar el total de cartones.');
+                    throw new RuntimeException('No se pudo actualizar el total de cartones.');
                 }
 
                 if (isset($saleData['saleAmount']) && $saleData['saleAmount'] > 0
                     && ! $this->updateTotalSales($room, (float) $saleData['saleAmount'])) {
-                    throw new \RuntimeException('No se pudo actualizar el total de ventas.');
+                    throw new RuntimeException('No se pudo actualizar el total de ventas.');
                 }
 
                 if (isset($saleData['prizePoolAmount']) && $saleData['prizePoolAmount'] > 0
                     && ! $this->updatePrizePool($room, (float) $saleData['prizePoolAmount'])) {
-                    throw new \RuntimeException('No se pudo actualizar el pozo de premios.');
+                    throw new RuntimeException('No se pudo actualizar el pozo de premios.');
                 }
 
                 if (! empty($saleData['isNewUser']) && ! $this->updatePlayerCount($room)) {
-                    throw new \RuntimeException('No se pudo actualizar el contador de jugadores.');
+                    throw new RuntimeException('No se pudo actualizar el contador de jugadores.');
                 }
             });
 
@@ -380,7 +381,9 @@ class RoomMetricsService implements RoomMetricsInterface
             $currencyId = (string) ($saleData['currency'] ?? '');
             if ($currencyId !== '') {
                 $metricsByCurrency = $room->metrics_by_currency ?? [];
-                $current = $metricsByCurrency[$currencyId] ?? [
+                // Unión (+): una entrada existente sin alguna clave base (p. ej.
+                // reconstruida por BingoRoomMetricsSynchronizer) no rompe la venta.
+                $current = ($metricsByCurrency[$currencyId] ?? []) + [
                     'total_sales' => 0,
                     'total_cards' => 0,
                     'prize_pool' => 0,

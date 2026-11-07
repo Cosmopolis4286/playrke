@@ -44,6 +44,21 @@ class BingoCardLot extends Model
 
     protected $table = 'bingo_card_lots';
 
+    protected static function booted() : void
+    {
+        static::updated(function(self $lot) : void {
+            if ($lot->wasChanged('status')) {
+                app(\App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomMetricsSynchronizer::class)
+                    ->synchronize((string) $lot->room_id);
+            }
+        });
+
+        static::deleted(function(self $lot) : void {
+            app(\App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomMetricsSynchronizer::class)
+                ->synchronize((string) $lot->room_id);
+        });
+    }
+
     public function cards() : HasMany
     {
         return $this->hasMany(BingoCard::class, 'card_lot_id');

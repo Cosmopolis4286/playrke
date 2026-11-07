@@ -4,6 +4,9 @@ namespace Tests\Unit\Domains\Bingo;
 
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
+use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomMetricsSynchronizer;
 use App\Domains\Games\Bingo\Services\Room\Metrics\RoomMetricsService;
 use App\Models\Country;
 use App\Models\Currency;
@@ -40,6 +43,8 @@ class RoomMetricsServiceConcurrencyTest extends TestCase
     use RefreshDatabase;
 
     private int|string $currencyId;
+
+    private int|string $userId;
 
     /** @test */
     public function two_concurrent_purchases_do_not_lose_either_increment()
@@ -80,6 +85,76 @@ class RoomMetricsServiceConcurrencyTest extends TestCase
         $this->assertEqualsWithDelta(5.0, (float) $fresh->room_commission, 0.01, 'room_commission debe acumular ambas ventas.');
     }
 
+
+    /** @test */
+    public function synchronizer_repairs_room_counters_and_financial_totals_from_active_lots()
+    {
+        $room = $this->makeRoom();
+        $room->update([
+            'total_players' => 77,
+            'total_cards' => 99,
+            'total_sales' => 999,
+            'rke_commission' => 99,
+            'room_commission' => 99,
+            'prize_pool' => 999,
+        ]);
+
+        $roomUser = BingoRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $this->userId,
+            'role' => BingoRoomUser::ROLE_PLAYER,
+            'cards_purchased' => 2,
+        ]);
+
+        BingoCardLot::create([
+            'room_id' => $room->id,
+            'user_id' => $this->userId,
+            'room_user_id' => $roomUser->id,
+            'currency_id' => $this->currencyId,
+            'card_count' => 2,
+            'card_price' => 5,
+            'exchange_rate' => 1,
+            'sale_amount' => 10,
+            'status' => 'ACTIVE',
+            'financial_breakdown' => [
+                'version' => 1,
+                'channel' => 'wallet',
+                'currency_id' => (string) $this->currencyId,
+                'room_usd' => [
+                    'total_sales' => 10,
+                    'total_cards' => 2,
+                    'rke_commission' => 0.5,
+                    'room_commission' => 1,
+                    'seller_commission' => 0,
+                    'subsidiary_commission' => 0,
+                    'commerce_commission' => 0,
+                    'prize_pool' => 8.5,
+                ],
+                'room_local' => [
+                    'total_sales' => 10,
+                    'total_cards' => 2,
+                    'prize_pool' => 8.5,
+                    'full_house_prize' => 8.5,
+                    'rke_commission' => 0.5,
+                    'room_commission' => 1,
+                    'seller_commission' => 0,
+                    'jackpot_contribution' => 0,
+                ],
+            ],
+        ]);
+
+        $result = app(BingoRoomMetricsSynchronizer::class)->synchronize($room);
+        $fresh = $room->fresh();
+
+        $this->assertSame(1, $fresh->total_players);
+        $this->assertSame(2, $fresh->total_cards);
+        $this->assertEquals(10.0, (float) $fresh->total_sales);
+        $this->assertEquals(0.5, (float) $fresh->rke_commission);
+        $this->assertEquals(1.0, (float) $fresh->room_commission);
+        $this->assertEquals(8.5, (float) $fresh->prize_pool);
+        $this->assertTrue($result['financials_reconciled']);
+    }
+
     /** @test */
     public function update_all_metrics_rolls_back_prior_increments_when_a_later_metric_fails()
     {
@@ -109,6 +184,7 @@ class RoomMetricsServiceConcurrencyTest extends TestCase
         );
 
         $user = User::factory()->create(['country_id' => $country->id]);
+        $this->userId = $user->id;
 
         $status = GameStatus::firstOrCreate(['code' => 'ACTIVE'], ['label' => 'Activa']);
         $roomType = RoomType::firstOrCreate(['code' => 'PUBLIC'], ['label' => 'Pública']);

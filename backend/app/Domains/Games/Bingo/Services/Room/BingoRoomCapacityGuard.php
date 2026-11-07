@@ -6,6 +6,7 @@ namespace App\Domains\Games\Bingo\Services\Room;
 
 use App\Domains\Games\Bingo\Exceptions\Room\BingoRoomException;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomMetricsSynchronizer;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -28,7 +29,7 @@ final class BingoRoomCapacityGuard
      *
      * @throws BingoRoomException si la sala está llena o no tiene config de cupo
      */
-    public static function assertHasCapacity(BingoRoom $room) : void
+    public static function assertHasCapacity(BingoRoom $room, ?string $pendingExternalPlayerId = null, ?string $pendingUserId = null) : void
     {
         $room->loadMissing('config');
         $maxPlayers = $room->config?->max_players ?? null;
@@ -38,10 +39,9 @@ final class BingoRoomCapacityGuard
             return;
         }
 
-        // Re-lee total_players con lock para serializar escrituras concurrentes.
-        $current = BingoRoom::where('id', $room->id)
-            ->lockForUpdate()
-            ->value('total_players') ?? 0;
+        // El caller debe tener bloqueada la fila de la sala. El agregado
+        // total_players puede estar desfasado; el cupo se decide desde registros.
+        $current = app(BingoRoomMetricsSynchronizer::class)->countPlayersForCapacity((string) $room->id, $pendingExternalPlayerId, $pendingUserId);
 
         if ((int) $current >= (int) $maxPlayers) {
             throw BingoRoomException::roomFull();

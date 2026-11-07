@@ -14,6 +14,7 @@ use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
 use App\Domains\Games\Bingo\Models\Creator\BingoCreator;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomMetricsSynchronizer;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Domains\Games\Bingo\Models\Round\BingoRoundPrize;
 use App\Domains\Games\Bingo\ValueObjects\BingoRoomPrizeRules;
@@ -104,14 +105,18 @@ class BingoRoomCrudService
                 throw BingoRoomException::activationInvalidState();
             }
 
+            $metrics = app(BingoRoomMetricsSynchronizer::class);
+            $actualCards = $metrics->countCards($room);
+            $actualPlayers = $metrics->countPlayers($room);
+
             $minCards = $room->config?->min_cards_to_start;
-            if ($minCards !== null && ($room->total_cards ?? 0) < $minCards) {
-                throw BingoRoomException::minCardsNotReached($minCards, $room->total_cards ?? 0);
+            if ($minCards !== null && $actualCards < $minCards) {
+                throw BingoRoomException::minCardsNotReached($minCards, $actualCards);
             }
 
             $minPlayers = $room->config?->min_players;
-            if ($minPlayers !== null && ($room->total_players ?? 0) < $minPlayers) {
-                throw BingoRoomException::minPlayersNotReached($minPlayers, $room->total_players ?? 0);
+            if ($minPlayers !== null && $actualPlayers < $minPlayers) {
+                throw BingoRoomException::minPlayersNotReached($minPlayers, $actualPlayers);
             }
 
             $now = Carbon::now('UTC');
@@ -191,7 +196,7 @@ class BingoRoomCrudService
                 throw new BingoRoomException('Solo se pueden cancelar salas con estado ACTIVE');
             }
 
-            if (($locked->total_players ?? 0) === 0) {
+            if (app(BingoRoomMetricsSynchronizer::class)->countPlayers($locked) === 0) {
                 throw new BingoRoomException('Solo se pueden cancelar salas que tengan jugadores registrados');
             }
 
@@ -375,7 +380,7 @@ class BingoRoomCrudService
                 throw BingoRoomException::roomNotEditableStatus();
             }
 
-            if (($locked->total_players ?? 0) > 0) {
+            if (app(BingoRoomMetricsSynchronizer::class)->countPlayers($locked) > 0) {
                 throw BingoRoomException::roomHasPlayers();
             }
 
@@ -411,8 +416,8 @@ class BingoRoomCrudService
             }
 
             $hasFinancialTrace = $this->hasStartedDraw($locked)
-                || ($locked->total_players ?? 0) > 0
-                || ($locked->total_cards ?? 0) > 0
+                || app(BingoRoomMetricsSynchronizer::class)->countPlayers($locked) > 0
+                || BingoCardLot::query()->where('room_id', $locked->id)->exists()
                 || ($locked->prize_pool ?? 0) > 0;
 
             if ($hasFinancialTrace) {
@@ -1585,7 +1590,7 @@ class BingoRoomCrudService
             // Con jugadores registrados se bloquea, del lado del servidor, el cambio de
             // estado (status_id) — la sala se activa/desactiva desde el botón dedicado
             // "Alternar Estado" (que sí valida jugadores), no desde el formulario de edición.
-            $lockedByPlayers = ! $isCreate && (int) ($room->total_players ?? 0) > 0;
+            $lockedByPlayers = ! $isCreate && app(BingoRoomMetricsSynchronizer::class)->countPlayers($room) > 0;
 
             // En cualquier update, no permitir quitar de "monedas permitidas" una moneda
             // que ya tenga cartones vendidos (ventas reales) — evita dejar huérfanas
@@ -1626,7 +1631,7 @@ class BingoRoomCrudService
             // - Sin ventas: se re-siembra con el monto inicial (no hay nada que perder).
             // - Con ventas: no se toca, y no se permite cambiar lo que el jugador
             //   compró (bote, rondas, seriales, variante, precio — ver guardSalesLockedFields).
-            $hasSales = ! $isCreate && ((int) ($room->total_cards ?? 0) > 0 || (float) ($room->total_sales ?? 0) > 0);
+            $hasSales = ! $isCreate && BingoCardLot::query()->where('room_id', $room->id)->where('status', 'ACTIVE')->exists();
             if ($hasSales) {
                 $this->guardSalesLockedFields($room, $dto);
             }

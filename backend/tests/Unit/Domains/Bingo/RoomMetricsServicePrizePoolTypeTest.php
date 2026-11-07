@@ -119,11 +119,11 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
         $room = $this->makeRoom('ACCUMULATIVE', jackpotPct: 5);
         $jackpotTypeId = '930000000000000999';
 
-        $this->sell($room->fresh(), 40.0);          // venta que se queda
-        $breakdown = $this->sell($room->fresh(), 100.0); // venta que se reembolsa
-
-        $lot = new BingoCardLot(['financial_breakdown' => $breakdown]);
-        $lot->id = '930000000000000777';
+        // Los lotes son la fuente de verdad que BingoRoomMetricsSynchronizer
+        // recalcula tras la reversa: cada venta queda persistida con su desglose.
+        $this->persistLot($room, '930000000000000776', 40.0, $this->sell($room->fresh(), 40.0));          // venta que se queda
+        $breakdown = $this->sell($room->fresh(), 100.0);                                                    // venta que se reembolsa
+        $lot = $this->persistLot($room, '930000000000000777', 100.0, $breakdown);
 
         $jackpotBefore = (float) DB::table('jackpots')->where('jackpot_type_id', $jackpotTypeId)->value('amount');
         $this->assertTrue(app(BingoLotSaleReversalService::class)->reverse($lot, $room->fresh())['reversed']);
@@ -180,6 +180,18 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
         }
 
         return BingoRoom::find($roomId);
+    }
+
+    private function persistLot(BingoRoom $room, string $lotId, float $amount, ?array $breakdown) : BingoCardLot
+    {
+        DB::table('bingo_card_lots')->insert([
+            'id' => $lotId, 'room_id' => $room->id, 'user_id' => '1', 'room_user_id' => (string) ((int) $lotId + 1000),
+            'currency_id' => $this->currencyId, 'card_count' => 1, 'card_price' => $amount, 'exchange_rate' => 1,
+            'sale_amount' => $amount, 'status' => 'ACTIVE', 'financial_breakdown' => json_encode($breakdown),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        return BingoCardLot::findOrFail($lotId);
     }
 
     private function sell(BingoRoom $room, float $amount) : ?array

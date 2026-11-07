@@ -6,30 +6,14 @@ namespace Tests\Unit\Domains\Bingo;
 
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
-use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Services\Game\BingoRoomHealthCheckService;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomMetricsSynchronizer;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Mockery;
 use Tests\TestCase;
 
 class BingoRoomHealthCheckServiceTest extends TestCase
 {
-    public function test_uses_persisted_players_and_cards_when_denormalized_counters_are_stale() : void
-    {
-        $room = $this->makeRoom(
-            denormalizedPlayers: 0,
-            denormalizedCards: 0,
-            actualPlayers: 3,
-            actualCards: 4,
-            minPlayers: 2,
-            minCards: 2,
-        );
-
-        $errors = app(BingoRoomHealthCheckService::class)->collectErrors($room);
-
-        $this->assertSame([], $errors);
-    }
-
     public function test_rejects_room_using_actual_counts_even_when_denormalized_counters_are_high() : void
     {
         $room = $this->makeRoom(
@@ -50,6 +34,22 @@ class BingoRoomHealthCheckServiceTest extends TestCase
         $this->assertStringContainsString('tiene 1', $errors[1]);
     }
 
+    public function test_uses_persisted_players_and_cards_when_denormalized_counters_are_stale() : void
+    {
+        $room = $this->makeRoom(
+            denormalizedPlayers: 0,
+            denormalizedCards: 0,
+            actualPlayers: 3,
+            actualCards: 4,
+            minPlayers: 2,
+            minCards: 2,
+        );
+
+        $errors = app(BingoRoomHealthCheckService::class)->collectErrors($room);
+
+        $this->assertSame([], $errors);
+    }
+
     private function makeRoom(
         int $denormalizedPlayers,
         int $denormalizedCards,
@@ -58,12 +58,11 @@ class BingoRoomHealthCheckServiceTest extends TestCase
         int $minPlayers,
         int $minCards,
     ) : BingoRoom {
-        $players = Mockery::mock(HasMany::class);
-        $players->shouldReceive('whereIn')
-            ->once()
-            ->with('role', [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER])
-            ->andReturnSelf();
-        $players->shouldReceive('count')->once()->andReturn($actualPlayers);
+        // Jugadores reales = participantes con lotes vigentes (fuente de verdad
+        // del sincronizador), no el contador denormalizado de la sala.
+        $synchronizer = Mockery::mock(BingoRoomMetricsSynchronizer::class);
+        $synchronizer->shouldReceive('countPlayers')->once()->with('health-check-room')->andReturn($actualPlayers);
+        $this->app->instance(BingoRoomMetricsSynchronizer::class, $synchronizer);
 
         $cards = Mockery::mock(HasMany::class);
         $cards->shouldReceive('where')->once()->with('status', BingoCard::STATUS_ACTIVE)->andReturnSelf();
@@ -76,7 +75,6 @@ class BingoRoomHealthCheckServiceTest extends TestCase
             ->once()
             ->with(['rounds', 'config'])
             ->andReturnSelf();
-        $room->shouldReceive('players')->once()->andReturn($players);
         $room->shouldReceive('cards')->once()->andReturn($cards);
 
         $room->setAttribute('id', 'health-check-room');

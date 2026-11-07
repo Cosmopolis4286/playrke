@@ -9,6 +9,7 @@ use App\Domains\Games\Bingo\Services\Payment\CommissionCalculationService;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomCapacityGuard;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomCardCapacityGuard;
 use App\Domains\Games\Bingo\Services\Room\Metrics\RoomMetricsService;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomMetricsSynchronizer;
 use App\Domains\Games\Bingo\Services\Room\User\RoomUserRegistrationService;
 use App\Models\Games\Common\GameRoom\CurrencyGameRoom;
 use DomainException;
@@ -57,12 +58,19 @@ final class BingoCardGenerationService
      */
     public function generateCards(array $cardOrder) : array
     {
+        // Todas las compras serializan por sala. Evita crear dos room_user
+        // para el mismo jugador y perder/duplicar el contador bajo concurrencia.
+        if (DB::transactionLevel() === 0) {
+            return $this->generateInTransaction($cardOrder);
+        }
+
         $roomId = $cardOrder['roomId'];
 
         // Cargamos la sala con su estado directamente
         try {
             $room = BingoRoom::with(['status', 'config'])
                 ->where('id', $roomId)
+                ->lockForUpdate()
                 ->first();
         } catch (Throwable $e) {
             throw new DomainException('Error al cargar sala: ' . $e->getMessage());
@@ -115,7 +123,7 @@ final class BingoCardGenerationService
             }
 
             $roomUserId = $roomUserResult['id'];
-            $isNewRoomUser = $roomUserResult['isNew'];
+            $isNewPlayer = (bool) ($roomUserResult['isNewPlayer'] ?? $roomUserResult['isNew']);
 
             // Anexar atributo al array
             $cardOrder['roomUser'] = $roomUserId;
@@ -153,9 +161,8 @@ final class BingoCardGenerationService
             }
 
             // Verificar cupo antes de registrar nuevo jugador (dentro de la transacción con lock).
-            if ($isNewRoomUser) {
-                BingoRoomCapacityGuard::assertHasCapacity($room);
-                $this->roomMetrics->updatePlayerCount($room);
+            if ($isNewPlayer || ! empty($cardOrder['externalPlayerId'])) {
+                BingoRoomCapacityGuard::assertHasCapacity($room, ! empty($cardOrder['externalPlayerId']) ? (string) $cardOrder['externalPlayerId'] : null, (string) ($cardOrder['creator']['id'] ?? ''));
             }
 
             // Validar que el usuario autenticado exista en la tabla users
@@ -249,6 +256,11 @@ final class BingoCardGenerationService
                     $currency,
                 );
             }
+
+            // Recalcular desde lotes/participaciones ya persistidos: evita que
+            // los deltas de ventas, DEMO y compras externas dejen contadores
+            // distintos a su fuente de verdad.
+            app(BingoRoomMetricsSynchronizer::class)->synchronize($room);
 
             return ['room_user_id' => $roomUserId];
         } catch (\App\Exceptions\Domain\DomainException $e) {
