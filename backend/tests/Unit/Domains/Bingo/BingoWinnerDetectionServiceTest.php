@@ -42,6 +42,35 @@ class BingoWinnerDetectionServiceTest extends TestCase
         config(['anticheat.bingo.min_claim_delay_ms' => 0]);
     }
 
+    public function test_latest_draw_is_deterministic_when_multiple_draws_share_the_same_timestamp() : void
+    {
+        $user = User::factory()->create();
+        ['room' => $room, 'round' => $round] = $this->makeRoomWithCard($this->winningCardNumbers(), $user, 'DEMO');
+        $this->drawWinningLine($room, $round);
+
+        $timestamp = now()->startOfSecond();
+        BingoDraw::where('room_id', (string) $room->id)
+            ->where('round_id', (string) $round->id)
+            ->update(['created_at' => $timestamp, 'updated_at' => $timestamp]);
+
+        config(['anticheat.bingo.min_claim_delay_ms' => 60_000]);
+
+        app(BingoWinnerDetectionService::class)->checkWinnerForUser($room->fresh(), (int) $user->id);
+
+        $latestDrawId = (int) BingoDraw::where('room_id', (string) $room->id)
+            ->where('round_id', (string) $round->id)
+            ->max('id');
+
+        $flag = \\App\\Domains\\Games\\Bingo\\Models\\AntiCheat\\BingoAntiCheatFlag::query()
+            ->where('room_id', (string) $room->id)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($flag);
+        $metadata = json_decode($flag->metadata, true);
+        $this->assertSame($latestDrawId, (int) $metadata['last_draw_id']);
+    }
+
     public function test_demo_room_winner_is_recorded_but_prize_is_never_paid() : void
     {
         $user = User::factory()->create();
