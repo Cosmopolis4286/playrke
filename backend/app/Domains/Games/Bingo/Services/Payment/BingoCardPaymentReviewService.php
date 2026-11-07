@@ -68,6 +68,33 @@ final class BingoCardPaymentReviewService
                 throw new DomainException('Solo se pueden aprobar pagos en estado PENDING.');
             }
 
+            if (! $locked->card_lot_id) {
+                throw new DomainException('Este pago no tiene un lote de cartones asociado.');
+            }
+
+            // Un pago pendiente no puede aprobarse después de que el lote haya
+            // sido reembolsado/inactivado por cancelación u otra revisión.
+            // Mantener el mismo orden de locks que el sorteo y el rechazo: pago → lote.
+            $lot = BingoCardLot::where('id', $locked->card_lot_id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $lot || $lot->status !== 'ACTIVE') {
+                throw new DomainException(
+                    'No se puede aprobar este pago: el lote de cartones ya no está activo o fue reembolsado.',
+                );
+            }
+
+            $hasActiveCards = BingoCard::where('card_lot_id', $locked->card_lot_id)
+                ->where('status', BingoCard::STATUS_ACTIVE)
+                ->exists();
+
+            if (! $hasActiveCards) {
+                throw new DomainException(
+                    'No se puede aprobar este pago: el lote no tiene cartones activos.',
+                );
+            }
+
             if (! $confirmLate && $locked->room?->hasStarted()) {
                 throw BingoCardPaymentException::lateApprovalNeedsConfirmation();
             }
