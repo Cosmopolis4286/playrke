@@ -109,8 +109,11 @@ final class BingoWinnerDetectionService
      */
     public function checkWinnerForUser(BingoRoom $room, int $userId) : ?array
     {
+        // Mismo criterio que el sorteo automático (BingoDrawService::activeCards):
+        // lotes con pago PENDING/REJECTED no pueden reclamar premio.
         $cards = BingoCard::where('room_id', (string) $room->id)
             ->where('status', BingoCard::STATUS_ACTIVE)
+            ->withoutUnconfirmedPayment()
             ->where(
                 fn ($q) => $q
                     ->whereHas('roomUser', fn ($r) => $r->where('user_id', (string) $userId))

@@ -17,7 +17,7 @@ export const BINGO_ROOM_INT_LIMITS = {
     numSerials:           { min: 1, max: 30     },
     maxSpecialCards:      { min: 1, max: 5      },
     timeChip:             { min: 3, max: 10     },
-    rounds:               { min: 1, max: 15     },
+    rounds:               { min: 1, max: 1      },
     cards:                { min: 1, max: 10000  },
     players:              { min: 1, max: 100000 },
     salesStartOffsetDays: { min: 1, max: 30     },

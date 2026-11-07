@@ -44,7 +44,7 @@ final class BingoDrawService
     private const CHIP_INTERVAL_SECONDS = 5; // fallback si time_chip no está configurado
 
     /**
-     * Cartones ACTIVE de la sala, cacheados en memoria durante la corrida del sorteo.
+     * Cartones ACTIVE de la sala (sin lotes con pago PENDING/REJECTED), cacheados en memoria durante la corrida del sorteo.
      * Keyed por json_encode($with) para evitar que broadcastPlayersProgress
      * (que carga ['roomUser.user']) envene el cache de detectWinnerAndEnd
      * (que necesita ['roomUser.user','cardLot']).
@@ -460,11 +460,15 @@ final class BingoDrawService
             && $this->activeCardsCacheCount !== null
             && $chipIndex > 0
             && ($chipIndex % self::ACTIVE_CARDS_REFRESH_INTERVAL === 0)
-            && BingoCard::where('room_id', $roomId)->where('status', BingoCard::STATUS_ACTIVE)->count() !== $this->activeCardsCacheCount;
+            && BingoCard::where('room_id', $roomId)->where('status', BingoCard::STATUS_ACTIVE)->withoutUnconfirmedPayment()->count() !== $this->activeCardsCacheCount;
 
         if ($baseStale || $periodicStale) {
+            // Lotes con pago PENDING/REJECTED no participan (ver BingoCard::scopeWithoutUnconfirmedPayment).
+            // El conteo periódico de arriba usa el mismo filtro para que el cache sea coherente:
+            // si un pago se aprueba a mitad del sorteo, el conteo cambia y el lote entra.
             $loaded = BingoCard::where('room_id', $roomId)
                 ->where('status', BingoCard::STATUS_ACTIVE)
+                ->withoutUnconfirmedPayment()
                 ->with($with)
                 ->get();
 
@@ -664,6 +668,18 @@ final class BingoDrawService
             return null;
         }
 
+        // Reclamo manual ("¡BINGO!" vía check-bingo, incluido el de jugadores externos)
+        // que ganó la carrera: si ya existe un premio para la ronda activa, el ganador
+        // ya fue declarado (y posiblemente pagado) por otro proceso. Sin este chequeo
+        // claimCardWin() devolvía null para ese cartón (premio ya pagado) y el sorteo
+        // seguía cantando fichas — e incluso podía premiar a un segundo cartón en una
+        // ficha posterior. Se verifica ANTES de recorrer los cartones para no crear
+        // premios adicionales en la ronda.
+        $existingPrizes = BingoCardPrize::where('round_id', (string) $round->id)->get();
+        if ($existingPrizes->isNotEmpty()) {
+            return $this->endWithExistingPrizes($room, $round, $pattern, $existingPrizes, $drawnNumbers, $lastDrawId);
+        }
+
         $drawnSet = array_flip($drawnNumbers);
 
         $cards = $this->activeCards($room, ['roomUser.user', 'cardLot']);
@@ -765,6 +781,73 @@ final class BingoDrawService
             'room_id' => $room->id,
             'total_chips' => count($drawnNumbers),
             'winners' => $winners,
+        ];
+    }
+
+    /**
+     * Cierra ronda/sala cuando el ganador ya fue declarado por otro proceso
+     * (reclamo manual vía check-bingo). No crea ni re-paga premios: solo cierra
+     * y emite el fin de juego con los premios ya registrados en la ronda.
+     *
+     * @param \Illuminate\Support\Collection<int, BingoCardPrize> $prizes
+     */
+    private function endWithExistingPrizes(
+        BingoRoom $room,
+        BingoRound $round,
+        BingoPattern $pattern,
+        \Illuminate\Support\Collection $prizes,
+        array $drawnNumbers,
+        int $lastDrawId,
+    ) : array {
+        $this->closeRoundAndRoom($round, $room);
+
+        $winners = $prizes->map(fn (BingoCardPrize $prize) => [
+            'user_id' => (int) $prize->creator_user_id,
+            'card_id' => (string) $prize->winning_card_id,
+            'card_prize_id' => (string) $prize->id,
+            'prize' => (float) $prize->usd_amount,
+            'pattern' => $prize->winning_pattern ?? $pattern->name,
+            'round' => $round->round,
+        ])->values()->all();
+
+        $totalPrize = array_sum(array_column($winners, 'prize'));
+
+        try {
+            broadcast(new BingoGameEnded(
+                roomId: (int) $room->id,
+                drawId: $lastDrawId,
+                hasWinner: true,
+                totalDrawn: count($drawnNumbers),
+                winners: $winners,
+                prize: $totalPrize,
+                endTime: now()->toISOString(),
+            ));
+        } catch (Throwable $e) {
+            Log::error('[BingoDrawService] Error al emitir BingoGameEnded (ganador previo) — sorteo ya cerrado en BD', [
+                'room_id' => $room->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        $this->auditLogger->log($room, BingoRoomAuditLogger::EVENT_DRAW_FINISHED, 'system', 'Sorteo finalizado: ganador ya declarado por reclamo manual', [
+            'round_id' => (string) $round->id,
+            'total_drawn' => count($drawnNumbers),
+            'prize_ids' => array_column($winners, 'card_prize_id'),
+        ]);
+
+        Log::info('[BingoDrawService] Ganador ya declarado por otro proceso — sorteo detenido', [
+            'room_id' => $room->id,
+            'round_id' => (string) $round->id,
+            'drawn' => count($drawnNumbers),
+            'prizes' => count($winners),
+        ]);
+
+        return [
+            'success' => true,
+            'room_id' => $room->id,
+            'total_chips' => count($drawnNumbers),
+            'winners' => $winners,
+            'alreadyFinished' => true,
         ];
     }
 

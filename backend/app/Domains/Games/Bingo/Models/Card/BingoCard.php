@@ -138,6 +138,24 @@ class BingoCard extends Model
         return $query->where('status', self::STATUS_WINNER);
     }
 
+    /**
+     * Excluye cartones cuyo lote tiene un pago aún no confirmado (PENDING) o
+     * rechazado (REJECTED) en bingo_card_payments — mismo criterio que la vista
+     * del jugador (BingoGameService) y la verificación manual de bingo: un
+     * cartón que el sistema todavía no confirmó como pagado no participa ni
+     * gana en el sorteo. NOT EXISTS (y no NOT IN) para que los cartones sin
+     * card_lot_id no queden excluidos por la semántica de NULL.
+     */
+    public function scopeWithoutUnconfirmedPayment($query)
+    {
+        return $query->whereNotExists(
+            fn ($q) => $q->selectRaw('1')
+                ->from('bingo_card_payments')
+                ->whereColumn('bingo_card_payments.card_lot_id', 'bingo_cards.card_lot_id')
+                ->whereIn('bingo_card_payments.payment_status', ['PENDING', 'REJECTED']),
+        );
+    }
+
     public function seller() : BelongsTo
     {
         return $this->belongsTo(User::class, 'seller_user_id');

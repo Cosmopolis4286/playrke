@@ -139,6 +139,17 @@ final class BingoCardGenerateException extends DomainException
         return new self('BINGO_CARD_SALES_CLOSED', 409, replacements: ['minutes' => $minutes]);
     }
 
+    /**
+     * La sala ya inició (status IN_PROGRESS/FINISHED o su unix_date ya pasó —
+     * ver BingoRoom::hasStarted()): la venta está cerrada para todos los
+     * canales, incluida la compra con billetera del jugador. Un cartón comprado
+     * con el sorteo en curso jugaría con fichas ya cantadas.
+     */
+    public static function salesClosedRoomStarted() : self
+    {
+        return new self('BINGO_CARD_SALES_CLOSED_ROOM_STARTED', 409);
+    }
+
     public static function sellerNotFound() : self
     {
         return new self('BINGO_CARD_SELLER_NOT_FOUND', 404);

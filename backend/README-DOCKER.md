@@ -170,8 +170,10 @@ docker-compose -f docker-compose.prod.yml exec php chmod -R 775 storage bootstra
 ```
 
 ### Queue Issues
+Dos workers: `queue` (colas `default,bingo-refunds`) y `queue-bingo-draw` (cola `bingo-draw`,
+dedicado al sorteo porque un `StartBingoDrawJob` ocupa su worker durante toda la partida).
 ```bash
-docker-compose -f docker-compose.prod.yml restart queue
+docker-compose -f docker-compose.prod.yml restart queue queue-bingo-draw
 ```
 
 ### Migration Issues

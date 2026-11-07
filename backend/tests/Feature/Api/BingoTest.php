@@ -199,6 +199,61 @@ class BingoTest extends TestCase
         $this->assertEquals(100.0, (float) $wallet->fresh()->balance);
     }
 
+    /**
+     * Punta a punta: compra con billetera → sorteo → ganador → premio → sala
+     * FINISHED. El patrón de la ronda es solo la casilla libre (N3): cualquier
+     * cartón lo completa con la primera ficha, así el sorteo termina antes del
+     * bucle de fichas (que duerme time_chip segundos entre fichas; con
+     * time_chip vacío y APP_ENV=testing caería al fallback de 5 s) y el
+     * resultado es determinista pese a la secuencia aleatoria.
+     *
+     * @test
+     */
+    public function full_draw_from_wallet_purchase_to_finished_room()
+    {
+        $player = $this->makePlayer();
+        $room = $this->makeRoom([], ['game_variant' => 'BINGO_75']);
+        $this->makeWallet($player, 100);
+
+        $this->actingAs($player)
+            ->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", ['card_count' => 1])
+            ->assertOk();
+
+        $card = BingoCard::where('room_id', $room->id)->sole();
+
+        $pattern = \App\Domains\Games\Bingo\Models\Pattern\BingoPattern::create([
+            'num_id' => random_int(100, 250),
+            'type_pattern' => 'UNIQUE',
+            'name' => 'Solo casilla libre (test)',
+            'user_id' => null,
+            'boxes' => 'N3',
+            'status' => 'ACTIVE',
+        ]);
+        $round = \App\Domains\Games\Bingo\Models\Round\BingoRound::create([
+            'room_id' => $room->id,
+            'room_config_id' => $room->config->id,
+            'round' => 1,
+            'prize_type' => 'PCT',
+            'bingo_pattern_id' => $pattern->id,
+            'status' => 'ACTIVE',
+        ]);
+
+        $result = app(\App\Domains\Games\Bingo\Services\Game\BingoDrawService::class)->startDraw($room->fresh());
+
+        $this->assertTrue($result['success']);
+        $this->assertCount(1, $result['winners']);
+        $this->assertSame((string) $card->id, $result['winners'][0]['card_id']);
+        $this->assertSame(BingoCard::STATUS_WINNER, (int) $card->fresh()->status);
+
+        $prizes = \App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize::where('round_id', $round->id)->get();
+        $this->assertCount(1, $prizes);
+        $this->assertSame((string) $card->id, (string) $prizes->first()->winning_card_id);
+
+        $this->assertSame('FINISHED', $round->fresh()->status);
+        $this->assertSame('FINISHED', $room->fresh()->load('status')->status->code);
+        $this->assertNotNull($room->fresh()->finished_at);
+    }
+
     /** @test */
     public function guest_is_redirected_when_accessing_bingo_game_endpoints()
     {
@@ -320,6 +375,48 @@ class BingoTest extends TestCase
         $this->assertEquals(80.0, (float) $response->json('wallet_balance'));
         $this->assertEquals(80.0, (float) $wallet->fresh()->balance);
         $this->assertEquals(2, BingoCard::where('room_id', $room->id)->where('creator_user_id', $player->id)->count());
+    }
+
+    /**
+     * Venta cerrada en cuanto la sala inicia: antes la compra con billetera
+     * admitía IN_PROGRESS y el cartón jugaba con fichas ya cantadas.
+     *
+     * @test
+     */
+    public function player_cannot_purchase_cards_when_room_is_in_progress()
+    {
+        $player = $this->makePlayer();
+        $room = $this->makeRoom(['status_code' => 'IN_PROGRESS']);
+        $wallet = $this->makeWallet($player, 100);
+
+        $response = $this->actingAs($player)
+            ->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", ['card_count' => 1]);
+
+        $response->assertStatus(409)
+            ->assertJsonPath('error_code', 'BINGO_CARD_SALES_CLOSED_ROOM_STARTED');
+        $this->assertEquals(100.0, (float) $wallet->fresh()->balance);
+        $this->assertSame(0, BingoCard::where('room_id', $room->id)->count());
+    }
+
+    /**
+     * Sala aún ACTIVE pero con la hora de inicio (unix_date) ya pasada — el
+     * cron todavía no la pasó a IN_PROGRESS: también está cerrada.
+     *
+     * @test
+     */
+    public function player_cannot_purchase_cards_when_room_start_time_has_passed()
+    {
+        $player = $this->makePlayer();
+        $room = $this->makeRoom([], ['unix_date' => now()->subMinute()->timestamp]);
+        $wallet = $this->makeWallet($player, 100);
+
+        $response = $this->actingAs($player)
+            ->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", ['card_count' => 1]);
+
+        $response->assertStatus(409)
+            ->assertJsonPath('error_code', 'BINGO_CARD_SALES_CLOSED_ROOM_STARTED');
+        $this->assertEquals(100.0, (float) $wallet->fresh()->balance);
+        $this->assertSame(0, BingoCard::where('room_id', $room->id)->count());
     }
 
     /** @test */

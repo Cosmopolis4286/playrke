@@ -249,7 +249,8 @@ cd backend
 # Desarrollo
 php artisan serve                    # Servidor dev
 php artisan reverb:start             # WebSockets
-php artisan queue:work               # Procesar colas
+php artisan queue:work --queue=default,bingo-refunds   # Colas generales + reembolsos de cartones
+php artisan queue:work --queue=bingo-draw              # Sorteo de bingo (worker dedicado: un sorteo lo ocupa toda la partida)
 
 # Base de datos
 php artisan migrate                  # Migraciones

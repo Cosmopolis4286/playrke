@@ -122,6 +122,9 @@ class BingoRoomRequest extends BaseRequest
             'timeChip.required' => 'El tiempo de ficha es obligatorio.',
 
             'rounds.required' => 'El número de rondas es obligatorio.',
+            'rounds.min' => 'Por ahora las salas de bingo admiten una sola ronda.',
+            'rounds.max' => 'Por ahora las salas de bingo admiten una sola ronda.',
+            'roundsConfig.max' => 'Por ahora las salas de bingo admiten una sola ronda.',
 
             'serialsPct.required_if' => 'El porcentaje de seriales es obligatorio cuando se usan seriales.',
             'serialsPct.min' => 'El porcentaje de seriales no puede ser menor a 2.',
@@ -204,7 +207,11 @@ class BingoRoomRequest extends BaseRequest
 
             // Configuración general del juego
             'timeChip' => ['required', 'integer', 'min:3', 'max:10'],
-            'rounds' => ['required', 'integer', 'min:1', 'max:15'],
+            // v1: una sola ronda por sala. Con varias rondas la detección de bingo
+            // y el estado del sorteo mezclan las bolas de todas las rondas (las
+            // consultas de bingo_draws no filtran por round_id). Las salas ya
+            // existentes con más rondas no se tocan.
+            'rounds' => ['required', 'integer', 'min:1', 'max:1'],
             'roundsPct' => ['nullable', 'numeric', 'min:5', 'max:90'],
             'useSerials' => ['boolean'],
             'serialsPct' => ['required_if:useSerials,true', 'nullable', 'numeric', 'min:2', 'max:35'],
@@ -223,7 +230,7 @@ class BingoRoomRequest extends BaseRequest
             'maxSpecialCards' => ['nullable', 'integer', 'min:1', 'max:5'],
 
             // Configuración de rondas
-            'roundsConfig' => ['nullable', 'array'],
+            'roundsConfig' => ['nullable', 'array', 'max:1'],
             'roundsConfig.*.prizeType' => ['required_with:roundsConfig', 'in:percentage,fixed,prize'],
             'roundsConfig.*.bingoPattern' => ['nullable', 'exists:bingo_patterns,id'],
             'roundsConfig.*.prizeValue' => ['nullable', 'numeric', 'min:0', 'max:100'],

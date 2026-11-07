@@ -175,6 +175,21 @@ class BingoRoomRequestPrizePoolJackpotTest extends TestCase
         $this->assertFalse($errors->has('jackpotType'));
     }
 
+    /** v1: una sola ronda por sala (varias rondas mezclan las bolas de todas las rondas). */
+    #[Test]
+    #[DataProvider('requestClasses')]
+    public function solo_se_admite_una_ronda(string $class) : void
+    {
+        [$errors] = $this->validate($class, ['rounds' => 1, 'roundsConfig' => self::rounds('percentage')]);
+        $this->assertFalse($errors->has('rounds'));
+        $this->assertFalse($errors->has('roundsConfig'));
+
+        [$errors] = $this->validate($class, ['rounds' => 2, 'roundsConfig' => self::rounds('percentage', 'percentage')]);
+        $this->assertTrue($errors->has('rounds'));
+        $this->assertSame('Por ahora las salas de bingo admiten una sola ronda.', $errors->first('rounds'));
+        $this->assertTrue($errors->has('roundsConfig'));
+    }
+
     #[Test]
     #[DataProvider('requestClasses')]
     public function suma_de_porcentajes_se_valida_con_base_usd(string $class) : void

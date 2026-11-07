@@ -287,6 +287,9 @@ services:
   # ==========================================
   # Queue Worker
   # ==========================================
+  # Colas generales y reembolsos de cartones (BingoCardLotRefundJob → bingo-refunds).
+  # Separado del worker del sorteo: StartBingoDrawJob bloquea su worker durante
+  # toda la partida (sleep entre fichas) y dejaría estas colas sin procesar.
   queue:
     build:
       context: ./backend
@@ -317,7 +320,41 @@ services:
     command: >
       sh -c "
         sleep 5;
-        php artisan queue:work --queue=default,bingo-draw --tries=3 --timeout=600 --sleep=3
+        php artisan queue:work --queue=default,bingo-refunds --tries=3 --timeout=600 --sleep=3
+      "
+
+  # Worker dedicado al sorteo (StartBingoDrawJob): un job ocupa el worker toda la partida.
+  queue-bingo-draw:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: playrke-queue-bingo-draw
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./backend:/var/www
+      - backend_vendor:/var/www/vendor
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      APP_ENV: local
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: playrke
+      DB_USERNAME: playrke
+      DB_PASSWORD: playrke
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      QUEUE_CONNECTION: redis
+    networks:
+      - playrke-network
+    command: >
+      sh -c "
+        sleep 5;
+        php artisan queue:work --queue=bingo-draw --tries=3 --timeout=600 --sleep=3
       "
 
 # ==========================================

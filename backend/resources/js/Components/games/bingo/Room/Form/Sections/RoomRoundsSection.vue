@@ -9,7 +9,7 @@
   } from '../Composables/useRoomRounds'
   import { getCurrencyLabel } from '../Composables/useRoomCurrency'
   import { sanitizeNumericInput } from '../Utils/numericInput'
-  import { BINGO_ROOM_AMOUNT_LIMITS } from '@/js/composables/games/bingo/room/shared/bingoRoomFormSchema'
+  import { BINGO_ROOM_AMOUNT_LIMITS, BINGO_ROOM_INT_LIMITS } from '@/js/composables/games/bingo/room/shared/bingoRoomFormSchema'
   import type { BingoRoomFormData, RoundConfig } from '@/js/types/games/bingo/room/bingo-room'
   import type { SelectOption } from '@/js/types/common/form/form'
 
@@ -196,18 +196,21 @@
       </div>
     </div>
 
-    <!-- Rondas -->
+    <!-- Rondas — v1: fijo en 1 (varias rondas mezclan las bolas de todas las
+         rondas en la detección de bingo). Solo queda editable si una sala
+         existente trae otro valor, para poder bajarlo a 1 al guardarla. -->
     <FormInput
       label="Rondas"
       name="rounds"
       :error="errors.rounds"
-      :disabled="locked"
+      :disabled="locked || Number(modelValue.rounds) === BINGO_ROOM_INT_LIMITS.rounds.max"
       type="number"
       integer
       required
       :step="1"
-      :min="1"
-      :max="15"
+      :min="BINGO_ROOM_INT_LIMITS.rounds.min"
+      :max="BINGO_ROOM_INT_LIMITS.rounds.max"
+      hint="Por ahora las salas admiten una sola ronda."
       col="col-sm-6 col-md-4 col-lg-3"
       inputGroup
       :modelValue="modelValue.rounds"
