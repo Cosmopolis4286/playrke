@@ -72,10 +72,17 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
             // Buscar usuario existente
             $roomUser = null;
             $isNew = false;
+            $wasPlayer = false;
 
             // Si se proporciona roomUser ID, buscar por ID
             if (isset($userData['roomUser']) && $userData['roomUser']) {
-                $roomUser = $this->findRoomUser($userData['roomUser']);
+                // El ID suministrado debe pertenecer a esta sala y usuario.
+                // Nunca permitir actualizar una fila de otra sala por ID ajeno.
+                $roomUser = BingoRoomUser::query()
+                    ->whereKey($userData['roomUser'])
+                    ->where('room_id', $userData['roomId'])
+                    ->where('user_id', $userData['creator']['id'])
+                    ->first();
             }
 
             // Si no se encontró por ID, buscar por room_id + user_id
@@ -83,6 +90,16 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
                 $roomUser = BingoRoomUser::where('room_id', $userData['roomId'])
                     ->where('user_id', $userData['creator']['id'])
                     ->first();
+            }
+
+            if ($roomUser) {
+                $wasPlayer = in_array($roomUser->role, [
+                    BingoRoomUser::ROLE_PLAYER,
+                    BingoRoomUser::ROLE_PLAYER_SELLER,
+                ], true) && BingoCardLot::query()
+                    ->where('room_user_id', $roomUser->id)
+                    ->where('status', 'ACTIVE')
+                    ->exists();
             }
 
             if (! $roomUser) {
@@ -107,7 +124,12 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
                 $roomUser->update(['role' => $resolvedRole]);
             }
 
-            return ['id' => $roomUser->id, 'isNew' => $isNew];
+            $isPlayer = in_array($roomUser->role, [
+                BingoRoomUser::ROLE_PLAYER,
+                BingoRoomUser::ROLE_PLAYER_SELLER,
+            ], true);
+
+            return ['id' => $roomUser->id, 'isNew' => $isNew, 'isNewPlayer' => ! $wasPlayer && $isPlayer];
         } catch (Throwable $e) {
             Log::error('Error al registrar o actualizar el usuario de sala: ' . $e->getMessage());
             Log::error('Datos userData:', $userData);

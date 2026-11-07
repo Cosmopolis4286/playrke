@@ -57,6 +57,15 @@ final class BingoCardGenerationService
      */
     public function generateCards(array $cardOrder) : array
     {
+        // El lockForUpdate solo protege si existe una transacción activa.
+        // Encerrar el flujo completo evita ventas/contadores parciales concurrentes.
+        return DB::transaction(function () use ($cardOrder) : array {
+            return $this->generateCardsWithinTransaction($cardOrder);
+        }, 3);
+    }
+
+    private function generateCardsWithinTransaction(array $cardOrder) : array
+    {
         $roomId = $cardOrder['roomId'];
 
         // Cargamos la sala con su estado directamente
@@ -281,7 +290,7 @@ final class BingoCardGenerationService
      */
     public function generateInTransaction(array $cardOrder) : array
     {
-        return DB::transaction(fn () => $this->generateCards($cardOrder));
+        return $this->generateCards($cardOrder);
     }
 
     /**
