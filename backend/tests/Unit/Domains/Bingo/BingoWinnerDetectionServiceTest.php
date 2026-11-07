@@ -223,6 +223,38 @@ class BingoWinnerDetectionServiceTest extends TestCase
         );
     }
 
+    public function test_pending_payment_cannot_be_approved_after_its_lot_was_refunded() : void
+    {
+        $user = User::factory()->create();
+        ['room' => $room, 'card' => $card] =
+            $this->makeRoomWithCard($this->winningCardNumbers(), $user, 'DEMO');
+
+        $payment = BingoCardPayment::create([
+            'payment_method' => 'mobile_payment',
+            'description' => 'Comprobante pendiente de revisión',
+            'room_id' => $room->id,
+            'seller_user_id' => $user->id,
+            'user_id' => $user->id,
+            'currency_id' => $card->currency_id,
+            'card_lot_id' => $card->card_lot_id,
+            'payment_amount' => 1,
+            'payment_proof' => 'private/receipts/bingo/test.jpg',
+            'payment_status' => 'PENDING',
+        ]);
+
+        \\App\\Domains\\Games\\Bingo\\Models\\Card\\BingoCardLot::whereKey($card->card_lot_id)
+            ->update(['status' => 'REFUNDED']);
+
+        try {
+            app(BingoCardPaymentReviewService::class)->approve($payment);
+            $this->fail('No se debe aprobar un pago cuyo lote ya fue reembolsado.');
+        } catch (\\DomainException $e) {
+            $this->assertStringContainsString('lote de cartones', $e->getMessage());
+        }
+
+        $this->assertSame('PENDING', $payment->fresh()->payment_status);
+    }
+
     public function test_pending_payment_carton_cannot_be_claimed_manually_or_atomically() : void
     {
         $user = User::factory()->create();
