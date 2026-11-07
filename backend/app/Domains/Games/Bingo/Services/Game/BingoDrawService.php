@@ -696,6 +696,7 @@ final class BingoDrawService
             'last_chip' => BingoDraw::where('room_id', (string) $round->room_id)
                 ->where('round_id', (string) $round->id)
                 ->orderBy('created_at', 'desc')
+                ->orderBy('id', 'desc')
                 ->value('chip'),
         ]);
 
