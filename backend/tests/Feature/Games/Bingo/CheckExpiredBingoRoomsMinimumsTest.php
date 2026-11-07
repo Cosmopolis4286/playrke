@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Games\Bingo;
 
+use App\Domains\Games\Bingo\Exceptions\Room\BingoRoomException;
 use App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomCardCapacityGuard;
