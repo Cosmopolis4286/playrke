@@ -1,10 +1,10 @@
 <?php
 
-namespace App\\Domains\\Games\\Bingo\\Events;
+namespace App\Domains\Games\Bingo\Events;
 
-use Illuminate\\Broadcasting\\Channel;
-use Illuminate\\Contracts\\Broadcasting\\ShouldBroadcastNow;
-use Illuminate\\Queue\\SerializesModels;
+use Illuminate\Broadcasting\Channel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Queue\SerializesModels;
 
 class BingoPlayersProgress implements ShouldBroadcastNow
 {
@@ -33,8 +33,8 @@ class BingoPlayersProgress implements ShouldBroadcastNow
 
     public function broadcastWith()
     {
-        // El canal es público. Mantener el ranking visual de proximidad al
-        // bingo, pero sustituir IDs y nombres reales por alias de esta emisión.
+        // El canal es público. Mantener el ranking visual, pero sustituir
+        // identidad y nombre reales por alias ordinales de esta emisión.
         $players = array_values(array_map(
             static fn (array $player, int $index) => [
                 'user_id' => $index + 1,
