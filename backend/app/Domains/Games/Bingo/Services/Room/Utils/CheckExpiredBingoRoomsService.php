@@ -4,6 +4,7 @@ namespace App\Domains\Games\Bingo\Services\Room\Utils;
 
 use App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
+use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator;
@@ -13,6 +14,8 @@ use Carbon\Carbon;
 use Closure;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
+use Throwable;
 
 /**
  * Verifica salas de bingo cuya fecha+hora programada ya expiró (unix_date <= ahora)
@@ -189,8 +192,27 @@ final class CheckExpiredBingoRoomsService
                 ->pluck('id');
 
             foreach ($lotIds as $lotId) {
-                BingoCardLotRefundJob::dispatch((string) $lotId, (string) $room->id)
-                    ->onQueue('bingo-refunds');
+                try {
+                    BingoCardLotRefundJob::dispatch((string) $lotId, (string) $room->id)
+                        ->onQueue('bingo-refunds');
+                } catch (Throwable $exception) {
+                    $lot = BingoCardLot::query()->find((string) $lotId);
+
+                    if (! $lot) {
+                        Log::critical('[CheckExpiredBingoRoomsService] No se encontró el lote tras fallar el despacho del reembolso', [
+                            'room_id' => (string) $room->id,
+                            'lot_id' => (string) $lotId,
+                            'error' => $exception->getMessage(),
+                        ]);
+
+                        throw new RuntimeException(
+                            'No se pudo registrar un reembolso de sala expirada.',
+                            previous: $exception,
+                        );
+                    }
+
+                    $this->recordRefundDispatchFailure($lot, $room, $exception);
+                }
             }
         }
     }
@@ -225,5 +247,46 @@ final class CheckExpiredBingoRoomsService
         }
 
         return null;
+    }
+
+    /**
+     * Persiste una tarea recuperable cuando el broker no acepta el despacho.
+     * El job de reembolso es idempotente y tolera un enqueue ambiguo.
+     */
+    private function recordRefundDispatchFailure(BingoCardLot $lot, BingoRoom $room, Throwable $exception) : void
+    {
+        try {
+            BingoLotRefundFailure::updateOrCreate(
+                ['lot_id' => (string) $lot->id, 'room_id' => (string) $room->id],
+                [
+                    'user_id' => (string) $lot->user_id,
+                    'currency_id' => $lot->currency_id ? (string) $lot->currency_id : null,
+                    'amount' => (float) $lot->sale_amount,
+                    'error_message' => 'QUEUE_DISPATCH_FAILED: ' . $exception->getMessage(),
+                    'status' => 'PENDING',
+                    'attempts' => 0,
+                    'last_attempted_at' => null,
+                    'resolved_at' => null,
+                ],
+            );
+        } catch (Throwable $persistenceError) {
+            Log::critical('[CheckExpiredBingoRoomsService] No se pudo persistir el reembolso pendiente', [
+                'room_id' => (string) $room->id,
+                'lot_id' => (string) $lot->id,
+                'dispatch_error' => $exception->getMessage(),
+                'persistence_error' => $persistenceError->getMessage(),
+            ]);
+
+            throw new RuntimeException(
+                'Falló el despacho y no se pudo persistir el reembolso pendiente.',
+                previous: $persistenceError,
+            );
+        }
+
+        Log::error('[CheckExpiredBingoRoomsService] Reembolso pendiente guardado tras fallo de cola', [
+            'room_id' => (string) $room->id,
+            'lot_id' => (string) $lot->id,
+            'error' => $exception->getMessage(),
+        ]);
     }
 }

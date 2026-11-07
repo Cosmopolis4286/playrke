@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Domains\Bingo;
 
-use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Game\BingoRoomHealthCheckService;
 use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Mockery;
 use Tests\TestCase;
 
@@ -59,20 +57,15 @@ class BingoRoomHealthCheckServiceTest extends TestCase
         int $minCards,
     ) : BingoRoom {
         $coordinator = Mockery::mock(BingoRoomStateCoordinator::class);
-        $coordinator->shouldReceive('synchronizeCounters')
+        $coordinator->shouldReceive('countPlayers')
             ->once()
-            ->with('health-check-room')
-            ->andReturn(['total_players' => $actualPlayers, 'total_cards' => $actualCards]);
+            ->with(Mockery::type(BingoRoom::class))
+            ->andReturn($actualPlayers);
         $coordinator->shouldReceive('countEligibleCardsForDraw')
             ->once()
-            ->with('health-check-room')
+            ->with(Mockery::type(BingoRoom::class))
             ->andReturn($actualCards);
         $this->app->instance(BingoRoomStateCoordinator::class, $coordinator);
-
-        $cards = Mockery::mock(HasMany::class);
-        $cards->shouldReceive('where')->once()->with('status', BingoCard::STATUS_ACTIVE)->andReturnSelf();
-        $cards->shouldReceive('eligibleForDraw')->once()->andReturnSelf();
-        $cards->shouldReceive('count')->once()->andReturn($actualCards);
 
         /** @var BingoRoom&\Mockery\MockInterface $room */
         $room = Mockery::mock(BingoRoom::class)->makePartial();
@@ -80,7 +73,6 @@ class BingoRoomHealthCheckServiceTest extends TestCase
             ->once()
             ->with(['rounds', 'config'])
             ->andReturnSelf();
-        $room->shouldReceive('cards')->once()->andReturn($cards);
 
         $room->setAttribute('id', 'health-check-room');
         $room->setAttribute('total_players', $denormalizedPlayers);
