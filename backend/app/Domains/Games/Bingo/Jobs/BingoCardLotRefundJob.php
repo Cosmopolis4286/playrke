@@ -300,4 +300,5 @@ final class BingoCardLotRefundJob implements ShouldQueue
     private function resolveExternalBuyer(BingoCardLot $lot) : ?ExternalPlayer
     {
         return app(ExternalPlayerLotBuyerResolver::class)->resolve($lot);
-    }}
+    }
+}
