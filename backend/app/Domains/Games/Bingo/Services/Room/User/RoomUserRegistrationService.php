@@ -25,7 +25,9 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
                 'room_id' => $userData['roomId'],
                 'user_id' => $userData['creator']['id'],
                 'cards_purchased' => $userData['cardCount'],
-                'role' => ! empty($userData['externalPlayerId']) ? BingoRoomUser::ROLE_SELLER : BingoRoomUser::ROLE_PLAYER,
+                'role' => ! empty($userData['externalPlayerId'])
+                    ? BingoRoomUser::ROLE_SELLER
+                    : BingoRoomUser::ROLE_PLAYER,
                 'automarker' => 1,
             ];
 
@@ -75,7 +77,10 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
 
             // Si se proporciona roomUser ID, buscar por ID
             if (isset($userData['roomUser']) && $userData['roomUser']) {
-                $roomUser = BingoRoomUser::whereKey($userData['roomUser'])
+                // El ID suministrado debe pertenecer a esta sala y usuario.
+                // Nunca permitir actualizar una fila de otra sala por ID ajeno.
+                $roomUser = BingoRoomUser::query()
+                    ->whereKey($userData['roomUser'])
                     ->where('room_id', $userData['roomId'])
                     ->where('user_id', $userData['creator']['id'])
                     ->first();
@@ -89,8 +94,13 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
             }
 
             if ($roomUser) {
-                $wasPlayer = in_array($roomUser->role, [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER], true)
-                    && BingoCardLot::query()->where('room_user_id', $roomUser->id)->where('status', 'ACTIVE')->exists();
+                $wasPlayer = in_array($roomUser->role, [
+                    BingoRoomUser::ROLE_PLAYER,
+                    BingoRoomUser::ROLE_PLAYER_SELLER,
+                ], true) && BingoCardLot::query()
+                    ->where('room_user_id', $roomUser->id)
+                    ->where('status', 'ACTIVE')
+                    ->exists();
             }
 
             if (! $roomUser) {
@@ -101,20 +111,24 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
                 }
                 $isNew = true;
             } else {
-                // Un usuario que solo representa ventas POS es SELLER, no jugador.
-                // Si después compra como jugador interno, pasa a PLAYER_SELLER.
-                if (empty($userData['externalPlayerId']) && $roomUser->role === BingoRoomUser::ROLE_SELLER) {
-                    $roomUser->role = BingoRoomUser::ROLE_PLAYER_SELLER;
-                    $roomUser->save();
-                }
-
-                // Actualizar cartones del usuario existente.
+                // Actualizar cartones del usuario existente
                 if (! $this->updateUserCards($roomUser, $userData['cardCount'])) {
                     return null;
                 }
             }
 
-            $isPlayer = in_array($roomUser->role, [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER], true);
+            // Una fila puede representar a un jugador directo, a un vendedor
+            // que agrupa compradores externos o a ambos. No contar al vendedor
+            // POS como participante, pero conservar el rol mixto si también juega.
+            $resolvedRole = $this->resolveRole($userData, $roomUser);
+            if ($roomUser->role !== $resolvedRole) {
+                $roomUser->update(['role' => $resolvedRole]);
+            }
+
+            $isPlayer = in_array($roomUser->role, [
+                BingoRoomUser::ROLE_PLAYER,
+                BingoRoomUser::ROLE_PLAYER_SELLER,
+            ], true);
 
             return ['id' => $roomUser->id, 'isNew' => $isNew, 'isNewPlayer' => ! $wasPlayer && $isPlayer];
         } catch (Throwable $e) {
@@ -123,6 +137,33 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
 
             return null;
         }
+    }
+
+
+    private function resolveRole(array $userData, BingoRoomUser $roomUser) : string
+    {
+        if ($roomUser->role === BingoRoomUser::ROLE_ADMIN) {
+            return BingoRoomUser::ROLE_ADMIN;
+        }
+
+        $isExternalSale = ! empty($userData['externalPlayerId']);
+        $hasPlayerRole = in_array($roomUser->role, [
+            BingoRoomUser::ROLE_PLAYER,
+            BingoRoomUser::ROLE_PLAYER_SELLER,
+        ], true);
+        $hasSellerRole = in_array($roomUser->role, [
+            BingoRoomUser::ROLE_SELLER,
+            BingoRoomUser::ROLE_PLAYER_SELLER,
+        ], true);
+
+        $hasPlayerRole = $hasPlayerRole || ! $isExternalSale;
+        $hasSellerRole = $hasSellerRole || $isExternalSale;
+
+        return match (true) {
+            $hasPlayerRole && $hasSellerRole => BingoRoomUser::ROLE_PLAYER_SELLER,
+            $hasSellerRole => BingoRoomUser::ROLE_SELLER,
+            default => BingoRoomUser::ROLE_PLAYER,
+        };
     }
 
     /**

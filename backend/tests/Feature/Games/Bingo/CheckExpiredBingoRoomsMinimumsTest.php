@@ -140,17 +140,20 @@ class CheckExpiredBingoRoomsMinimumsTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        // Los participantes deben existir como room users vinculados a lotes
-        // vigentes; total_players es solo un agregado y no una fuente autoritativa.
+        // La fuente de verdad son room users, lotes y cartones persistidos.
+        $lotCount = max($players, 1);
         $baseUserId = (int) $roomId + 800000;
         $baseLotId = (int) $roomId + 700000;
         $remainingCards = $cards;
+        $cardIndex = 0;
 
-        for ($i = 0; $i < $players; $i++) {
+        for ($i = 0; $i < $lotCount; $i++) {
             $roomUserId = (string) ($baseUserId + $i);
             $userId = (string) ($i + 100000);
             $lotId = (string) ($baseLotId + $i);
-            $cardsForPlayer = intdiv($remainingCards, $players - $i);
+            $cardsForPlayer = $players > 0
+                ? intdiv($remainingCards, $players - $i)
+                : $remainingCards;
             $remainingCards -= $cardsForPlayer;
 
             DB::table('bingo_room_users')->insert([
@@ -169,11 +172,31 @@ class CheckExpiredBingoRoomsMinimumsTest extends TestCase
                 'room_id' => $roomId,
                 'room_user_id' => $roomUserId,
                 'user_id' => $userId,
+                'currency_id' => '1',
                 'card_count' => $cardsForPlayer,
                 'status' => 'ACTIVE',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
+            for ($j = 0; $j < $cardsForPlayer; $j++) {
+                $serial = 'EXP-' . $roomId . '-' . $cardIndex;
+                DB::table('bingo_cards')->insert([
+                    'id' => (string) ((int) $roomId + 1000000 + $cardIndex),
+                    'room_id' => $roomId,
+                    'creator_user_id' => $userId,
+                    'room_user_id' => $roomUserId,
+                    'card_lot_id' => $lotId,
+                    'currency_id' => '1',
+                    'serial_number' => $serial,
+                    'card_numbers' => json_encode(['B' => [1], 'I' => [16], 'N' => [31], 'G' => [46], 'O' => [61]]),
+                    'card_hash' => hash('sha256', $serial),
+                    'status' => 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $cardIndex++;
+            }
         }
 
         return $roomId;

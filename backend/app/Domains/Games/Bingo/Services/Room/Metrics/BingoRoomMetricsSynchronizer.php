@@ -81,6 +81,8 @@ class BingoRoomMetricsSynchronizer
             ->join('bingo_card_lots', 'bingo_card_lots.id', '=', 'bingo_cards.card_lot_id')
             ->where('external_player_participations.participable_type', BingoCard::class)
             ->whereNull('external_player_participations.deleted_at')
+            ->whereNull('bingo_cards.deleted_at')
+            ->whereNull('bingo_card_lots.deleted_at')
             ->where('bingo_cards.room_id', $roomId)
             ->where('bingo_card_lots.status', 'ACTIVE');
 
