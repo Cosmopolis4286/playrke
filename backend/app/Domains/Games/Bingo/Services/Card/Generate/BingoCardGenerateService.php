@@ -668,6 +668,14 @@ final class BingoCardGenerateService
         // cerrada…) — no alcanza con que la sala no aparezca en el listado.
         $this->bingoRoomCrud->assertPlayerCanAccessRoom($room);
 
+        // Venta cerrada en cuanto la sala inicia (IN_PROGRESS o unix_date ya
+        // pasada): un cartón comprado con el sorteo en curso jugaría con fichas
+        // ya cantadas. Fail-fast antes de calcular precios; generateCards()
+        // vuelve a verificarlo dentro de la transacción.
+        if ($room->hasStarted()) {
+            throw BingoCardGenerateException::salesClosedRoomStarted();
+        }
+
         $variant = $room->config?->game_variant ?? BingoVariant::BINGO_75;
 
         $customCount = $customMatrices !== null ? count($customMatrices) : 0;
@@ -1415,7 +1423,8 @@ final class BingoCardGenerateService
      * con el sorteo encima (o ya en curso, IN_PROGRESS) dejaba al comprador
      * pagando por una partida que no llegaba a jugar. La compra del jugador
      * con billetera (playerBuyFromGameRooms) no pasa por
-     * aquí: su pago es inmediato y sigue admitiendo IN_PROGRESS.
+     * aquí: su pago es inmediato, pero también cierra en cuanto la sala
+     * inicia (BingoRoom::hasStarted()).
      */
     /**
      * Dueños cuyas salas (PRIVATE incluidas) puede vender el usuario

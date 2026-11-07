@@ -1,5 +1,5 @@
 @echo off
-echo [hybrid] Levantando servicios Docker (php, mysql, redis, reverb, queue, scheduler)...
+echo [hybrid] Levantando servicios Docker (php, mysql, redis, reverb, queue, queue-bingo-draw, scheduler)...
 docker compose -f docker-compose.hybrid.yml --env-file .env.dev up -d
 
 echo.

@@ -7,12 +7,12 @@ use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Wallet\Models\Wallet;
-use Illuminate\Support\Facades\Cache;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Games\Common\Utils\GameStatus;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -202,6 +202,123 @@ class BingoTest extends TestCase
     }
 
     /** @test */
+    public function draw_state_contains_only_numbers_from_the_current_round()
+    {
+        $player = $this->makePlayer();
+        $room = $this->makeRoom();
+        $this->makeRoomUser($room, $player, 1);
+
+        $configId = DB::table('bingo_rooms_config')->where('room_id', $room->id)->value('id');
+        $patternId = $this->nextId();
+        DB::table('bingo_patterns')->insert([
+            'id' => $patternId,
+            'default_pattern' => 'N',
+            'num_id' => 31,
+            'type_pattern' => 'UNIQUE',
+            'name' => 'Test pattern',
+            'user_id' => $this->user->id,
+            'boxes' => '1;2;3',
+            'status' => 'ACTIVE',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $previousRoundId = $this->nextId();
+        $currentRoundId = $this->nextId();
+        foreach ([
+            [$previousRoundId, 1, 'FINISHED'],
+            [$currentRoundId, 2, 'IN_PROGRESS'],
+        ] as [$roundId, $number, $status]) {
+            DB::table('bingo_rounds')->insert([
+                'id' => $roundId,
+                'room_id' => $room->id,
+                'room_config_id' => $configId,
+                'round' => $number,
+                'bingo_pattern_id' => $patternId,
+                'prize_type' => 'PCT',
+                'status' => $status,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        foreach ([[$previousRoundId, 7], [$currentRoundId, 42]] as [$roundId, $chip]) {
+            BingoDraw::create([
+                'room_id' => $room->id,
+                'round_id' => $roundId,
+                'chip' => (string) $chip,
+                'code' => 'B-' . $chip,
+                'time' => 0,
+                'status' => 'FINISHED',
+            ]);
+        }
+
+        Cache::forget("bingo:draw-state:draw:{$room->id}");
+        Cache::forget("bingo:draw-state:draw:{$room->id}:{$currentRoundId}");
+
+        $response = $this->actingAs($player)
+            ->getJson("/bingo/{$room->hashed_id}/draw-state");
+
+        $response->assertOk();
+        $this->assertSame([42], $response->json('draw'));
+    }
+
+    /**
+     * Punta a punta: compra con billetera → sorteo → ganador → premio → sala
+     * FINISHED. El patrón de la ronda es solo la casilla libre (N3): cualquier
+     * cartón lo completa con la primera ficha, así el sorteo termina antes del
+     * bucle de fichas (que duerme time_chip segundos entre fichas; con
+     * time_chip vacío y APP_ENV=testing caería al fallback de 5 s) y el
+     * resultado es determinista pese a la secuencia aleatoria.
+     *
+     * @test
+     */
+    public function full_draw_from_wallet_purchase_to_finished_room()
+    {
+        $player = $this->makePlayer();
+        $room = $this->makeRoom([], ['game_variant' => 'BINGO_75']);
+        $this->makeWallet($player, 100);
+
+        $this->actingAs($player)
+            ->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", ['card_count' => 1])
+            ->assertOk();
+
+        $card = BingoCard::where('room_id', $room->id)->sole();
+
+        $pattern = \App\Domains\Games\Bingo\Models\Pattern\BingoPattern::create([
+            'num_id' => random_int(100, 250),
+            'type_pattern' => 'UNIQUE',
+            'name' => 'Solo casilla libre (test)',
+            'user_id' => null,
+            'boxes' => 'N3',
+            'status' => 'ACTIVE',
+        ]);
+        $round = \App\Domains\Games\Bingo\Models\Round\BingoRound::create([
+            'room_id' => $room->id,
+            'room_config_id' => $room->config->id,
+            'round' => 1,
+            'prize_type' => 'PCT',
+            'bingo_pattern_id' => $pattern->id,
+            'status' => 'ACTIVE',
+        ]);
+
+        $result = app(\App\Domains\Games\Bingo\Services\Game\BingoDrawService::class)->startDraw($room->fresh());
+
+        $this->assertTrue($result['success']);
+        $this->assertCount(1, $result['winners']);
+        $this->assertSame((string) $card->id, $result['winners'][0]['card_id']);
+        $this->assertSame(BingoCard::STATUS_WINNER, (int) $card->fresh()->status);
+
+        $prizes = \App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize::where('round_id', $round->id)->get();
+        $this->assertCount(1, $prizes);
+        $this->assertSame((string) $card->id, (string) $prizes->first()->winning_card_id);
+
+        $this->assertSame('FINISHED', $round->fresh()->status);
+        $this->assertSame('FINISHED', $room->fresh()->load('status')->status->code);
+        $this->assertNotNull($room->fresh()->finished_at);
+    }
+
+    /** @test */
     public function guest_is_redirected_when_accessing_bingo_game_endpoints()
     {
         $room = $this->makeRoom();
@@ -324,6 +441,48 @@ class BingoTest extends TestCase
         $this->assertEquals(2, BingoCard::where('room_id', $room->id)->where('creator_user_id', $player->id)->count());
     }
 
+    /**
+     * Venta cerrada en cuanto la sala inicia: antes la compra con billetera
+     * admitía IN_PROGRESS y el cartón jugaba con fichas ya cantadas.
+     *
+     * @test
+     */
+    public function player_cannot_purchase_cards_when_room_is_in_progress()
+    {
+        $player = $this->makePlayer();
+        $room = $this->makeRoom(['status_code' => 'IN_PROGRESS']);
+        $wallet = $this->makeWallet($player, 100);
+
+        $response = $this->actingAs($player)
+            ->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", ['card_count' => 1]);
+
+        $response->assertStatus(409)
+            ->assertJsonPath('error_code', 'BINGO_CARD_SALES_CLOSED_ROOM_STARTED');
+        $this->assertEquals(100.0, (float) $wallet->fresh()->balance);
+        $this->assertSame(0, BingoCard::where('room_id', $room->id)->count());
+    }
+
+    /**
+     * Sala aún ACTIVE pero con la hora de inicio (unix_date) ya pasada — el
+     * cron todavía no la pasó a IN_PROGRESS: también está cerrada.
+     *
+     * @test
+     */
+    public function player_cannot_purchase_cards_when_room_start_time_has_passed()
+    {
+        $player = $this->makePlayer();
+        $room = $this->makeRoom([], ['unix_date' => now()->subMinute()->timestamp]);
+        $wallet = $this->makeWallet($player, 100);
+
+        $response = $this->actingAs($player)
+            ->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", ['card_count' => 1]);
+
+        $response->assertStatus(409)
+            ->assertJsonPath('error_code', 'BINGO_CARD_SALES_CLOSED_ROOM_STARTED');
+        $this->assertEquals(100.0, (float) $wallet->fresh()->balance);
+        $this->assertSame(0, BingoCard::where('room_id', $room->id)->count());
+    }
+
     /** @test */
     public function player_cannot_purchase_cards_with_insufficient_balance()
     {
@@ -364,68 +523,6 @@ class BingoTest extends TestCase
         // con las fichas cantadas, junto a totalPlayers/prizePool/roomFinished/etc.
         $response->assertOk()
             ->assertJsonStructure(['draw', 'totalPlayers', 'prizePool', 'roomFinished']);
-    }
-
-    /** @test */
-    public function draw_state_contains_only_numbers_from_the_current_round()
-    {
-        $player = $this->makePlayer();
-        $room = $this->makeRoom();
-        $this->makeRoomUser($room, $player, 1);
-
-        $configId = DB::table('bingo_rooms_config')->where('room_id', $room->id)->value('id');
-        $patternId = $this->nextId();
-        DB::table('bingo_patterns')->insert([
-            'id' => $patternId,
-            'default_pattern' => 'N',
-            'num_id' => 31,
-            'type_pattern' => 'UNIQUE',
-            'name' => 'Test pattern',
-            'user_id' => $this->user->id,
-            'boxes' => '1;2;3',
-            'status' => 'ACTIVE',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $previousRoundId = $this->nextId();
-        $currentRoundId = $this->nextId();
-        foreach ([
-            [$previousRoundId, 1, 'FINISHED'],
-            [$currentRoundId, 2, 'IN_PROGRESS'],
-        ] as [$roundId, $number, $status]) {
-            DB::table('bingo_rounds')->insert([
-                'id' => $roundId,
-                'room_id' => $room->id,
-                'room_config_id' => $configId,
-                'round' => $number,
-                'bingo_pattern_id' => $patternId,
-                'prize_type' => 'PCT',
-                'status' => $status,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
-
-        foreach ([[$previousRoundId, 7], [$currentRoundId, 42]] as [$roundId, $chip]) {
-            BingoDraw::create([
-                'room_id' => $room->id,
-                'round_id' => $roundId,
-                'chip' => (string) $chip,
-                'code' => 'B-' . $chip,
-                'time' => 0,
-                'status' => 'FINISHED',
-            ]);
-        }
-
-        Cache::forget("bingo:draw-state:draw:{$room->id}");
-        Cache::forget("bingo:draw-state:draw:{$room->id}:{$currentRoundId}");
-
-        $response = $this->actingAs($player)
-            ->getJson("/bingo/{$room->hashed_id}/draw-state");
-
-        $response->assertOk();
-        $this->assertSame([42], $response->json('draw'));
     }
 
     /** @test */
