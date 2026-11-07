@@ -4,13 +4,17 @@ namespace App\Domains\Games\Bingo\Services\Room\Utils;
 
 use App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
+use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomMetricsSynchronizer;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Models\Games\Common\Utils\GameStatus;
 use Carbon\Carbon;
 use Closure;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
+use Throwable;
 
 /**
  * Verifica salas de bingo cuya fecha+hora programada ya expiró (unix_date <= ahora)
@@ -29,6 +33,7 @@ final class CheckExpiredBingoRoomsService
 {
     public function __construct(
         private readonly BingoRoomAuditLogger $auditLogger,
+        private readonly BingoRoomMetricsSynchronizer $metrics,
     ) {
     }
 
@@ -53,27 +58,46 @@ final class CheckExpiredBingoRoomsService
 
         // 2. Salas con jugadores (y ambos mínimos alcanzados) → IN_PROGRESS
         // 3. Salas sin jugadores → INACTIVE
-        DB::transaction(function() use ($activeId, $inProgressId, $inactiveId, $expiredSubquery) : void {
-            BingoRoom::where('status_id', $activeId)
-                ->whereHas('config', $expiredSubquery)
-                ->where('total_players', '>', 0)
-                ->where(function($q) {
-                    // Solo si el mínimo de cartones está satisfecho (o no aplica)
-                    $q->whereHas('config', fn ($c) => $c->whereNull('min_cards_to_start'))
-                        ->orWhereHas('config', fn ($c) => $c->whereColumn('min_cards_to_start', '<=', DB::raw('(SELECT COALESCE(SUM(card_count),0) FROM bingo_card_lots WHERE room_id = bingo_rooms.id AND status != \'REFUNDED\')')));
-                })
-                ->where(function($q) {
-                    // Y el mínimo de jugadores también (o no aplica)
-                    $q->whereHas('config', fn ($c) => $c->whereNull('min_players'))
-                        ->orWhereHas('config', fn ($c) => $c->whereColumn('min_players', '<=', 'bingo_rooms.total_players'));
-                })
-                ->update(['status_id' => $inProgressId]);
+        $expiredRooms = BingoRoom::query()
+            ->where('status_id', $activeId)
+            ->whereHas('config', $expiredSubquery)
+            ->pluck('id');
 
-            BingoRoom::where('status_id', $activeId)
-                ->whereHas('config', $expiredSubquery)
-                ->where(fn ($q) => $q->where('total_players', 0)->orWhereNull('total_players'))
-                ->update(['status_id' => $inactiveId]);
-        });
+        foreach ($expiredRooms as $roomId) {
+            DB::transaction(function() use ($roomId, $activeId, $inProgressId, $inactiveId) : void {
+                $room = BingoRoom::query()
+                    ->whereKey($roomId)
+                    ->where('status_id', $activeId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $room) {
+                    return;
+                }
+
+                $room->load('config');
+                if (! $room->config || (int) $room->config->unix_date > Carbon::now('UTC')->timestamp) {
+                    return;
+                }
+
+                $players = $this->metrics->countPlayers($room);
+                if ($players === 0) {
+                    $room->update(['status_id' => $inactiveId]);
+                    return;
+                }
+
+                $minPlayers = $room->config->min_players;
+                $minCards = $room->config->min_cards_to_start;
+                if (($minPlayers !== null && $players < (int) $minPlayers)
+                    || ($minCards !== null && $this->metrics->countCards($room) < (int) $minCards)) {
+                    // Nunca iniciar una sala que siga bajo mínimos; la fase
+                    // anterior debe haberla cancelado y programado el reembolso.
+                    return;
+                }
+
+                $room->update(['status_id' => $inProgressId]);
+            });
+        }
     }
 
     /**
@@ -86,10 +110,10 @@ final class CheckExpiredBingoRoomsService
         // Eager load 'config' para evitar N+1 en el filter().
         $underMinimum = BingoRoom::where('status_id', $activeId)
             ->whereHas('config', $expiredSubquery)
-            ->where('total_players', '>', 0)
             ->whereHas('config', fn ($q) => $q->where(fn ($w) => $w->whereNotNull('min_cards_to_start')->orWhereNotNull('min_players')))
             ->with('config')
             ->get()
+            ->filter(fn (BingoRoom $room) : bool => $this->metrics->countPlayers($room) > 0)
             ->filter(fn (BingoRoom $room) : bool => $this->unmetMinimum($room) !== null);
 
         foreach ($underMinimum as $room) {
@@ -111,6 +135,10 @@ final class CheckExpiredBingoRoomsService
                 // los mínimos y serializa la decisión con los guards de capacidad.
                 $locked->load('config');
                 if (! $locked->config || (int) $locked->config->unix_date > Carbon::now('UTC')->timestamp) {
+                    return null;
+                }
+
+                if ($this->metrics->countPlayers($locked) === 0) {
                     return null;
                 }
 
@@ -167,8 +195,24 @@ final class CheckExpiredBingoRoomsService
                 ->pluck('id');
 
             foreach ($lotIds as $lotId) {
-                BingoCardLotRefundJob::dispatch((string) $lotId, (string) $room->id)
-                    ->onQueue('bingo-refunds');
+                try {
+                    BingoCardLotRefundJob::dispatch((string) $lotId, (string) $room->id)
+                        ->onQueue('bingo-refunds');
+                } catch (Throwable $e) {
+                    $lot = BingoCardLot::find((string) $lotId);
+
+                    if (! $lot) {
+                        Log::critical('[CheckExpiredBingoRoomsService] Falló el despacho y no se encontró el lote para registrar el reembolso', [
+                            'room_id' => (string) $room->id,
+                            'lot_id' => (string) $lotId,
+                            'error' => $e->getMessage(),
+                        ]);
+
+                        throw new RuntimeException('No se pudo registrar un reembolso de sala expirada.', previous: $e);
+                    }
+
+                    $this->recordRefundDispatchFailure($lot, $room, $e);
+                }
             }
         }
     }
@@ -184,20 +228,61 @@ final class CheckExpiredBingoRoomsService
         if ($minCards !== null) {
             // El contador denormalizado de la sala puede estar desfasado; para
             // una decisión financiera de cancelación, contar los lotes vigentes.
-            $totalCards = BingoCardLot::where('room_id', $room->id)
-                ->where('status', '!=', 'REFUNDED')
-                ->sum('card_count');
+            $totalCards = $this->metrics->countCards($room);
 
-            if ((int) $totalCards < (int) $minCards) {
+            if ($totalCards < (int) $minCards) {
                 return 'cards';
             }
         }
 
         $minPlayers = $room->config?->min_players;
-        if ($minPlayers !== null && ($room->total_players ?? 0) < $minPlayers) {
-            return 'players';
+        if ($minPlayers !== null) {
+            $registeredPlayers = $this->metrics->countPlayers($room);
+
+            if ($registeredPlayers < $minPlayers) {
+                return 'players';
+            }
         }
 
         return null;
     }
+
+    /**
+     * Conserva una tarea recuperable si el broker no acepta el despacho.
+     * El job es idempotente, por lo que también tolera un enqueue ambiguo.
+     */
+    private function recordRefundDispatchFailure(BingoCardLot $lot, BingoRoom $room, Throwable $exception) : void
+    {
+        try {
+            BingoLotRefundFailure::updateOrCreate(
+                ['lot_id' => (string) $lot->id, 'room_id' => (string) $room->id],
+                [
+                    'user_id' => (string) $lot->user_id,
+                    'currency_id' => $lot->currency_id ? (string) $lot->currency_id : null,
+                    'amount' => (float) $lot->sale_amount,
+                    'error_message' => 'QUEUE_DISPATCH_FAILED: ' . $exception->getMessage(),
+                    'status' => 'PENDING',
+                    'attempts' => 0,
+                    'last_attempted_at' => null,
+                    'resolved_at' => null,
+                ],
+            );
+        } catch (Throwable $persistenceError) {
+            Log::critical('[CheckExpiredBingoRoomsService] No se pudo persistir el reembolso pendiente', [
+                'room_id' => (string) $room->id,
+                'lot_id' => (string) $lot->id,
+                'dispatch_error' => $exception->getMessage(),
+                'persistence_error' => $persistenceError->getMessage(),
+            ]);
+
+            throw new RuntimeException('Falló el despacho y no se pudo persistir el reembolso pendiente.', previous: $persistenceError);
+        }
+
+        Log::error('[CheckExpiredBingoRoomsService] Reembolso pendiente guardado tras fallo de cola', [
+            'room_id' => (string) $room->id,
+            'lot_id' => (string) $lot->id,
+            'error' => $exception->getMessage(),
+        ]);
+    }
+
 }

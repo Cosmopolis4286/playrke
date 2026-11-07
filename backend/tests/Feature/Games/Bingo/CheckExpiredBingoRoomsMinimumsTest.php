@@ -140,14 +140,41 @@ class CheckExpiredBingoRoomsMinimumsTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        DB::table('bingo_card_lots')->insert([
-            'id' => (string) ((int) $roomId + 700000),
-            'room_id' => $roomId,
-            'card_count' => $cards,
-            'status' => 'ACTIVE',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // Los participantes deben existir como room users vinculados a lotes
+        // vigentes; total_players es solo un agregado y no una fuente autoritativa.
+        $baseUserId = (int) $roomId + 800000;
+        $baseLotId = (int) $roomId + 700000;
+        $remainingCards = $cards;
+
+        for ($i = 0; $i < $players; $i++) {
+            $roomUserId = (string) ($baseUserId + $i);
+            $userId = (string) ($i + 100000);
+            $lotId = (string) ($baseLotId + $i);
+            $cardsForPlayer = intdiv($remainingCards, $players - $i);
+            $remainingCards -= $cardsForPlayer;
+
+            DB::table('bingo_room_users')->insert([
+                'id' => $roomUserId,
+                'room_id' => $roomId,
+                'user_id' => $userId,
+                'role' => 'PLAYER',
+                'cards_purchased' => $cardsForPlayer,
+                'automarker' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('bingo_card_lots')->insert([
+                'id' => $lotId,
+                'room_id' => $roomId,
+                'room_user_id' => $roomUserId,
+                'user_id' => $userId,
+                'card_count' => $cardsForPlayer,
+                'status' => 'ACTIVE',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         return $roomId;
     }
