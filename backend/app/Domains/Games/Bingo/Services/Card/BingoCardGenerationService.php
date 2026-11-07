@@ -152,10 +152,13 @@ final class BingoCardGenerationService
                 throw new DomainException('Error al actualizar los valores de la sala');
             }
 
-            // Verificar cupo antes de registrar nuevo jugador (dentro de la transacción con lock).
-            if ($isNewRoomUser) {
-                BingoRoomCapacityGuard::assertHasCapacity($room);
-            }
+            // Validar el cupo para cada compra: el coordinador deduplica a
+            // jugadores existentes y distingue compradores POS del vendedor.
+            BingoRoomCapacityGuard::assertHasCapacity(
+                $room,
+                empty($cardOrder['externalPlayerId']) ? (string) $creator['id'] : null,
+                ! empty($cardOrder['externalPlayerId']) ? (string) $cardOrder['externalPlayerId'] : null,
+            );
 
             // Validar que el usuario autenticado exista en la tabla users
             $authenticatedUserId = auth()->id();

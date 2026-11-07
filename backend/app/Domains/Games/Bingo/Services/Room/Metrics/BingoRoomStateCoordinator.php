@@ -112,6 +112,77 @@ final class BingoRoomStateCoordinator
         }, 3);
     }
 
+
+    /**
+     * Cuenta participantes actuales más el comprador de la operación en curso.
+     * Evita que el POS cuente al vendedor como jugador: solo incorpora su
+     * comprador externo; los usuarios internos se incorporan si su rol es jugador.
+     */
+    public function countPlayersForCapacity(
+        string $roomId,
+        ?string $pendingUserId = null,
+        ?string $pendingExternalPlayerId = null,
+    ) : int {
+        $count = $this->countPlayers($roomId);
+
+        if ($pendingUserId !== null) {
+            $pendingIsPlayer = BingoRoomUser::query()
+                ->where('room_id', $roomId)
+                ->where('user_id', $pendingUserId)
+                ->whereIn('role', [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER])
+                ->exists();
+
+            $alreadyParticipates = DB::table('bingo_room_users')
+                ->join('bingo_card_lots', 'bingo_card_lots.room_user_id', '=', 'bingo_room_users.id')
+                ->where('bingo_room_users.room_id', $roomId)
+                ->where('bingo_room_users.user_id', $pendingUserId)
+                ->whereIn('bingo_room_users.role', [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER])
+                ->where('bingo_card_lots.status', 'ACTIVE')
+                ->exists();
+
+            if ($pendingIsPlayer && ! $alreadyParticipates) {
+                $count++;
+            }
+        }
+
+        if ($pendingExternalPlayerId !== null) {
+            $external = ExternalPlayer::query()->find($pendingExternalPlayerId);
+            if ($external) {
+                $alreadyParticipates = DB::table('external_player_participations')
+                    ->join('bingo_cards', function ($join) {
+                        $join->on(
+                            DB::raw('JSON_UNQUOTE(external_player_participations.participable_id)'),
+                            '=',
+                            'bingo_cards.id',
+                        );
+                    })
+                    ->join('bingo_card_lots', 'bingo_card_lots.id', '=', 'bingo_cards.card_lot_id')
+                    ->where('external_player_participations.external_player_id', $pendingExternalPlayerId)
+                    ->where('external_player_participations.participable_type', BingoCard::class)
+                    ->whereNull('external_player_participations.deleted_at')
+                    ->where('bingo_cards.room_id', $roomId)
+                    ->where('bingo_card_lots.status', 'ACTIVE')
+                    ->exists();
+
+                $convertedUserAlreadyParticipates = $external->converted_user_id
+                    ? DB::table('bingo_room_users')
+                        ->join('bingo_card_lots', 'bingo_card_lots.room_user_id', '=', 'bingo_room_users.id')
+                        ->where('bingo_room_users.room_id', $roomId)
+                        ->where('bingo_room_users.user_id', $external->converted_user_id)
+                        ->whereIn('bingo_room_users.role', [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER])
+                        ->where('bingo_card_lots.status', 'ACTIVE')
+                        ->exists()
+                    : false;
+
+                if (! $alreadyParticipates && ! $convertedUserAlreadyParticipates) {
+                    $count++;
+                }
+            }
+        }
+
+        return $count;
+    }
+
     public function countPlayers(BingoRoom|string $room) : int
     {
         return $this->synchronizeCounters($room)['total_players'];

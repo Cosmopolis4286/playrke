@@ -47,14 +47,9 @@ final class BingoRoomCardCapacityGuard
             return;
         }
 
-        // El lock de la sala serializa todas las compras que pasan por este guard.
-        // El contador total_cards es denormalizado y puede quedar desfasado tras
-        // reembolsos/reparaciones; usar los lotes no reembolsados evita bloquear
-        // ventas válidas o permitir overselling por un contador incorrecto.
-        BingoRoom::where('id', $room->id)->lockForUpdate()->first();
-        $current = BingoCardLot::where('room_id', $room->id)
-            ->where('status', '!=', 'REFUNDED')
-            ->sum('card_count');
+        // El coordinador serializa por sala y cuenta solo lotes ACTIVE, igual
+        // que la reconciliación de contadores y el proceso de reembolso.
+        $current = app(BingoRoomStateCoordinator::class)->countCards((string) $room->id);
 
         if ((int) $current + $cardCount > (int) $maxCards) {
             $remaining = max(0, (int) $maxCards - (int) $current);

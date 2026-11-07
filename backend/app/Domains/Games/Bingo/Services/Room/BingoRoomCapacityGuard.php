@@ -28,7 +28,7 @@ final class BingoRoomCapacityGuard
      *
      * @throws BingoRoomException si la sala está llena o no tiene config de cupo
      */
-    public static function assertHasCapacity(BingoRoom $room) : void
+    public static function assertHasCapacity(BingoRoom $room, ?string $pendingUserId = null, ?string $pendingExternalPlayerId = null) : void
     {
         $room->loadMissing('config');
         $maxPlayers = $room->config?->max_players ?? null;
@@ -38,20 +38,23 @@ final class BingoRoomCapacityGuard
             return;
         }
 
-        // Re-lee total_players con lock para serializar escrituras concurrentes.
-        $current = BingoRoom::where('id', $room->id)
-            ->lockForUpdate()
-            ->value('total_players') ?? 0;
+        // El coordinador cuenta participantes persistidos y agrega al comprador
+        // actual sin confundir al vendedor POS con un jugador.
+        $current = app(BingoRoomStateCoordinator::class)->countPlayersForCapacity(
+            (string) $room->id,
+            $pendingUserId,
+            $pendingExternalPlayerId,
+        );
 
         if ((int) $current >= (int) $maxPlayers) {
             throw BingoRoomException::roomFull();
         }
     }
 
-    public static function hasCapacity(BingoRoom $room) : bool
+    public static function hasCapacity(BingoRoom $room, ?string $pendingUserId = null, ?string $pendingExternalPlayerId = null) : bool
     {
         try {
-            self::assertHasCapacity($room);
+            self::assertHasCapacity($room, $pendingUserId, $pendingExternalPlayerId);
 
             return true;
         } catch (BingoRoomException) {
