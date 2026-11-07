@@ -158,6 +158,38 @@ class BingoWinnerDetectionServiceTest extends TestCase
         ]);
     }
 
+    public function test_latest_draw_is_deterministic_when_multiple_draws_share_the_same_timestamp() : void
+    {
+        config(['anticheat.bingo.min_claim_delay_ms' => 60_000]);
+
+        $user = User::factory()->create();
+        ['room' => $room, 'round' => $round] = $this->makeRoomWithCard($this->winningCardNumbers(), $user);
+
+        $this->drawWinningLine($room, $round);
+
+        // MySQL DATETIME precision can make several chips share one timestamp.
+        // In that case the Snowflake ID is the deterministic insertion-order tie-breaker.
+        $draws = BingoDraw::where('round_id', (string) $round->id)->get();
+        $sameTimestamp = now()->startOfSecond();
+        BingoDraw::where('round_id', (string) $round->id)->update([
+            'created_at' => $sameTimestamp,
+            'updated_at' => $sameTimestamp,
+        ]);
+        $expectedLastDrawId = (string) $draws->max('id');
+
+        app(BingoWinnerDetectionService::class)->checkWinnerForUser($room->fresh(), (int) $user->id);
+
+        $flag = \Illuminate\Support\Facades\DB::table('anti_cheat_flags')
+            ->where('user_id', (string) $user->id)
+            ->where('signal_type', 'IMPOSSIBLE_CLAIM_TIMING')
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($flag);
+        $metadata = json_decode($flag->metadata, true);
+        $this->assertSame($expectedLastDrawId, (string) $metadata['last_draw_id']);
+    }
+
     public function test_normal_timing_without_winning_card_returns_null_without_flagging() : void
     {
         $user = User::factory()->create();
