@@ -51,6 +51,14 @@ class BingoRoomHealthCheckServiceTest extends TestCase
         $this->assertStringContainsString('tiene 1', $errors[1]);
     }
 
+    private function makeRoom(
+        int $denormalizedPlayers,
+        int $denormalizedCards,
+        int $actualPlayers,
+        int $actualCards,
+        int $minPlayers,
+        int $minCards,
+    ) : BingoRoom {
         $coordinator = Mockery::mock(BingoRoomStateCoordinator::class);
         $coordinator->shouldReceive('synchronizeCounters')
             ->once()
@@ -62,14 +70,6 @@ class BingoRoomHealthCheckServiceTest extends TestCase
             ->andReturn($actualCards);
         $this->app->instance(BingoRoomStateCoordinator::class, $coordinator);
 
-    private function makeRoom(
-        int $denormalizedPlayers,
-        int $denormalizedCards,
-        int $actualPlayers,
-        int $actualCards,
-        int $minPlayers,
-        int $minCards,
-    ) : BingoRoom {
         $players = Mockery::mock(HasMany::class);
         $players->shouldReceive('whereIn')
             ->once()
