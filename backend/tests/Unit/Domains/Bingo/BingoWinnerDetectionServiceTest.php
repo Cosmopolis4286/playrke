@@ -49,6 +49,57 @@ class BingoWinnerDetectionServiceTest extends TestCase
         GameStatus::forgetCache();
     }
 
+    public function test_players_progress_uses_user_id_as_stable_tiebreaker() : void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+        ['room' => $room] = $this->makeRoomWithCard($this->winningCardNumbers(), $userA);
+
+        $roomUserB = BingoRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $userB->id,
+            'cards_purchased' => 1,
+        ]);
+
+        $lotB = BingoCardLot::create([
+            'room_id' => $room->id,
+            'user_id' => $userB->id,
+            'room_user_id' => $roomUserB->id,
+            'currency_id' => Currency::where('iso_code', 'USD')->value('id'),
+            'card_count' => 1,
+            'card_price' => 1,
+            'exchange_rate' => 1,
+            'sale_amount' => 1,
+        ]);
+
+        BingoCard::create([
+            'room_id' => $room->id,
+            'creator_user_id' => $userB->id,
+            'room_user_id' => $roomUserB->id,
+            'card_lot_id' => $lotB->id,
+            'currency_id' => $lotB->currency_id,
+            'serial_number' => 'SN-' . Str::random(10),
+            'card_numbers' => $this->winningCardNumbers(),
+            'card_hash' => hash('sha256', Str::random(20)),
+            'status' => BingoCard::STATUS_ACTIVE,
+        ]);
+
+        $positions = array_map(
+            fn (string $column) => ['col' => $column, 'row' => 0, 'free' => false],
+            ['B', 'I', 'N', 'G', 'O'],
+        );
+
+        $players = app(BingoDrawService::class)->computePlayersProgress($room, $positions, []);
+
+        $this->assertCount(2, $players);
+        $this->assertSame(
+            [(int) $userA->id, (int) $userB->id],
+            array_column($players, 'user_id'),
+            'Los jugadores empatados deben ordenarse por ID ascendente.',
+        );
+        $this->assertSame($players[0]['missing'], $players[1]['missing']);
+    }
+
     public function test_draw_replay_loads_round_draws_and_orders_equal_timestamps_by_id() : void
     {
         $user = User::factory()->create();
