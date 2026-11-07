@@ -129,7 +129,6 @@ final class BingoCardGenerationService
             }
 
             $roomUserId = $roomUserResult['id'];
-            $isNewRoomUser = $roomUserResult['isNew'];
 
             // Anexar atributo al array
             $cardOrder['roomUser'] = $roomUserId;

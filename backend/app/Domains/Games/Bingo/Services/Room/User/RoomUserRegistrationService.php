@@ -3,6 +3,7 @@
 namespace App\Domains\Games\Bingo\Services\Room\User;
 
 use App\Domains\Games\Bingo\Contracts\RoomUserRegistrationInterface;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use Illuminate\Support\Facades\Log;
 use Throwable;
