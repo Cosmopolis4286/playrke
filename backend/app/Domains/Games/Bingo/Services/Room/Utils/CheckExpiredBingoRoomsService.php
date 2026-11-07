@@ -213,7 +213,7 @@ final class CheckExpiredBingoRoomsService
         if ($minCards !== null) {
             // El contador denormalizado de la sala puede estar desfasado; para
             // una decisión financiera de cancelación, contar los lotes vigentes.
-            if ($counts['total_cards'] < (int) $minCards) {
+            if ($this->roomState->countEligibleCardsForDraw((string) $room->id) < (int) $minCards) {
                 return 'cards';
             }
         }

@@ -188,6 +188,21 @@ final class BingoRoomStateCoordinator
         return $this->synchronizeCounters($room)['total_players'];
     }
 
+    /**
+     * Cartones que realmente pueden entrar al sorteo (pago aprobado y lote ACTIVE).
+     * Es distinto del total de cartones vendidos, que también incluye pagos pendientes.
+     */
+    public function countEligibleCardsForDraw(BingoRoom|string $room) : int
+    {
+        $roomId = $room instanceof BingoRoom ? (string) $room->id : $room;
+
+        return (int) BingoCard::query()
+            ->where('room_id', $roomId)
+            ->where('status', BingoCard::STATUS_ACTIVE)
+            ->eligibleForDraw()
+            ->count();
+    }
+
     public function countCards(BingoRoom|string $room) : int
     {
         return $this->synchronizeCounters($room)['total_cards'];
