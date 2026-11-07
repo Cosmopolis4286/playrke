@@ -29,6 +29,8 @@ use Throwable;
  */
 final class BingoCardPaymentReviewService
 {
+    /** Premios que impiden rechazar automáticamente el pago y reembolsar el lote. */
+    public const REJECTION_BLOCKING_PRIZE_STATUSES = ['waiting', 'processing', 'claimed', 'suspended', 'disputed'];
     public function __construct(
         private readonly NotificationService $notifications,
     ) {
@@ -115,7 +117,7 @@ final class BingoCardPaymentReviewService
             }
 
             $hasActivePrize = BingoCardPrize::where('card_lot_id', $locked->card_lot_id)
-                ->whereIn('prize_status', ['waiting', 'processing', 'claimed', 'disputed'])
+                ->whereIn('prize_status', self::REJECTION_BLOCKING_PRIZE_STATUSES)
                 ->exists();
 
             if ($hasActivePrize) {
