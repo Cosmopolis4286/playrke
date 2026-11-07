@@ -3,6 +3,7 @@
 namespace App\Domains\Games\Bingo\Services\Room\User;
 
 use App\Domains\Games\Bingo\Contracts\RoomUserRegistrationInterface;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -24,6 +25,7 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
                 'room_id' => $userData['roomId'],
                 'user_id' => $userData['creator']['id'],
                 'cards_purchased' => $userData['cardCount'],
+                'role' => ! empty($userData['externalPlayerId']) ? BingoRoomUser::ROLE_SELLER : BingoRoomUser::ROLE_PLAYER,
                 'automarker' => 1,
             ];
 
@@ -69,10 +71,14 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
             // Buscar usuario existente
             $roomUser = null;
             $isNew = false;
+            $wasPlayer = false;
 
             // Si se proporciona roomUser ID, buscar por ID
             if (isset($userData['roomUser']) && $userData['roomUser']) {
-                $roomUser = $this->findRoomUser($userData['roomUser']);
+                $roomUser = BingoRoomUser::whereKey($userData['roomUser'])
+                    ->where('room_id', $userData['roomId'])
+                    ->where('user_id', $userData['creator']['id'])
+                    ->first();
             }
 
             // Si no se encontró por ID, buscar por room_id + user_id
@@ -80,6 +86,11 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
                 $roomUser = BingoRoomUser::where('room_id', $userData['roomId'])
                     ->where('user_id', $userData['creator']['id'])
                     ->first();
+            }
+
+            if ($roomUser) {
+                $wasPlayer = in_array($roomUser->role, [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER], true)
+                    && BingoCardLot::query()->where('room_user_id', $roomUser->id)->where('status', 'ACTIVE')->exists();
             }
 
             if (! $roomUser) {
@@ -90,13 +101,22 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
                 }
                 $isNew = true;
             } else {
-                // Actualizar cartones del usuario existente
+                // Un usuario que solo representa ventas POS es SELLER, no jugador.
+                // Si después compra como jugador interno, pasa a PLAYER_SELLER.
+                if (empty($userData['externalPlayerId']) && $roomUser->role === BingoRoomUser::ROLE_SELLER) {
+                    $roomUser->role = BingoRoomUser::ROLE_PLAYER_SELLER;
+                    $roomUser->save();
+                }
+
+                // Actualizar cartones del usuario existente.
                 if (! $this->updateUserCards($roomUser, $userData['cardCount'])) {
                     return null;
                 }
             }
 
-            return ['id' => $roomUser->id, 'isNew' => $isNew];
+            $isPlayer = in_array($roomUser->role, [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER], true);
+
+            return ['id' => $roomUser->id, 'isNew' => $isNew, 'isNewPlayer' => ! $wasPlayer && $isPlayer];
         } catch (Throwable $e) {
             Log::error('Error al registrar o actualizar el usuario de sala: ' . $e->getMessage());
             Log::error('Datos userData:', $userData);

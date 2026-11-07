@@ -163,9 +163,8 @@ final class BingoRoomHealthCheckService
         // pueden quedar desactualizados tras altas/bajas concurrentes o procesos
         // interrumpidos. El sorteo debe validar la misma fuente de verdad que el
         // despachador automático: las relaciones persistidas de jugadores y cartones.
-        $registeredPlayers = $room->players()
-            ->whereIn('role', [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER])
-            ->count();
+        $registeredPlayers = app(\App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomMetricsSynchronizer::class)
+            ->countPlayers((string) $room->id);
         $totalCards = $room->cards()
             ->where('status', BingoCard::STATUS_ACTIVE)
             ->eligibleForDraw()
