@@ -80,6 +80,27 @@ class RoomMetricsServiceConcurrencyTest extends TestCase
         $this->assertEqualsWithDelta(5.0, (float) $fresh->room_commission, 0.01, 'room_commission debe acumular ambas ventas.');
     }
 
+    /** @test */
+    public function update_all_metrics_rolls_back_prior_increments_when_a_later_metric_fails()
+    {
+        $room = $this->makeRoom();
+        $service = new class extends RoomMetricsService {
+            public function updateTotalSales(BingoRoom $room, float $saleAmount) : bool
+            {
+                return false;
+            }
+        };
+
+        $result = $service->updateAllMetrics($room, [
+            'cardCount' => 2,
+            'saleAmount' => 20.0,
+        ]);
+
+        $this->assertFalse($result);
+        $this->assertSame(0, (int) $room->fresh()->total_cards);
+        $this->assertSame(0.0, (float) $room->fresh()->total_sales);
+    }
+
     private function makeRoom() : BingoRoom
     {
         $country = Country::firstOrCreate(
