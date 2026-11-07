@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\DB;
  * operación produce el mismo resultado (idempotencia) y el lock de la sala
  * serializa sincronizaciones concurrentes.
  */
-final class BingoRoomStateCoordinator
+class BingoRoomStateCoordinator
 {
     /**
      * @return array{total_players:int,total_cards:int}
