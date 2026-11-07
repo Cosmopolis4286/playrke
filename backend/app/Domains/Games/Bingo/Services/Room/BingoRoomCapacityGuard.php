@@ -6,7 +6,7 @@ namespace App\Domains\Games\Bingo\Services\Room;
 
 use App\Domains\Games\Bingo\Exceptions\Room\BingoRoomException;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
-use Illuminate\Support\Facades\DB;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator;
 
 /**
  * Verifica el cupo de una sala antes de permitir un nuevo jugador.
