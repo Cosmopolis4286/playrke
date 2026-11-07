@@ -596,7 +596,14 @@ class BingoRoomCrudService
     public function scheduleStart(BingoRoom $room, string $date, string $time) : bool
     {
         return DB::transaction(function() use ($room, $date, $time) {
-            $room->loadMissing(['config', 'status', 'players']);
+            $room = BingoRoom::whereKey($room->id)
+                ->with(['config', 'status', 'players'])
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($this->hasStartedDraw($room)) {
+                throw BingoRoomException::activationInvalidState();
+            }
 
             // Solo aplica a salas configuradas como inicio manual
             if (($room->config?->start_mode ?? 'SCHEDULED') !== 'MANUAL') {
