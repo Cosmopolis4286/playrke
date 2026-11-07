@@ -3,6 +3,8 @@
 namespace Tests\Feature\Api;
 
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
+use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
+use Illuminate\Support\Facades\Cache;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Wallet\Models\Wallet;
@@ -362,6 +364,68 @@ class BingoTest extends TestCase
         // con las fichas cantadas, junto a totalPlayers/prizePool/roomFinished/etc.
         $response->assertOk()
             ->assertJsonStructure(['draw', 'totalPlayers', 'prizePool', 'roomFinished']);
+    }
+
+    /** @test */
+    public function draw_state_contains_only_numbers_from_the_current_round()
+    {
+        $player = $this->makePlayer();
+        $room = $this->makeRoom();
+        $this->makeRoomUser($room, $player, 1);
+
+        $configId = DB::table('bingo_rooms_config')->where('room_id', $room->id)->value('id');
+        $patternId = $this->nextId();
+        DB::table('bingo_patterns')->insert([
+            'id' => $patternId,
+            'default_pattern' => 'N',
+            'num_id' => 31,
+            'type_pattern' => 'UNIQUE',
+            'name' => 'Test pattern',
+            'user_id' => $this->user->id,
+            'boxes' => '1;2;3',
+            'status' => 'ACTIVE',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $previousRoundId = $this->nextId();
+        $currentRoundId = $this->nextId();
+        foreach ([
+            [$previousRoundId, 1, 'FINISHED'],
+            [$currentRoundId, 2, 'IN_PROGRESS'],
+        ] as [$roundId, $number, $status]) {
+            DB::table('bingo_rounds')->insert([
+                'id' => $roundId,
+                'room_id' => $room->id,
+                'room_config_id' => $configId,
+                'round' => $number,
+                'bingo_pattern_id' => $patternId,
+                'prize_type' => 'PCT',
+                'status' => $status,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        foreach ([[$previousRoundId, 7], [$currentRoundId, 42]] as [$roundId, $chip]) {
+            BingoDraw::create([
+                'room_id' => $room->id,
+                'round_id' => $roundId,
+                'chip' => (string) $chip,
+                'code' => 'B-' . $chip,
+                'time' => 0,
+                'status' => 'FINISHED',
+            ]);
+        }
+
+        Cache::forget("bingo:draw-state:draw:{$room->id}");
+        Cache::forget("bingo:draw-state:draw:{$room->id}:{$currentRoundId}");
+
+        $response = $this->actingAs($player)
+            ->getJson("/bingo/{$room->hashed_id}/draw-state");
+
+        $response->assertOk();
+        $this->assertSame([42], $response->json('draw'));
     }
 
     /** @test */
