@@ -189,6 +189,7 @@ class BingoRoomStateCoordinator
                         ->where('bingo_room_users.room_id', $roomId)
                         ->where('bingo_room_users.user_id', $external->converted_user_id)
                         ->whereIn('bingo_room_users.role', [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER])
+                        ->whereNull('bingo_card_lots.deleted_at')
                         ->where('bingo_card_lots.status', 'ACTIVE')
                         ->exists()
                     : false;
