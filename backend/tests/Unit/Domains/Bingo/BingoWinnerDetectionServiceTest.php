@@ -12,6 +12,7 @@ use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Domains\Games\Bingo\Services\Game\BingoDrawService;
+use App\Exceptions\Domain\ExchangeRate\ExchangeRateException;
 use App\Domains\Games\Bingo\Services\Payment\BingoCardPaymentReviewService;
 use App\Domains\Games\Bingo\Exceptions\Card\BingoCardPaymentException;
 use App\Domains\Games\Bingo\Services\Game\BingoWinnerDetectionService;
@@ -285,6 +286,44 @@ class BingoWinnerDetectionServiceTest extends TestCase
         }
 
         $this->assertSame('PENDING', $payment->fresh()->payment_status);
+    }
+
+    public function test_percentage_prize_is_not_calculated_without_an_active_currency_rate() : void
+    {
+        $user = User::factory()->create();
+        ['room' => $room, 'round' => $round, 'pattern' => $pattern, 'card' => $card] =
+            $this->makeRoomWithCard($this->winningCardNumbers(), $user);
+
+        $currency = Currency::firstOrCreate(
+            ['iso_code' => 'B' . strtoupper(Str::random(2))],
+            ['name' => 'Bingo FX Test', 'type' => 'FIAT'],
+        );
+
+        $card->update(['currency_id' => $currency->id]);
+        $card->cardLot()->update(['currency_id' => $currency->id]);
+        $room->update(['prize_pool' => 100]);
+
+        $this->drawWinningLine($room, $round);
+        $lastDrawId = (int) BingoDraw::where('round_id', $round->id)->orderByDesc('created_at')->value('id');
+
+        try {
+            app(BingoDrawService::class)->claimCardWin(
+                $room->fresh(),
+                $round->fresh(),
+                $pattern->fresh(),
+                (string) $card->id,
+                $lastDrawId,
+            );
+            $this->fail('El premio no debe calcularse con una tasa 1:1 implícita.');
+        } catch (ExchangeRateException $e) {
+            $this->assertStringContainsString('No hay tasa de cambio activa', $e->getMessage());
+        }
+
+        $this->assertSame(BingoCard::STATUS_ACTIVE, (int) $card->fresh()->status);
+        $this->assertDatabaseMissing('bingo_card_prizes', [
+            'winning_card_id' => (string) $card->id,
+            'round_id' => (string) $round->id,
+        ]);
     }
 
     public function test_pending_payment_carton_cannot_be_claimed_manually_or_atomically() : void

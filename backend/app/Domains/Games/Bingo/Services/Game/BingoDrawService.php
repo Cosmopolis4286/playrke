@@ -728,13 +728,23 @@ final class BingoDrawService
      */
     private function convertToLocal(float $usdAmount, string $currencyId) : float
     {
+        return round($usdAmount * $this->requireActiveRate($currencyId), 4);
+    }
+
+    /**
+     * No permitir fallback 1:1 entre monedas distintas.
+     *
+     * @throws ExchangeRateException
+     */
+    private function requireActiveRate(string $currencyId) : float
+    {
         $rate = $this->getActiveRateOrNull($currencyId);
 
         if ($rate === null || $rate <= 0) {
-            return $usdAmount;
+            throw ExchangeRateException::noActiveRate($currencyId);
         }
 
-        return round($usdAmount * $rate, 4);
+        return $rate;
     }
 
     private function createDrawRecord(string $roomId, string $roundId, int $chip, int $time, string $variant, array $allDrawnSoFar) : BingoDraw
@@ -1022,8 +1032,8 @@ final class BingoDrawService
 
             if ($fixedPrize) {
                 $localAmount = (float) $fixedPrize->prize_value;
-                $rate = $this->getActiveRateOrNull((string) $card->currency_id);
-                $usdAmount = ($rate !== null && $rate > 0) ? round($localAmount / $rate, 4) : $localAmount;
+                $rate = $this->requireActiveRate((string) $card->currency_id);
+                $usdAmount = round($localAmount / $rate, 4);
 
                 return ['usd_amount' => $usdAmount, 'local_amount' => $localAmount];
             }
