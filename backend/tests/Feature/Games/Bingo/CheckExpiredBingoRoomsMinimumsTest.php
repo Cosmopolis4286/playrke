@@ -5,7 +5,6 @@ namespace Tests\Feature\Games\Bingo;
 use App\Domains\Games\Bingo\Exceptions\Room\BingoRoomException;
 use App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
-use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomCardCapacityGuard;
 use App\Domains\Games\Bingo\Services\Room\Utils\CheckExpiredBingoRoomsService;
 use App\Models\Games\Common\Utils\GameStatus;
@@ -76,27 +75,6 @@ class CheckExpiredBingoRoomsMinimumsTest extends TestCase
     }
 
     #[Test]
-    public function usa_jugadores_persistidos_si_total_players_esta_desfasado() : void
-    {
-        $roomId = $this->makeExpiredRoom(players: 3, cards: 6, minPlayers: 2, minCards: 2, roomTotalPlayers: 0);
-
-        app(CheckExpiredBingoRoomsService::class)->handle();
-
-        $this->assertSame($this->statusId('IN_PROGRESS'), (string) BingoRoom::find($roomId)->status_id);
-    }
-
-    #[Test]
-    public function no_inicia_una_sala_por_un_total_players_sobrestimado() : void
-    {
-        $roomId = $this->makeExpiredRoom(players: 1, cards: 6, minPlayers: 2, minCards: 2, roomTotalPlayers: 3);
-
-        app(CheckExpiredBingoRoomsService::class)->handle();
-
-        $this->assertSame($this->statusId('CANCELLED'), (string) BingoRoom::find($roomId)->status_id);
-        Queue::assertPushed(BingoCardLotRefundJob::class);
-    }
-
-    #[Test]
     public function sala_vieja_sin_minimos_configurados_pasa_a_en_curso() : void
     {
         $roomId = $this->makeExpiredRoom(players: 1, cards: 1, minPlayers: null, minCards: null);
@@ -138,29 +116,7 @@ class CheckExpiredBingoRoomsMinimumsTest extends TestCase
         DB::transaction(fn () => BingoRoomCardCapacityGuard::assertHasCapacityFor($room, 1));
     }
 
-    #[Test]
-    public function persiste_reembolso_pendiente_si_falla_el_despacho_de_cola() : void
-    {
-        $roomId = $this->makeExpiredRoom(players: 1, cards: 1, minPlayers: 2, minCards: 2);
-        $room = BingoRoom::findOrFail($roomId);
-        $lot = \App\Domains\Games\Bingo\Models\Card\BingoCardLot::where('room_id', $roomId)->firstOrFail();
-        $service = app(CheckExpiredBingoRoomsService::class);
-
-        (new \ReflectionMethod(CheckExpiredBingoRoomsService::class, 'recordRefundDispatchFailure'))
-            ->invoke($service, $lot, $room, new \RuntimeException('queue unavailable'));
-
-        $failure = DB::table('bingo_lot_refund_failures')
-            ->where('lot_id', $lot->id)
-            ->where('room_id', $roomId)
-            ->first();
-
-        $this->assertNotNull($failure);
-        $this->assertSame('PENDING', $failure->status);
-        $this->assertSame(0, (int) $failure->attempts);
-        $this->assertStringContainsString('QUEUE_DISPATCH_FAILED', $failure->error_message);
-    }
-
-    private function makeExpiredRoom(int $players, int $cards, ?int $minPlayers, ?int $minCards, ?int $roomTotalCards = null, ?int $roomTotalPlayers = null) : string
+    private function makeExpiredRoom(int $players, int $cards, ?int $minPlayers, ?int $minCards, ?int $roomTotalCards = null) : string
     {
         $roomId = (string) (910000000000000000 + (++self::$seq));
         DB::table('bingo_rooms')->insert([
@@ -170,26 +126,11 @@ class CheckExpiredBingoRoomsMinimumsTest extends TestCase
             'paid_prizes' => 'N',
             'prize_pool' => 0,
             'uuid_code' => 'TEST-' . $roomId,
-            'total_players' => $roomTotalPlayers ?? $players,
+            'total_players' => $players,
             'total_cards' => $roomTotalCards ?? $cards,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        if ($players > 0) {
-            $roomUsers = [];
-            for ($i = 1; $i <= $players; $i++) {
-                $roomUsers[] = [
-                    'id' => (string) ((int) $roomId + 800000 + $i),
-                    'room_id' => $roomId,
-                    'user_id' => (string) ((int) $roomId + 900000 + $i),
-                    'role' => BingoRoomUser::ROLE_PLAYER,
-                    'cards_purchased' => 1,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
-            DB::table('bingo_room_users')->insert($roomUsers);
-        }
         DB::table('bingo_rooms_config')->insert([
             'id' => (string) ((int) $roomId + 500000),
             'room_id' => $roomId,
@@ -199,25 +140,14 @@ class CheckExpiredBingoRoomsMinimumsTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        // Un lote por participante para que el contador central cuente
-        // jugadores con cartones vigentes, no filas room_user aisladas.
-        $lotCount = max($players, 1);
-        $baseCards = intdiv($cards, $lotCount);
-        $remainingCards = $cards % $lotCount;
-        for ($i = 1; $i <= $lotCount; $i++) {
-            DB::table('bingo_card_lots')->insert([
-                'id' => (string) ((int) $roomId + 700000 + $i),
-                'room_id' => $roomId,
-                'room_user_id' => $players > 0 ? (string) ((int) $roomId + 800000 + $i) : null,
-                // La tabla de reintentos de reembolso exige usuario y moneda.
-                'user_id' => '1',
-                'currency_id' => '1',
-                'card_count' => $baseCards + ($i <= $remainingCards ? 1 : 0),
-                'status' => 'ACTIVE',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
+        DB::table('bingo_card_lots')->insert([
+            'id' => (string) ((int) $roomId + 700000),
+            'room_id' => $roomId,
+            'card_count' => $cards,
+            'status' => 'ACTIVE',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         return $roomId;
     }

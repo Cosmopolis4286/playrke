@@ -113,6 +113,7 @@ final class CheckExpiredBingoRoomsService
             ->whereHas('config', fn ($q) => $q->where(fn ($w) => $w->whereNotNull('min_cards_to_start')->orWhereNotNull('min_players')))
             ->with('config')
             ->get()
+            ->filter(fn (BingoRoom $room) : bool => $this->metrics->countPlayers($room) > 0)
             ->filter(fn (BingoRoom $room) : bool => $this->unmetMinimum($room) !== null);
 
         foreach ($underMinimum as $room) {
