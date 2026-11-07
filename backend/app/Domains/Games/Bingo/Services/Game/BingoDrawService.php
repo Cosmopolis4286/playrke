@@ -1172,21 +1172,23 @@ final class BingoDrawService
                 throw new DomainException('No existe GameStatus con code=IN_PROGRESS.');
             }
 
-            $lockedRound = BingoRound::whereKey($round->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            // Solo bloquear pagos pendientes en la transición inicial de la ronda.
-            // approve() bloquea primero el pago y luego consulta hasStarted(); al
-            // tomar aquí los mismos pagos PENDING antes de marcar la ronda,
-            // cualquier aprobación concurrente queda ordenada antes o después del inicio.
-            if ($lockedRound->status !== 'IN_PROGRESS') {
+            // Mantener el orden de locks de approve()/claimCardWin(): primero
+            // pagos pendientes y después la ronda. El lock de la sala ya serializa
+            // a los workers de esta sala, por lo que el estado leído del modelo sirve
+            // para decidir si hay que adquirir los locks de pagos en este inicio.
+            if ($round->status !== 'IN_PROGRESS') {
                 BingoCardPayment::where('room_id', (string) $roomId)
                     ->where('payment_status', 'PENDING')
                     ->orderBy('id')
                     ->lockForUpdate()
                     ->get(['id']);
+            }
 
+            $lockedRound = BingoRound::whereKey($round->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedRound->status !== 'IN_PROGRESS') {
                 $lockedRound->forceFill([
                     'status' => 'IN_PROGRESS',
                     'start_time' => $lockedRound->start_time ?? now(),
