@@ -1268,6 +1268,32 @@ class BingoRoomCrudService
     }
 
     /**
+     * Una vez iniciada cualquier ronda, su configuración queda inmutable aunque
+     * la sala todavía figure ACTIVE (por ejemplo, entre rondas de un sorteo múltiple).
+     * Los demás campos de la sala pueden seguir editándose.
+     *
+     * @throws BingoRoomException Si se intenta cambiar la cantidad o los premios de las rondas
+     */
+    private function guardRoundsLockedByProgress(BingoRoom $room, BingoRoomUpdateDTO $dto) : void
+    {
+        $room->loadMissing(['config', 'rounds.prizes']);
+        $current = $room->config;
+        if (! $current) {
+            return;
+        }
+
+        $num = fn ($v) => $v === null ? null : round((float) $v, 2);
+        $changed = ($dto->rounds !== null && (int) $current->rounds !== $dto->rounds)
+            || ($dto->roundsPct !== null && $num($current->rounds_pct) !== $num($dto->roundsPct))
+            || ($dto->roundsConfig !== null
+                && $this->normalizeRounds($this->roundsConfigFromRoom($room)) !== $this->normalizeRounds($dto->roundsConfig));
+
+        if ($changed) {
+            throw BingoRoomException::fieldsLockedBySales(['las rondas y sus premios']);
+        }
+    }
+
+    /**
      * Determina si el usuario tiene rol admin o superadmin vigente.
      */
     private function isUserAdmin(int $userId) : bool
@@ -1512,11 +1538,32 @@ class BingoRoomCrudService
             $room = $isCreate ? null : $roomOrDto->loadMissing('status');
 
             // Solo se puede editar una sala mientras su sorteo no ha iniciado ni
-            // terminado — a partir de IN_PROGRESS ya puede haber premios entregados
-            // (bingo_card_prizes), y syncRounds() más abajo borra y recrea las rondas
-            // en cada guardado, lo que borraría ese historial (round_id cascadeOnDelete).
+            // terminado. La sala puede seguir ACTIVE durante las rondas: el estado
+            // global solo pasa a FINISHED al cerrar la última.
             if (! $isCreate && ! in_array($room->status?->code, ['ACTIVE', 'INACTIVE', 'OFFLINE'], true)) {
                 throw BingoRoomException::roomNotEditableStatus();
+            }
+
+            // Las rondas se pre-crean como ACTIVE y la sala conserva su estado global
+            // ACTIVE mientras se sortean. Por eso el status de la sala no basta para
+            // detectar actividad: una ronda IN_PROGRESS o FINISHED ya tiene historial
+            // (draws/premios) y syncRounds() la borraría por cascadeOnDelete.
+            // Lockear las filas serializa esta edición contra el inicio/cierre de ronda.
+            $roundStates = $isCreate
+                ? collect()
+                : BingoRound::where('room_id', (string) $room->id)
+                    ->orderBy('round')
+                    ->lockForUpdate()
+                    ->pluck('status');
+            $hasStartedRound = $roundStates->contains(
+                fn ($status) => in_array($status, ['IN_PROGRESS', 'FINISHED'], true),
+            );
+
+            if ($hasStartedRound) {
+                // Refrescar las relaciones: el modelo recibido por la ruta puede
+                // conservar config/rondas cargadas antes de iniciar el sorteo.
+                $room->load(['config', 'rounds.prizes']);
+                $this->guardRoundsLockedByProgress($room, $dto);
             }
 
             // Con jugadores registrados se bloquea, del lado del servidor, el cambio de
@@ -1631,8 +1678,13 @@ class BingoRoomCrudService
                 );
             }
 
-            // Sincronizar rondas (necesita el config ID para room_config_id)
-            $this->syncRounds($room->id, $config->id, $dto->roundsConfig ?? []);
+            // Nunca borrar/recrear rondas que ya comenzaron: sus IDs están ligados
+            // a bingo_draws y bingo_card_prizes. Conservarlas también evita resetear
+            // la ronda actual al reenviar el formulario sin cambios.
+            // En updates parciales, roundsConfig=null significa "no modificar rondas".
+            if (! $hasStartedRound && ($isCreate || $dto->roundsConfig !== null)) {
+                $this->syncRounds($room->id, $config->id, $dto->roundsConfig ?? []);
+            }
 
             return [
                 'room' => $room,
