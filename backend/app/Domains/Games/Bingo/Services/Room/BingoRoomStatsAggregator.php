@@ -25,6 +25,10 @@ final class BingoRoomStatsAggregator
     {
         $roomId = (string) $room->id;
 
+        $counts = app(\App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator::class)
+            ->synchronizeCounters($roomId);
+        $room->refresh();
+
         // Lotes + cartones + ingresos — una sola query agregada
         $lotStats = BingoCardLot::where('room_id', $roomId)
             ->selectRaw('
@@ -60,8 +64,8 @@ final class BingoRoomStatsAggregator
             ['room_id' => $roomId],
             [
                 'total_lots' => (int) ($lotStats?->total_lots ?? 0),
-                'total_cards' => (int) ($lotStats?->total_cards ?? 0),
-                'total_players' => (int) ($room->total_players ?? 0),
+                'total_cards' => $counts['total_cards'],
+                'total_players' => $counts['total_players'],
                 'total_revenue' => (float) ($lotStats?->total_revenue ?? 0),
                 'total_revenue_usd' => (float) ($room->metrics_by_currency
                     ? array_sum(array_column((array) $room->metrics_by_currency, 'revenue_usd'))
