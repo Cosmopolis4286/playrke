@@ -2,8 +2,8 @@
 
 namespace App\Domains\Games\Bingo\Models\Round;
 
-use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
 use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
+use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomWinner;
