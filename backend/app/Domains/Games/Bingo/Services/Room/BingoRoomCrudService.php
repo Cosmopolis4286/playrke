@@ -360,6 +360,15 @@ class BingoRoomCrudService
                 throw BingoRoomException::alreadyDeleted();
             }
 
+            if (
+                $locked->status?->code === 'IN_PROGRESS'
+                || BingoRound::where('room_id', (string) $locked->id)
+                    ->whereIn('status', ['IN_PROGRESS', 'FINISHED'])
+                    ->exists()
+            ) {
+                throw BingoRoomException::roomNotEditableStatus();
+            }
+
             if (($locked->total_players ?? 0) > 0) {
                 throw BingoRoomException::roomHasPlayers();
             }
@@ -394,7 +403,13 @@ class BingoRoomCrudService
                 throw BingoRoomException::notFound();
             }
 
-            $hasFinancialTrace = ($locked->total_players ?? 0) > 0
+            $hasStartedRound = $locked->status_id === GameStatus::codeToId('IN_PROGRESS')
+                || BingoRound::where('room_id', (string) $locked->id)
+                    ->whereIn('status', ['IN_PROGRESS', 'FINISHED'])
+                    ->exists();
+
+            $hasFinancialTrace = $hasStartedRound
+                || ($locked->total_players ?? 0) > 0
                 || ($locked->total_cards ?? 0) > 0
                 || ($locked->prize_pool ?? 0) > 0;
 
@@ -678,6 +693,10 @@ class BingoRoomCrudService
 
             if ($locked->status?->code === 'DELETED') {
                 throw BingoRoomException::invalidStatusChange();
+            }
+
+            if ($locked->status?->code === 'IN_PROGRESS') {
+                throw BingoRoomException::roomNotEditableStatus();
             }
 
             if (
@@ -1534,36 +1553,34 @@ class BingoRoomCrudService
             $isCreate = $roomOrDto instanceof BingoRoomCreateDTO;
             $dto = $isCreate ? $roomOrDto : $updateDto;
 
-            // Sala base (crear o usar existente)
-            $room = $isCreate ? null : $roomOrDto->loadMissing('status');
+            // Sala base (crear o usar existente). La fila de sala es el mutex
+            // compartido con el worker al iniciar el sorteo, toggle y delete.
+            $room = $isCreate
+                ? null
+                : BingoRoom::whereKey($roomOrDto->getKey())
+                    ->with('status')
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-            // Solo se puede editar una sala mientras su sorteo no ha iniciado ni
-            // terminado. La sala puede seguir ACTIVE durante las rondas: el estado
-            // global solo pasa a FINISHED al cerrar la última.
+            // El estado IN_PROGRESS se persiste al comenzar la primera ronda.
+            // Desde ese momento la sala queda congelada: no se edita aunque se
+            // reenvíe el mismo formulario ni se permitan cambios de campos inocuos.
             if (! $isCreate && ! in_array($room->status?->code, ['ACTIVE', 'INACTIVE', 'OFFLINE'], true)) {
                 throw BingoRoomException::roomNotEditableStatus();
             }
 
-            // Las rondas se pre-crean como ACTIVE y la sala conserva su estado global
-            // ACTIVE mientras se sortean. Por eso el status de la sala no basta para
-            // detectar actividad: una ronda IN_PROGRESS o FINISHED ya tiene historial
-            // (draws/premios) y syncRounds() la borraría por cascadeOnDelete.
-            // Lockear las filas serializa esta edición contra el inicio/cierre de ronda.
-            $roundStates = $isCreate
-                ? collect()
-                : BingoRound::where('room_id', (string) $room->id)
-                    ->orderBy('round')
-                    ->lockForUpdate()
-                    ->pluck('status');
-            $hasStartedRound = $roundStates->contains(
-                fn ($status) => in_array($status, ['IN_PROGRESS', 'FINISHED'], true),
-            );
+            if (! $isCreate && ! in_array($room->status?->code, ['ACTIVE', 'INACTIVE', 'OFFLINE'], true)) {
+                throw BingoRoomException::roomNotEditableStatus();
+            }
+
+            // Defensa adicional ante datos históricos/inconsistentes: aun si por
+            // algún fallo no se actualizó status_id, una ronda iniciada impide editar.
+            $hasStartedRound = ! $isCreate && BingoRound::where('room_id', (string) $room->id)
+                ->whereIn('status', ['IN_PROGRESS', 'FINISHED'])
+                ->exists();
 
             if ($hasStartedRound) {
-                // Refrescar las relaciones: el modelo recibido por la ruta puede
-                // conservar config/rondas cargadas antes de iniciar el sorteo.
-                $room->load(['config', 'rounds.prizes']);
-                $this->guardRoundsLockedByProgress($room, $dto);
+                throw BingoRoomException::roomNotEditableStatus();
             }
 
             // Con jugadores registrados se bloquea, del lado del servidor, el cambio de
@@ -1678,11 +1695,8 @@ class BingoRoomCrudService
                 );
             }
 
-            // Nunca borrar/recrear rondas que ya comenzaron: sus IDs están ligados
-            // a bingo_draws y bingo_card_prizes. Conservarlas también evita resetear
-            // la ronda actual al reenviar el formulario sin cambios.
             // En updates parciales, roundsConfig=null significa "no modificar rondas".
-            if (! $hasStartedRound && ($isCreate || $dto->roundsConfig !== null)) {
+            if ($isCreate || $dto->roundsConfig !== null) {
                 $this->syncRounds($room->id, $config->id, $dto->roundsConfig ?? []);
             }
 
