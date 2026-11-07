@@ -1297,10 +1297,6 @@ class BingoRoomCrudService
     }
 
     /**
-     * Forma canónica de roundsConfig para comparar: solo los campos que definen
-     * el premio de cada ronda según su tipo (ignora prizeName, claves de más, etc.).
-     */
-    /**
      * Regla única del ciclo de vida: una sala queda protegida desde IN_PROGRESS,
      * incluso si el status global quedó desincronizado con las rondas.
      * Los callers deben tomar primero lockForUpdate sobre la sala.
@@ -1322,6 +1318,10 @@ class BingoRoomCrudService
             ->exists();
     }
 
+    /**
+     * Forma canónica de roundsConfig para comparar: solo los campos que definen
+     * el premio de cada ronda según su tipo (ignora prizeName, claves de más, etc.).
+     */
     private function normalizeRounds(array $roundsConfig) : array
     {
         return array_values(array_map(function($r) {
