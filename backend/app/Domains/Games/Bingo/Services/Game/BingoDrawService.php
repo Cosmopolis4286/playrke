@@ -1151,63 +1151,57 @@ final class BingoDrawService
             ]);
         }
 
-        // Persistir el inicio antes de emitir la primera ficha. Esto bloquea
-        // aprobaciones tardías de comprobantes aunque la sala se haya iniciado
-        // manualmente antes de su hora programada.
-        if ($round->status !== 'IN_PROGRESS') {
-            DB::transaction(function() use ($roomId, $round) {
-                // El lock de la sala es el mutex del ciclo de vida: edición,
-                // eliminación y comienzo del sorteo adquieren primero esta misma fila.
-                // Así no existe una ventana donde una edición lea ACTIVE y reconstruya
-                // rondas mientras el worker ya está iniciando el sorteo.
-                $lockedRoom = BingoRoom::whereKey((string) $roomId)
-                    ->with('status')
-                    ->lockForUpdate()
-                    ->firstOrFail();
+        // Persistir el inicio antes de emitir la primera ficha. La sala y la ronda
+        // cambian dentro de la misma transacción, incluso al recuperar un sorteo que
+        // quedó IN_PROGRESS en la ronda pero ACTIVE en la sala por datos históricos.
+        DB::transaction(function() use ($roomId, $round) {
+            // El lock de la sala es el mutex del ciclo de vida: edición,
+            // eliminación y comienzo del sorteo adquieren primero esta misma fila.
+            $lockedRoom = BingoRoom::whereKey((string) $roomId)
+                ->with('status')
+                ->lockForUpdate()
+                ->firstOrFail();
 
-                if (! in_array($lockedRoom->status?->code, ['ACTIVE', 'IN_PROGRESS'], true)) {
-                    throw new DomainException(
-                        "No se puede iniciar el sorteo de la sala {$roomId} desde el estado {$lockedRoom->status?->code}.",
-                    );
-                }
+            if (! in_array($lockedRoom->status?->code, ['ACTIVE', 'IN_PROGRESS'], true)) {
+                throw new DomainException(
+                    "No se puede iniciar el sorteo de la sala {$roomId} desde el estado {$lockedRoom->status?->code}.",
+                );
+            }
 
-                $inProgressStatusId = GameStatus::codeToId('IN_PROGRESS');
-                if (! $inProgressStatusId) {
-                    throw new DomainException('No existe GameStatus con code=IN_PROGRESS.');
-                }
+            $inProgressStatusId = GameStatus::codeToId('IN_PROGRESS');
+            if (! $inProgressStatusId) {
+                throw new DomainException('No existe GameStatus con code=IN_PROGRESS.');
+            }
 
-                // El estado global cambia al comenzar la PRIMERA ronda. Se conserva
-                // IN_PROGRESS durante las rondas siguientes y los reintentos.
-                if ($lockedRoom->status?->code === 'ACTIVE') {
-                    $lockedRoom->forceFill(['status_id' => $inProgressStatusId])->save();
-                }
+            $lockedRound = BingoRound::whereKey($round->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-                // Serializar el inicio contra aprobaciones/rechazos de comprobantes.
-                // approve() bloquea primero el pago y luego consulta hasStarted(); al
-                // tomar aquí los mismos pagos PENDING antes de marcar la ronda,
-                // cualquier aprobación concurrente queda ordenada antes del inicio
-                // (se acepta como previa) o después (exige confirmLate).
-                // Ordenar por id mantiene el mismo orden de locks que claimCardWin().
+            // Solo bloquear pagos pendientes en la transición inicial de la ronda.
+            // approve() bloquea primero el pago y luego consulta hasStarted(); al
+            // tomar aquí los mismos pagos PENDING antes de marcar la ronda,
+            // cualquier aprobación concurrente queda ordenada antes o después del inicio.
+            if ($lockedRound->status !== 'IN_PROGRESS') {
                 BingoCardPayment::where('room_id', (string) $roomId)
                     ->where('payment_status', 'PENDING')
                     ->orderBy('id')
                     ->lockForUpdate()
                     ->get(['id']);
 
-                $lockedRound = BingoRound::whereKey($round->id)
-                    ->lockForUpdate()
-                    ->firstOrFail();
+                $lockedRound->forceFill([
+                    'status' => 'IN_PROGRESS',
+                    'start_time' => $lockedRound->start_time ?? now(),
+                ])->save();
+            }
 
-                if ($lockedRound->status !== 'IN_PROGRESS') {
-                    $lockedRound->forceFill([
-                        'status' => 'IN_PROGRESS',
-                        'start_time' => $lockedRound->start_time ?? now(),
-                    ])->save();
-                }
+            // Estado global definitivo desde la primera ronda. Se conserva durante
+            // todas las rondas siguientes y cualquier reintento del worker.
+            if ($lockedRoom->status?->code === 'ACTIVE') {
+                $lockedRoom->forceFill(['status_id' => $inProgressStatusId])->save();
+            }
 
-                $round->refresh();
-            });
-        }
+            $round->refresh();
+        });
 
         $roundId = (string) $round->id;
 
