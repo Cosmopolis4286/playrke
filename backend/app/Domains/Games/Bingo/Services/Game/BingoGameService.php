@@ -46,6 +46,13 @@ final class BingoGameService
         $hasExistingCode = BingoDrawCode::where('room_id', $room->id)->exists();
         $hadData = $hasExistingDraw || $hasExistingCode;
 
+        // Invalidar el snapshot de cada ronda antes del reset para que una
+        // recarga inmediata no reciba bolas de la ejecución anterior.
+        foreach ($room->rounds()->pluck('id') as $roundId) {
+            Cache::forget("bingo:draw-state:draw:{$room->id}:{$roundId}");
+        }
+        Cache::forget("bingo:draw-state:draw:{$room->id}");
+
         // Full DEV reset: clear all draw data, prizes, rounds, cards and room status
         DB::transaction(function() use ($room) {
             BingoDraw::where('room_id', $room->id)->delete();
@@ -96,7 +103,7 @@ final class BingoGameService
      */
     public function getDrawState(BingoRoom $room) : array
     {
-        // La clave "bingo:draw-state:draw:{roomId}" es escrita por BingoDrawService en cada
+        // La clave "bingo:draw-state:draw:{roomId}:{roundId}" es escrita por BingoDrawService en cada
         // chip con TTL = max(interval+2, 6)s. Cache::remember() con TTL fijo de 3s sobreescribiría
         // ese TTL largo en el fallback de DB, acortando la ventana útil del cache entre chips.
         // Solución: leer con get() (no toca el TTL existente); solo en cache miss, escribir
@@ -265,8 +272,8 @@ final class BingoGameService
         $config = $bingoRoom->config;
         $rounds = $bingoRoom->rounds;
 
-        // Reusar cache escrito por BingoDrawService — evita query a bingo_draws en page-load
-        // cuando el sorteo está en progreso (la clave ya tiene los chips actuales con TTL activo).
+        // Reusar el cache de la ronda actual escrito por BingoDrawService — evita query a
+        // bingo_draws en page-load cuando el sorteo está en progreso.
         // Al entrar o recargar durante una sala multi-ronda, mostrar únicamente
         // las fichas de la ronda activa (o la última si ya terminó).
         $currentRound = BingoRound::where('room_id', (string) $bingoRoom->id)
