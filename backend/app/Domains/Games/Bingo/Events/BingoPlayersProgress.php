@@ -33,9 +33,21 @@ class BingoPlayersProgress implements ShouldBroadcastNow
 
     public function broadcastWith()
     {
+        // El canal es público. Mantener el ranking visual, pero sustituir
+        // identidad y nombre reales por alias ordinales de esta emisión.
+        $players = array_values(array_map(
+            static fn (array $player, int $index) => [
+                'user_id' => $index + 1,
+                'user_name' => 'Jugador ' . ($index + 1),
+                'missing' => (int) ($player['missing'] ?? 0),
+            ],
+            $this->players,
+            array_keys($this->players),
+        ));
+
         return [
             'room_id' => $this->roomId,
-            'players' => $this->players,
+            'players' => $players,
         ];
     }
 }
