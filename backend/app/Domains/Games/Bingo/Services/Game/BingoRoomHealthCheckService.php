@@ -6,7 +6,7 @@ namespace App\Domains\Games\Bingo\Services\Game;
 
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
-use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator;
 use Closure;
 use DomainException;
 
@@ -163,13 +163,9 @@ final class BingoRoomHealthCheckService
         // pueden quedar desactualizados tras altas/bajas concurrentes o procesos
         // interrumpidos. El sorteo debe validar la misma fuente de verdad que el
         // despachador automático: las relaciones persistidas de jugadores y cartones.
-        $registeredPlayers = $room->players()
-            ->whereIn('role', [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER])
-            ->count();
-        $totalCards = $room->cards()
-            ->where('status', BingoCard::STATUS_ACTIVE)
-            ->eligibleForDraw()
-            ->count();
+        $roomState = app(BingoRoomStateCoordinator::class);
+        $registeredPlayers = $roomState->countPlayers($room);
+        $totalCards = $roomState->countEligibleCardsForDraw($room);
 
         return [
             fn () => $this->assertValidStatus($room),
