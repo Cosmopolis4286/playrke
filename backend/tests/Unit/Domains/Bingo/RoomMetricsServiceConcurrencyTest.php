@@ -66,13 +66,38 @@ class RoomMetricsServiceConcurrencyTest extends TestCase
         $resultB = $service->updateRoomMetricsWithCommissions($roomSnapshotB, $saleDataB, 30.0);
         $this->assertTrue($resultB);
 
+        // La venta financiera acumula correctamente, pero total_cards no se
+        // modifica por delta: solo se reconstruye después de persistir el lote.
+        $roomUser = BingoRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $room->creator_user_id,
+            'role' => BingoRoomUser::ROLE_PLAYER,
+            'cards_purchased' => 5,
+            'automarker' => 1,
+        ]);
+        BingoCardLot::create([
+            'room_id' => $room->id,
+            'user_id' => $room->creator_user_id,
+            'room_user_id' => $roomUser->id,
+            'currency_id' => $this->currencyId,
+            'card_count' => 5,
+            'card_price' => 10,
+            'exchange_rate' => 1,
+            'sale_amount' => 50,
+            'status' => 'ACTIVE',
+        ]);
+
+        $coordinator = app(BingoRoomStateCoordinator::class);
+        $counts = $coordinator->synchronizeCounters((string) $room->id);
+        $again = $coordinator->synchronizeCounters((string) $room->id);
         $fresh = $room->fresh();
 
-        // Sin el fix: total_cards/total_sales de B pisarían a los de A (quedarían
-        // en 3/30 en vez de 2+3=5 / 20+30=50). Con el fix (relectura con
-        // lockForUpdate() dentro del método), ambos incrementos se acumulan.
-        $this->assertEquals(5, $fresh->total_cards, 'total_cards debe acumular ambas compras, no perder la primera.');
-        $this->assertEquals(50.0, (float) $fresh->total_sales, 'total_sales debe acumular ambas compras, no perder la primera.');
+        $this->assertSame(5, $counts['total_cards']);
+        $this->assertSame(1, $counts['total_players']);
+        $this->assertSame($counts, $again, 'La sincronización debe ser idempotente.');
+        $this->assertSame(5, (int) $fresh->total_cards);
+        $this->assertSame(1, (int) $fresh->total_players);
+        $this->assertEquals(50.0, (float) $fresh->total_sales, 'total_sales debe acumular ambas ventas.');
 
         // rke_commission (5%) y room_commission (10%) también deben acumularse
         // sobre el total real ($50), no solo sobre la última venta procesada ($30).
