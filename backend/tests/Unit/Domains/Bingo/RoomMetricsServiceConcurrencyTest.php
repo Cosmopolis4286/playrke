@@ -110,6 +110,41 @@ class RoomMetricsServiceConcurrencyTest extends TestCase
     }
 
     /** @test */
+    public function count_methods_are_read_only_and_do_not_reconcile_room_snapshots()
+    {
+        $room = $this->makeRoom();
+        $roomUser = BingoRoomUser::create([
+            'room_id' => $room->id,
+            'user_id' => $room->creator_user_id,
+            'role' => BingoRoomUser::ROLE_PLAYER,
+            'cards_purchased' => 4,
+            'automarker' => 1,
+        ]);
+        BingoCardLot::create([
+            'room_id' => $room->id,
+            'user_id' => $room->creator_user_id,
+            'room_user_id' => $roomUser->id,
+            'currency_id' => $this->currencyId,
+            'card_count' => 4,
+            'card_price' => 10,
+            'exchange_rate' => 1,
+            'sale_amount' => 40,
+            'status' => 'ACTIVE',
+        ]);
+
+        $room->forceFill(['total_players' => 77, 'total_cards' => 99])->save();
+        $coordinator = app(BingoRoomStateCoordinator::class);
+
+        $this->assertSame(1, $coordinator->countPlayers((string) $room->id));
+        $this->assertSame(4, $coordinator->countCards((string) $room->id));
+        $this->assertSame(1, $coordinator->countPlayersForCapacity((string) $room->id));
+
+        $fresh = $room->fresh();
+        $this->assertSame(77, (int) $fresh->total_players, 'Un count no debe escribir total_players.');
+        $this->assertSame(99, (int) $fresh->total_cards, 'Un count no debe escribir total_cards.');
+    }
+
+    /** @test */
     public function update_all_metrics_rolls_back_prior_increments_when_a_later_metric_fails()
     {
         $room = $this->makeRoom();
