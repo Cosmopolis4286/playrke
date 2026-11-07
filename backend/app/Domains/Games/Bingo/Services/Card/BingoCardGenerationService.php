@@ -9,6 +9,7 @@ use App\Domains\Games\Bingo\Services\Payment\CommissionCalculationService;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomCapacityGuard;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomCardCapacityGuard;
 use App\Domains\Games\Bingo\Services\Room\Metrics\RoomMetricsService;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomMetricsSynchronizer;
 use App\Domains\Games\Bingo\Services\Room\User\RoomUserRegistrationService;
 use App\Models\Games\Common\GameRoom\CurrencyGameRoom;
 use DomainException;
@@ -248,8 +249,9 @@ final class BingoCardGenerationService
 
             // Los contadores de participantes/cartones se reconstruyen desde los lotes
             // y participaciones ya persistidos. Nunca se incrementan por deltas.
-            app(\App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator::class)
-                ->synchronizeCounters((string) $room->id);
+            // Reconstruir contadores y métricas financieras desde los lotes
+            // ACTIVE, sin perder el historial financiero ya registrado.
+            app(BingoRoomMetricsSynchronizer::class)->synchronize((string) $room->id);
 
             // El descuento de billetera para jugadores internos NO ocurre aquí: el único
             // caller que usa creator.type='player' (BingoCardGenerateService::playerBuyFromGameRooms)

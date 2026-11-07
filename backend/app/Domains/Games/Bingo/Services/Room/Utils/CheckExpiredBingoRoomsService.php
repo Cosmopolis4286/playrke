@@ -7,6 +7,7 @@ use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomMetricsSynchronizer;
 use App\Models\Games\Common\Utils\GameStatus;
 use Carbon\Carbon;
 use Closure;
@@ -56,7 +57,7 @@ final class CheckExpiredBingoRoomsService
             ->whereHas('config', $expiredSubquery)
             ->pluck('id');
         foreach ($expiredRoomIds as $expiredRoomId) {
-            $this->roomState->synchronizeCounters((string) $expiredRoomId);
+            app(BingoRoomMetricsSynchronizer::class)->synchronize((string) $expiredRoomId);
         }
 
         // 1. Salas con jugadores pero sin mínimo de cartones o de jugadores → CANCELLED + reembolso

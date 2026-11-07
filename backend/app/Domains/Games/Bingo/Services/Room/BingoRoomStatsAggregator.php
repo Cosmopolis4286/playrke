@@ -25,8 +25,8 @@ final class BingoRoomStatsAggregator
     {
         $roomId = (string) $room->id;
 
-        $counts = app(\App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator::class)
-            ->synchronizeCounters($roomId);
+        $counts = app(\App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomMetricsSynchronizer::class)
+            ->synchronize($roomId);
         $room->refresh();
 
         // Lotes + cartones + ingresos — una sola query agregada

@@ -47,15 +47,29 @@ final class BingoRoomStateCoordinator
                 ->pluck('card_count', 'currency_id');
 
             $metricsByCurrency = (array) ($lockedRoom->metrics_by_currency ?? []);
+            $currencyTemplate = [
+                'total_sales' => 0.0,
+                'total_cards' => 0,
+                'prize_pool' => 0.0,
+                'full_house_prize' => 0.0,
+                'rke_commission' => 0.0,
+                'room_commission' => 0.0,
+                'seller_commission' => 0.0,
+                'jackpot_contribution' => 0.0,
+            ];
             foreach ($metricsByCurrency as $currencyId => $currencyMetrics) {
-                $currencyMetrics = (array) $currencyMetrics;
-                $currencyMetrics['total_cards'] = (int) ($currencyCardCounts[(string) $currencyId] ?? 0);
-                $metricsByCurrency[$currencyId] = $currencyMetrics;
+                $metricsByCurrency[$currencyId] = array_merge(
+                    $currencyTemplate,
+                    (array) $currencyMetrics,
+                    ['total_cards' => (int) ($currencyCardCounts[(string) $currencyId] ?? 0)],
+                );
             }
             foreach ($currencyCardCounts as $currencyId => $cardCount) {
-                $currencyMetrics = (array) ($metricsByCurrency[(string) $currencyId] ?? []);
-                $currencyMetrics['total_cards'] = (int) $cardCount;
-                $metricsByCurrency[(string) $currencyId] = $currencyMetrics;
+                $metricsByCurrency[(string) $currencyId] = array_merge(
+                    $currencyTemplate,
+                    (array) ($metricsByCurrency[(string) $currencyId] ?? []),
+                    ['total_cards' => (int) $cardCount],
+                );
             }
             $roomUserIds = $activeLots->pluck('room_user_id')->filter()->map(fn ($id) => (string) $id)->unique();
 
@@ -83,6 +97,8 @@ final class BingoRoomStateCoordinator
                 ->join('bingo_card_lots', 'bingo_card_lots.id', '=', 'bingo_cards.card_lot_id')
                 ->where('external_player_participations.participable_type', BingoCard::class)
                 ->whereNull('external_player_participations.deleted_at')
+                ->whereNull('bingo_cards.deleted_at')
+                ->whereNull('bingo_card_lots.deleted_at')
                 ->where('bingo_cards.room_id', $roomId)
                 ->where('bingo_card_lots.status', 'ACTIVE')
                 ->distinct()
@@ -137,6 +153,7 @@ final class BingoRoomStateCoordinator
                 ->where('bingo_room_users.room_id', $roomId)
                 ->where('bingo_room_users.user_id', $pendingUserId)
                 ->whereIn('bingo_room_users.role', [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER])
+                ->whereNull('bingo_card_lots.deleted_at')
                 ->where('bingo_card_lots.status', 'ACTIVE')
                 ->exists();
 
@@ -160,6 +177,8 @@ final class BingoRoomStateCoordinator
                     ->where('external_player_participations.external_player_id', $pendingExternalPlayerId)
                     ->where('external_player_participations.participable_type', BingoCard::class)
                     ->whereNull('external_player_participations.deleted_at')
+                    ->whereNull('bingo_cards.deleted_at')
+                    ->whereNull('bingo_card_lots.deleted_at')
                     ->where('bingo_cards.room_id', $roomId)
                     ->where('bingo_card_lots.status', 'ACTIVE')
                     ->exists();
