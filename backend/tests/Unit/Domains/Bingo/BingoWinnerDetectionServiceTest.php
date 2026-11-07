@@ -40,6 +40,11 @@ class BingoWinnerDetectionServiceTest extends TestCase
         // en 0 aísla los tests de detección/no-regresión del gate en sí
         // (el gate se prueba explícitamente en su propio test, más abajo).
         config(['anticheat.bingo.min_claim_delay_ms' => 0]);
+
+        // Esta suite no ejecuta todos los seeders globales; el inicio del sorteo
+        // necesita el estado canónico IN_PROGRESS para actualizar también la sala.
+        GameStatus::firstOrCreate(['code' => 'IN_PROGRESS'], ['label' => 'En Juego']);
+        GameStatus::forgetCache();
     }
 
     public function test_demo_room_winner_is_recorded_but_prize_is_never_paid() : void
