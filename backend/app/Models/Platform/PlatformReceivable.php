@@ -49,6 +49,7 @@ class PlatformReceivable extends Model
         'rke_amount', 'jackpot_amount', 'prize_pool_amount',
         'creator_amount', 'creator_payee_user_id', 'creator_paid_at',
         'status', 'settled_at', 'settled_by', 'cancelled_at', 'notes',
+        'settlement_batch_id', 'settlement_reference', 'settlement_notes',
     ];
 
     public function currency() : BelongsTo
