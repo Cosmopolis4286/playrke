@@ -37,6 +37,26 @@ final class BingoRoomStateCoordinator
                 ->get(['id', 'card_count', 'room_user_id']);
 
             $totalCards = (int) $activeLots->sum('card_count');
+
+            $currencyCardCounts = BingoCardLot::query()
+                ->where('room_id', $roomId)
+                ->where('status', 'ACTIVE')
+                ->whereNotNull('currency_id')
+                ->selectRaw('currency_id, COALESCE(SUM(card_count), 0) as card_count')
+                ->groupBy('currency_id')
+                ->pluck('card_count', 'currency_id');
+
+            $metricsByCurrency = (array) ($lockedRoom->metrics_by_currency ?? []);
+            foreach ($metricsByCurrency as $currencyId => $currencyMetrics) {
+                $currencyMetrics = (array) $currencyMetrics;
+                $currencyMetrics['total_cards'] = (int) ($currencyCardCounts[(string) $currencyId] ?? 0);
+                $metricsByCurrency[$currencyId] = $currencyMetrics;
+            }
+            foreach ($currencyCardCounts as $currencyId => $cardCount) {
+                $currencyMetrics = (array) ($metricsByCurrency[(string) $currencyId] ?? []);
+                $currencyMetrics['total_cards'] = (int) $cardCount;
+                $metricsByCurrency[(string) $currencyId] = $currencyMetrics;
+            }
             $roomUserIds = $activeLots->pluck('room_user_id')->filter()->map(fn ($id) => (string) $id)->unique();
 
             $internalPlayerIds = $roomUserIds->isEmpty()
@@ -82,6 +102,7 @@ final class BingoRoomStateCoordinator
             $lockedRoom->forceFill([
                 'total_players' => $totalPlayers,
                 'total_cards' => $totalCards,
+                'metrics_by_currency' => $metricsByCurrency,
             ])->save();
 
             return [

@@ -391,7 +391,6 @@ class RoomMetricsService implements RoomMetricsInterface
                 ];
 
                 $current['total_sales'] = round($current['total_sales'] + $saleAmountLocal, 3);
-                $current['total_cards'] += $saleData['cardCount'];
                 if ($accruesMoneyPool) {
                     $current['prize_pool'] = round($current['prize_pool'] + $prizePoolLocal, 3);
                     $current['full_house_prize'] = round($current['full_house_prize'] + $prizePoolLocal, 3);
