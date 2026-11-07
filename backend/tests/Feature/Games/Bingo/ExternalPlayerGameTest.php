@@ -169,6 +169,30 @@ class ExternalPlayerGameTest extends TestCase
     }
 
     /** @test */
+    public function refund_buyer_resolver_rejects_a_lot_linked_to_multiple_external_players() : void
+    {
+        $room = $this->makeRoom();
+        $roomUser = $this->makeSharedRoomUser($room);
+        $buyerA = $this->makeExternalPlayer($room, $roomUser, '+1000000191');
+        $buyerB = $this->makeExternalPlayer($room, $roomUser, '+1000000192');
+
+        $cardA = $this->makeCardForPlayer($room, $roomUser, $buyerA);
+        $cardB = $this->makeCardForPlayer($room, $roomUser, $buyerB);
+        $lotId = $this->nextId();
+
+        $cardA->update(['card_lot_id' => $lotId]);
+        $cardB->update(['card_lot_id' => $lotId]);
+
+        $lot = new BingoCardLot;
+        $lot->id = $lotId;
+
+        $this->expectException(\\DomainException::class);
+        $this->expectExceptionMessage('varios compradores externos');
+
+        app(ExternalPlayerLotBuyerResolver::class)->resolve($lot);
+    }
+
+    /** @test */
     public function invalid_link_returns_404() : void
     {
         $response = $this->get('/bingo/external/this-link-does-not-exist-000000');
