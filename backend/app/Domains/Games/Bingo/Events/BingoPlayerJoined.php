@@ -1,10 +1,10 @@
 <?php
 
-namespace App\\Domains\\Games\\Bingo\\Events;
+namespace App\Domains\Games\Bingo\Events;
 
-use Illuminate\\Broadcasting\\Channel;
-use Illuminate\\Contracts\\Broadcasting\\ShouldBroadcastNow;
-use Illuminate\\Queue\\SerializesModels;
+use Illuminate\Broadcasting\Channel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Queue\SerializesModels;
 
 class BingoPlayerJoined implements ShouldBroadcastNow
 {
@@ -17,8 +17,7 @@ class BingoPlayerJoined implements ShouldBroadcastNow
 
     public function __construct(int $roomId, int $playerId, string $playerName, int $currentPlayers)
     {
-        // El canal es público: los datos identificables se conservan solo en
-        // memoria para compatibilidad interna, nunca en logs ni en el payload.
+        // El canal es público: no registrar ni transmitir datos identificables.
         $this->roomId = $roomId;
         $this->playerId = $playerId;
         $this->playerName = $playerName;
