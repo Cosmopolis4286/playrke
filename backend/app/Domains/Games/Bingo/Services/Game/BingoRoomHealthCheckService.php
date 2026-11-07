@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domains\Games\Bingo\Services\Game;
 
-use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator;
 use Closure;
