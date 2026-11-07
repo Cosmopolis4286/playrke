@@ -2,6 +2,7 @@
 
 namespace App\Domains\Games\Bingo\Models\Round;
 
+use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
@@ -35,6 +36,11 @@ class BingoRound extends Model
     ];
 
     protected $table = 'bingo_rounds';
+
+    public function draws() : HasMany
+    {
+        return $this->hasMany(BingoDraw::class, 'round_id');
+    }
 
     public function bingoPattern() : BelongsTo
     {

@@ -38,6 +38,7 @@ final class BingoDrawReplayService
                 'draws' => fn ($q) => $q
                     ->orderBy('time')
                     ->orderBy('created_at')
+                    ->orderBy('id')
                     ->select(['id', 'round_id', 'chip', 'code', 'time', 'created_at']),
             ])
             ->orderBy('round')

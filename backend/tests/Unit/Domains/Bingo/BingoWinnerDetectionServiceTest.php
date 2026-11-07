@@ -15,6 +15,7 @@ use App\Domains\Games\Bingo\Services\Game\BingoDrawService;
 use App\Exceptions\Domain\ExchangeRate\ExchangeRateException;
 use App\Domains\Games\Bingo\Services\Payment\BingoCardPaymentReviewService;
 use App\Domains\Games\Bingo\Exceptions\Card\BingoCardPaymentException;
+use App\Domains\Games\Bingo\Services\Game\BingoDrawReplayService;
 use App\Domains\Games\Bingo\Services\Game\BingoWinnerDetectionService;
 use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
 use App\Models\Country;
@@ -46,6 +47,32 @@ class BingoWinnerDetectionServiceTest extends TestCase
         // necesita el estado canónico IN_PROGRESS para actualizar también la sala.
         GameStatus::firstOrCreate(['code' => 'IN_PROGRESS'], ['label' => 'En Juego']);
         GameStatus::forgetCache();
+    }
+
+    public function test_draw_replay_loads_round_draws_and_orders_equal_timestamps_by_id() : void
+    {
+        $user = User::factory()->create();
+        ['room' => $room, 'round' => $round] = $this->makeRoomWithCard($this->winningCardNumbers(), $user, 'DEMO');
+
+        $this->drawWinningLine($room, $round);
+
+        $timestamp = now()->startOfSecond();
+        BingoDraw::where('room_id', (string) $room->id)
+            ->where('round_id', (string) $round->id)
+            ->update(['time' => 5, 'created_at' => $timestamp, 'updated_at' => $timestamp]);
+
+        $expectedChips = BingoDraw::where('room_id', (string) $room->id)
+            ->where('round_id', (string) $round->id)
+            ->orderBy('id')
+            ->pluck('chip')
+            ->map(fn ($chip) => (int) $chip)
+            ->all();
+
+        $replay = app(BingoDrawReplayService::class)->replay($room->fresh());
+        $actualChips = $replay['rounds'][0]['chips'];
+
+        $this->assertSame($expectedChips, array_column($actualChips, 'chip'));
+        $this->assertSame(range(1, count($expectedChips)), array_column($actualChips, 'order'));
     }
 
     public function test_demo_room_winner_is_recorded_but_prize_is_never_paid() : void

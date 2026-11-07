@@ -101,7 +101,7 @@ class BingoDraw extends Model
 
     public function scopeInSequence($query)
     {
-        return $query->orderBy('time')->orderBy('created_at');
+        return $query->orderBy('time')->orderBy('created_at')->orderBy('id');
     }
 
     public function scopeWaiting($query)
