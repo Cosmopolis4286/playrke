@@ -99,6 +99,11 @@ function onGameModeChange(mode: string) {
 
 const submit = () => {
   if (scheduledAtError.value || sponsorPrizeError.value || platformRakeError.value || prizePayoutsError.value) return
+  // scheduled_at obligatorio: sin él la sala nunca arrancaría (no hay inicio manual en v1)
+  if (!form.scheduled_at) {
+    form.setError('scheduled_at', 'La fecha y hora de inicio es obligatoria')
+    return
+  }
 
   form.transform((data) => ({
     ...data,
@@ -290,6 +295,7 @@ const submit = () => {
             :min="minScheduledAt"
             :error="scheduledAtError"
             :server-error="form.errors.scheduled_at"
+            required
             @update:model-value="form.scheduled_at = $event"
           />
 

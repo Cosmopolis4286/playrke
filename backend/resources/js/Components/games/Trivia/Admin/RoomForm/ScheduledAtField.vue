@@ -6,6 +6,10 @@ defineProps<{
   serverError?: string
   disabled?: boolean
   showClearButton?: boolean
+  // Obligatorio al crear sala: el inicio manual no está disponible en v1
+  // (StartGameAction exige host = usuario y el host es el admin), así que
+  // toda sala arranca por trivia:start-scheduled-rooms.
+  required?: boolean
 }>()
 
 defineEmits<{
@@ -29,12 +33,14 @@ defineEmits<{
         type="datetime-local"
         :min="min"
         :disabled="disabled"
+        :required="required"
         :aria-invalid="Boolean(error || serverError)"
         class="saf-input mt-1 block w-full rounded-md focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
         :class="(error || serverError) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 'saf-input-border focus:border-indigo-500'"
         @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
       />
-      <p class="mt-1 text-xs saf-text-muted">Deja vacío para inicio manual. Si especificas fecha y hora, la sala se iniciará automáticamente.</p>
+      <p v-if="required" class="mt-1 text-xs saf-text-muted">Obligatorio. La sala se iniciará automáticamente en la fecha y hora indicadas.</p>
+      <p v-else class="mt-1 text-xs saf-text-muted">Deja vacío para inicio manual. Si especificas fecha y hora, la sala se iniciará automáticamente.</p>
       <p v-if="error" class="mt-1 text-sm text-red-600">{{ error }}</p>
       <p v-else-if="serverError" class="mt-1 text-sm text-red-600">{{ serverError }}</p>
       <button
