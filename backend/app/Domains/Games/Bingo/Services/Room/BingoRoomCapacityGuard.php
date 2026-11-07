@@ -46,7 +46,7 @@ final class BingoRoomCapacityGuard
             $pendingExternalPlayerId,
         );
 
-        if ((int) $current >= (int) $maxPlayers) {
+        if ((int) $current > (int) $maxPlayers) {
             throw BingoRoomException::roomFull();
         }
     }
