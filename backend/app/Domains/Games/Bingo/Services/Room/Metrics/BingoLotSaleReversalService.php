@@ -119,6 +119,12 @@ final class BingoLotSaleReversalService
             }
         }
 
+        // La reversión ocurre antes de marcar el lote REFUNDED. Recalcular
+        // excluyendo este lote evita depender de deltas y repara también drift
+        // acumulado cuando todos los lotes activos tienen desglose financiero.
+        app(\App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomMetricsSynchronizer::class)
+            ->synchronize($room, (string) $lot->id);
+
         return ['reversed' => true, 'channel' => $channel, 'refund_to_seller' => round($refundToSeller, 2)];
     }
 
