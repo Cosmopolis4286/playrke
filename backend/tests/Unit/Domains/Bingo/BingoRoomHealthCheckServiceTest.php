@@ -6,7 +6,6 @@ namespace Tests\Unit\Domains\Bingo;
 
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
-use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Services\Game\BingoRoomHealthCheckService;
 use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -70,13 +69,6 @@ class BingoRoomHealthCheckServiceTest extends TestCase
             ->andReturn($actualCards);
         $this->app->instance(BingoRoomStateCoordinator::class, $coordinator);
 
-        $players = Mockery::mock(HasMany::class);
-        $players->shouldReceive('whereIn')
-            ->once()
-            ->with('role', [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER])
-            ->andReturnSelf();
-        $players->shouldReceive('count')->once()->andReturn($actualPlayers);
-
         $cards = Mockery::mock(HasMany::class);
         $cards->shouldReceive('where')->once()->with('status', BingoCard::STATUS_ACTIVE)->andReturnSelf();
         $cards->shouldReceive('eligibleForDraw')->once()->andReturnSelf();
@@ -88,7 +80,6 @@ class BingoRoomHealthCheckServiceTest extends TestCase
             ->once()
             ->with(['rounds', 'config'])
             ->andReturnSelf();
-        $room->shouldReceive('players')->once()->andReturn($players);
         $room->shouldReceive('cards')->once()->andReturn($cards);
 
         $room->setAttribute('id', 'health-check-room');
