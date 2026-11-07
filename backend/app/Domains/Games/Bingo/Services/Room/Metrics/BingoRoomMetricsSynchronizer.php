@@ -20,8 +20,20 @@ use Illuminate\Support\Facades\Log;
  * de verdad: reintentos, reembolsos, compras concurrentes y ventas POS pueden
  * dejar el snapshot desfasado.
  */
-final class BingoRoomMetricsSynchronizer
+class BingoRoomMetricsSynchronizer
 {
+    /** Claves que toda entrada de metrics_by_currency debe tener. */
+    private const CURRENCY_METRICS_TEMPLATE = [
+        'total_sales' => 0.0,
+        'total_cards' => 0,
+        'prize_pool' => 0.0,
+        'full_house_prize' => 0.0,
+        'rke_commission' => 0.0,
+        'room_commission' => 0.0,
+        'seller_commission' => 0.0,
+        'jackpot_contribution' => 0.0,
+    ];
+
     /**
      * Cuenta participantes reales con cartones en lotes vigentes.
      * Los compradores externos se cuentan por ExternalPlayerParticipation;
@@ -169,12 +181,17 @@ final class BingoRoomMetricsSynchronizer
                 $currencyId = (string) ($breakdown['currency_id'] ?? $lot->currency_id ?? '');
                 $roomLocal = $breakdown['room_local'] ?? null;
                 if ($currencyId !== '' && is_array($roomLocal)) {
-                    $current = $byCurrency[$currencyId] ?? [];
+                    // Mismas claves base que RoomMetricsService::updateRoomMetricsWithCommissions()
+                    // lee sin `?? 0` en la siguiente venta; el desglose del lote no trae
+                    // full_house_prize (es el mismo bote), así que se deriva de prize_pool.
+                    $current = $byCurrency[$currencyId] ?? self::CURRENCY_METRICS_TEMPLATE;
                     foreach ($roomLocal as $key => $value) {
                         if (is_numeric($value)) {
-                            $current[$key] = (float) ($current[$key] ?? 0) + (float) $value;
+                            $current[$key] = round((float) ($current[$key] ?? 0) + (float) $value, 3);
                         }
                     }
+                    $current['total_cards'] = (int) $current['total_cards'];
+                    $current['full_house_prize'] = $current['prize_pool'];
                     $byCurrency[$currencyId] = $current;
                 }
             }
