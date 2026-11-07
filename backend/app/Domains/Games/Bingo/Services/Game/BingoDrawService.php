@@ -513,7 +513,8 @@ final class BingoDrawService
         foreach ($playerBest as $userId => $info) {
             $players[] = ['user_id' => $userId, 'user_name' => $info['user_name'], 'missing' => $info['missing']];
         }
-        usort($players, fn ($a, $b) => $a['missing'] <=> $b['missing']);
+        // Empates en bolas faltantes deben conservar un orden estable entre emisiones.
+        usort($players, fn ($a, $b) => ($a['missing'] <=> $b['missing']) ?: ($a['user_id'] <=> $b['user_id']));
 
         return $players;
     }
