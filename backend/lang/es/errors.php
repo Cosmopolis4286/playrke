@@ -153,6 +153,7 @@ return [
     'BINGO_CARD_VIP_BUYER_NOT_INVITED' => 'Esta sala es VIP y el teléfono del comprador no está en su lista de invitados. Pide al creador de la sala que lo agregue.',
     'BINGO_CARD_SALES_CLOSED' => 'Las ventas de esta sala ya cerraron: se cierran :minutes minutos antes del inicio para que el comercio alcance a aprobar el comprobante. Elige otra sala.',
     'BINGO_CARD_SALES_CLOSED_ROOM_STARTED' => 'La sala ya inició: la venta de cartones está cerrada. Elige otra sala.',
+    'RECEIVABLE_SETTLEMENT_AMOUNT_MISMATCH' => 'El total pendiente cambió (ahora :current, se mostró :expected): se anuló o registró una venta en el medio. Recarga el panel y confirma el nuevo monto.',
     'BINGO_PAYMENT_LATE_APPROVAL_CONFIRM' => 'El sorteo de esta sala ya inició: si apruebas el pago, los cartones entran con las bolas ya cantadas. Confirma que el comprador lo acepta.',
     'EXCHANGE_RATE_DEVIATION_EXCEEDED' => 'Tu tasa de :currency se aleja más del :max_pct% permitido respecto a la oficial (:official). Usa un valor entre :min y :max.',
     'BINGO_CARD_CURRENCY_NOT_AVAILABLE' => 'La moneda seleccionada no está disponible para esta sala.',

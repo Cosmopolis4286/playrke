@@ -2,9 +2,11 @@
 
 namespace App\Services\Platform;
 
+use App\Exceptions\Domain\Platform\ReceivableSettlementException;
 use App\Models\Platform\PlatformReceivable;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Cuentas por cobrar de la plataforma: lo que un comercio retuvo en ventas
@@ -68,7 +70,8 @@ final class PlatformReceivableService
             ->groupBy('debtor_user_id', 'platform_receivables.currency_id', 'users.username', 'currencies.iso_code', 'currencies.symbol')
             ->selectRaw('debtor_user_id, platform_receivables.currency_id, users.username as debtor, currencies.iso_code as currency, currencies.symbol,
                 COUNT(*) as sales, SUM(amount) as total, SUM(rke_amount) as rke, SUM(jackpot_amount) as jackpot,
-                SUM(prize_pool_amount) as prize_pool, SUM(creator_amount) as creator, MIN(platform_receivables.created_at) as oldest')
+                SUM(prize_pool_amount) as prize_pool, SUM(creator_amount) as creator, MIN(platform_receivables.created_at) as oldest,
+                MAX(platform_receivables.id) as up_to_id')
             ->orderByDesc('total')
             ->get()
             ->map(fn ($r) => [
@@ -84,6 +87,9 @@ final class PlatformReceivableService
                 'prize_pool' => round((float) $r->prize_pool, 2),
                 'creator' => round((float) $r->creator, 2),
                 'oldest' => $r->oldest,
+                // Última deuda incluida en este total: el cobro se limita a
+                // ella para no saldar ventas registradas después de mostrarlo.
+                'up_to_id' => (string) $r->up_to_id,
             ])
             ->all();
     }
@@ -128,18 +134,32 @@ final class PlatformReceivableService
     }
 
     /**
-     * Marca cobradas todas las deudas pendientes de un comercio en una moneda y
+     * Marca cobradas las deudas pendientes de un comercio en una moneda y
      * acredita a la wallet de plataforma: el RKE como comisión, el jackpot y el
      * bote como fondeo de premios.
      *
-     * @return array{count: int, amount: float, rke: float, jackpot: float, prize_pool: float}
+     * Con $upToId solo se saldan las deudas hasta esa (las que el admin vio en
+     * el panel); las ventas registradas después siguen pendientes. Con
+     * $expectedAmount, si el total ya no coincide (se anuló o agregó una venta
+     * en el medio) no se cobra nada y se lanza ReceivableSettlementException.
+     *
+     * @return array{count: int, amount: float, rke: float, jackpot: float, prize_pool: float, batch_id?: string}
      */
-    public function settle(string $debtorUserId, string $currencyId, string $settledBy) : array
-    {
-        $result = DB::transaction(function() use ($debtorUserId, $currencyId, $settledBy) {
+    public function settle(
+        string $debtorUserId,
+        string $currencyId,
+        string $settledBy,
+        ?string $upToId = null,
+        ?float $expectedAmount = null,
+        ?string $reference = null,
+        ?string $notes = null,
+    ) : array {
+        $result = DB::transaction(function() use ($debtorUserId, $currencyId, $settledBy, $upToId, $expectedAmount, $reference, $notes) {
             $pending = PlatformReceivable::where('debtor_user_id', $debtorUserId)
                 ->where('currency_id', $currencyId)
                 ->where('status', PlatformReceivable::STATUS_PENDING)
+                // Snowflake: ids crecientes en el tiempo.
+                ->when($upToId !== null, fn ($q) => $q->where('id', '<=', $upToId))
                 ->lockForUpdate()
                 ->get();
 
@@ -151,16 +171,28 @@ final class PlatformReceivableService
             $jackpot = round((float) $pending->sum('jackpot_amount'), 2);
             $pool = round((float) $pending->sum('prize_pool_amount'), 2);
 
+            // Lo que pagó el comercio: incluye la parte del creador en venta cruzada
+            // (mismo `total` que muestra pendingSummary()).
+            $owed = round((float) $pending->sum('amount'), 2);
+            if ($expectedAmount !== null && abs($owed - round($expectedAmount, 2)) > 0.009) {
+                throw ReceivableSettlementException::amountMismatch($owed, $expectedAmount);
+            }
+
+            $batchId = (string) Str::uuid();
             PlatformReceivable::whereIn('id', $pending->pluck('id'))->update([
                 'status' => PlatformReceivable::STATUS_SETTLED,
                 'settled_at' => now(),
                 'settled_by' => $settledBy,
+                'settlement_batch_id' => $batchId,
+                'settlement_reference' => $reference,
+                'settlement_notes' => $notes,
             ]);
 
             $debtorName = User::where('id', $debtorUserId)->value('username') ?? $debtorUserId;
             $count = $pending->count();
-            $this->platformWallet->creditRke($currencyId, $rke, "Cobro RKE – {$debtorName} ({$count} venta(s))");
-            $this->platformWallet->creditPoolFunding($currencyId, round($jackpot + $pool, 2), "Cobro bote/jackpot – {$debtorName} ({$count} venta(s))");
+            $ref = $reference ? " · ref. {$reference}" : '';
+            $this->platformWallet->creditRke($currencyId, $rke, "Cobro RKE – {$debtorName} ({$count} venta(s)){$ref}");
+            $this->platformWallet->creditPoolFunding($currencyId, round($jackpot + $pool, 2), "Cobro bote/jackpot – {$debtorName} ({$count} venta(s)){$ref}");
 
             return [
                 'count' => $count,
@@ -168,6 +200,7 @@ final class PlatformReceivableService
                 'rke' => $rke,
                 'jackpot' => $jackpot,
                 'prize_pool' => $pool,
+                'batch_id' => $batchId,
                 // Venta cruzada: salas con comisión del creador custodiada en lo cobrado.
                 '_creator_rooms' => $pending->where('creator_amount', '>', 0)->pluck('room_id')->filter()->unique()->values()->all(),
             ];

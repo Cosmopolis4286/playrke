@@ -48,9 +48,23 @@ class ReconciliationController extends Controller
         $validated = $request->validate([
             'debtor_user_id' => ['required', 'string'],
             'currency_id' => ['required', 'string'],
+            // Lo que el admin vio en el panel: se cobra hasta esa deuda y solo
+            // si el total sigue siendo el mismo (ver PlatformReceivableService::settle()).
+            'up_to_id' => ['required', 'string', 'regex:/^\d+$/'],
+            'expected_amount' => ['required', 'numeric', 'min:0'],
+            'reference' => ['required', 'string', 'max:120'],
+            'notes' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $result = $this->receivables->settle($validated['debtor_user_id'], $validated['currency_id'], (string) Auth::id());
+        $result = $this->receivables->settle(
+            $validated['debtor_user_id'],
+            $validated['currency_id'],
+            (string) Auth::id(),
+            $validated['up_to_id'],
+            (float) $validated['expected_amount'],
+            trim($validated['reference']),
+            $validated['notes'] ?? null,
+        );
 
         if ($result['count'] === 0) {
             return response()->json(['message' => 'No hay deudas pendientes para ese comercio y moneda.'], 422);
