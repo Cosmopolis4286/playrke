@@ -1339,6 +1339,10 @@ final class BingoDrawService
             // loop de fichas lo refresque con el intervalo correcto.
             Cache::put("bingo:draw-state:draw:{$roomId}", $drawnSoFar, max($this->currentInterval + 2, 6));
 
+            // Reemitir GameStarted al recuperar: el intento anterior pudo haber
+            // persistido la primera bola y fallado antes de entregar este evento.
+            // Los clientes deben tratar GameStarted como idempotente por draw_id.
+            broadcast(new BingoGameStarted((int) $roomId, (int) $lastDraw->id));
             broadcast(new BingoNumberCalled((int) $lastDraw->chip, $roomId));
 
             // Verificar si ya hay ganadores antes de llamar detectWinnerAndEnd en resume,
@@ -1378,13 +1382,16 @@ final class BingoDrawService
             $firstDraw = $this->createDrawRecord($roomId, $roundId, $sequence[0], 0, $variant, [$sequence[0]]);
 
             try {
-                broadcast(new BingoGameStarted($roomId, (int) $firstDraw->id));
+                broadcast(new BingoGameStarted((int) $roomId, (int) $firstDraw->id));
                 broadcast(new BingoNumberCalled((int) $sequence[0], $roomId));
             } catch (Throwable $e) {
-                Log::error('[BingoDrawService] Error al emitir GameStarted/primera ficha — sorteo continúa', [
+                Log::error('[BingoDrawService] Falló la emisión inicial — se detiene para reintentar desde la ficha persistida', [
                     'room_id' => $roomId,
+                    'draw_id' => $firstDraw->id,
                     'error' => $e->getMessage(),
                 ]);
+
+                throw $e;
             }
             $this->auditLogger->log($room, BingoRoomAuditLogger::EVENT_DRAW_STARTED, 'system', 'Sorteo iniciado', ['round_id' => (string) $roundId, 'variant' => $variant]);
 
@@ -1420,11 +1427,14 @@ final class BingoDrawService
             try {
                 broadcast(new BingoNumberCalled((int) $chip, $roomId));
             } catch (Throwable $e) {
-                Log::error('[BingoDrawService] Error al emitir BingoNumberCalled — ficha persistida, sorteo continúa', [
+                Log::error('[BingoDrawService] Falló la emisión de una ficha — se detiene para reintentar desde la ficha persistida', [
                     'room_id' => $roomId,
+                    'draw_id' => $draw->id,
                     'chip' => $chip,
                     'error' => $e->getMessage(),
                 ]);
+
+                throw $e;
             }
             // Append después del broadcast: detectWinnerAndEnd no verá el chip
             // hasta aquí, garantizando que los clientes ya lo recibieron.
