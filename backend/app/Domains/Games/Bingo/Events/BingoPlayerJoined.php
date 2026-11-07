@@ -1,29 +1,24 @@
 <?php
 
-namespace App\Domains\Games\Bingo\Events;
+namespace App\\Domains\\Games\\Bingo\\Events;
 
-use Illuminate\Broadcasting\Channel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
+use Illuminate\\Broadcasting\\Channel;
+use Illuminate\\Contracts\\Broadcasting\\ShouldBroadcastNow;
+use Illuminate\\Queue\\SerializesModels;
 
 class BingoPlayerJoined implements ShouldBroadcastNow
 {
     use SerializesModels;
+
     public $currentPlayers;
     public $playerId;
     public $playerName;
-
     public $roomId;
 
     public function __construct(int $roomId, int $playerId, string $playerName, int $currentPlayers)
     {
-        Log::info('Creando evento BingoPlayerJoined', [
-            'roomId' => $roomId,
-            'playerId' => $playerId,
-            'playerName' => $playerName,
-        ]);
-
+        // El canal es público: los datos identificables se conservan solo en
+        // memoria para compatibilidad interna, nunca en logs ni en el payload.
         $this->roomId = $roomId;
         $this->playerId = $playerId;
         $this->playerName = $playerName;
@@ -44,10 +39,6 @@ class BingoPlayerJoined implements ShouldBroadcastNow
     {
         return [
             'room_id' => $this->roomId,
-            'player' => [
-                'id' => $this->playerId,
-                'name' => $this->playerName,
-            ],
             'current_players' => $this->currentPlayers,
             'timestamp' => now()->toISOString(),
         ];
