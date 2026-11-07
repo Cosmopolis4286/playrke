@@ -1,9 +1,9 @@
 <?php
 
-namespace Tests\\Feature\\Games\\Bingo;
+namespace Tests\Feature\Games\Bingo;
 
-use App\\Domains\\Games\\Bingo\\Events\\BingoPlayersProgress;
-use Tests\\TestCase;
+use App\Domains\Games\Bingo\Events\BingoPlayersProgress;
+use Tests\TestCase;
 
 class BingoPlayersProgressBroadcastSecurityTest extends TestCase
 {
