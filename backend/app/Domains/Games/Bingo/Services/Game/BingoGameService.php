@@ -8,6 +8,7 @@ use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Draw\BingoDrawCode;
 use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Domains\Games\Bingo\Services\Room\Utils\CheckExpiredBingoRoomsService;
 use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
 use App\Domains\Wallet\Models\Wallet;
@@ -44,6 +45,13 @@ final class BingoGameService
         $hasExistingDraw = BingoDraw::where('room_id', $room->id)->exists();
         $hasExistingCode = BingoDrawCode::where('room_id', $room->id)->exists();
         $hadData = $hasExistingDraw || $hasExistingCode;
+
+        // Invalidar el snapshot de cada ronda antes del reset para que una
+        // recarga inmediata no reciba bolas de la ejecución anterior.
+        foreach ($room->rounds()->pluck('id') as $roundId) {
+            Cache::forget("bingo:draw-state:draw:{$room->id}:{$roundId}");
+        }
+        Cache::forget("bingo:draw-state:draw:{$room->id}");
 
         // Full DEV reset: clear all draw data, prizes, rounds, cards and room status
         DB::transaction(function() use ($room) {
@@ -95,15 +103,25 @@ final class BingoGameService
      */
     public function getDrawState(BingoRoom $room) : array
     {
-        // La clave "bingo:draw-state:draw:{roomId}" es escrita por BingoDrawService en cada
+        // La clave "bingo:draw-state:draw:{roomId}:{roundId}" es escrita por BingoDrawService en cada
         // chip con TTL = max(interval+2, 6)s. Cache::remember() con TTL fijo de 3s sobreescribiría
         // ese TTL largo en el fallback de DB, acortando la ventana útil del cache entre chips.
         // Solución: leer con get() (no toca el TTL existente); solo en cache miss, escribir
         // con TTL corto (5s) para amortiguar tormentas de reconexión sin destruir el TTL del draw.
-        $cacheKey = "bingo:draw-state:draw:{$room->id}";
-        $drawnNumbers = Cache::get($cacheKey);
+        // El estado del tablero pertenece a una ronda, no a toda la sala:
+        // concatenar draws de rondas anteriores duplica números y contamina
+        // la detección/progreso cuando comienza la siguiente ronda.
+        $currentRound = BingoRound::where('room_id', (string) $room->id)
+            ->whereIn('status', ['ACTIVE', 'IN_PROGRESS'])
+            ->orderBy('round')
+            ->first()
+            ?? BingoRound::where('room_id', (string) $room->id)->orderByDesc('round')->first();
+        $roundId = $currentRound ? (string) $currentRound->id : null;
+        $cacheKey = "bingo:draw-state:draw:{$room->id}:{$roundId}";
+        $drawnNumbers = $roundId !== null ? Cache::get($cacheKey) : [];
         if ($drawnNumbers === null) {
             $drawnNumbers = BingoDraw::where('room_id', $room->id)
+                ->where('round_id', $roundId)
                 ->orderBy('time')
                 ->orderBy('created_at')
                 ->pluck('chip')
@@ -132,13 +150,12 @@ final class BingoGameService
         }
         $variant = $room->config?->game_variant ?? BingoVariant::BINGO_75;
         $totalChips = BingoVariant::totalChips($variant);
-        if (! $roomIsFinished && count($drawnNumbers) > 0 && ($totalChips - count($drawnNumbers)) <= 10) {
-            $cacheKey = "bingo:draw-state:players-progress:{$room->id}:" . count($drawnNumbers);
-            $playersProgress = Cache::remember($cacheKey, 3, function() use ($room, $variant, $drawnNumbers) {
-                // Obtener el patrón desde la ronda activa de la sala
-                $round = $room->rounds()->latest('round')->first();
-                $pattern = $round?->bingo_pattern_id
-                    ? BingoPattern::find($round->bingo_pattern_id)
+        if (! $roomIsFinished && $roundId !== null && count($drawnNumbers) > 0 && ($totalChips - count($drawnNumbers)) <= 10) {
+            $cacheKey = "bingo:draw-state:players-progress:{$room->id}:{$roundId}:" . count($drawnNumbers);
+            $playersProgress = Cache::remember($cacheKey, 3, function() use ($room, $variant, $drawnNumbers, $currentRound) {
+                // El patrón también debe corresponder a la ronda cuyo historial se envía.
+                $pattern = $currentRound?->bingo_pattern_id
+                    ? BingoPattern::find($currentRound->bingo_pattern_id)
                     : BingoPattern::where('default_pattern', 'Y')->first();
 
                 if (! $pattern) {
@@ -255,12 +272,21 @@ final class BingoGameService
         $config = $bingoRoom->config;
         $rounds = $bingoRoom->rounds;
 
-        // Reusar cache escrito por BingoDrawService — evita query a bingo_draws en page-load
-        // cuando el sorteo está en progreso (la clave ya tiene los chips actuales con TTL activo).
-        $drawCacheKey = "bingo:draw-state:draw:{$bingoRoom->id}";
-        $drawnNumbers = Cache::get($drawCacheKey);
+        // Reusar el cache de la ronda actual escrito por BingoDrawService — evita query a
+        // bingo_draws en page-load cuando el sorteo está en progreso.
+        // Al entrar o recargar durante una sala multi-ronda, mostrar únicamente
+        // las fichas de la ronda activa (o la última si ya terminó).
+        $currentRound = BingoRound::where('room_id', (string) $bingoRoom->id)
+            ->whereIn('status', ['ACTIVE', 'IN_PROGRESS'])
+            ->orderBy('round')
+            ->first()
+            ?? BingoRound::where('room_id', (string) $bingoRoom->id)->orderByDesc('round')->first();
+        $roundId = $currentRound ? (string) $currentRound->id : null;
+        $drawCacheKey = "bingo:draw-state:draw:{$bingoRoom->id}:{$roundId}";
+        $drawnNumbers = $roundId !== null ? Cache::get($drawCacheKey) : [];
         if ($drawnNumbers === null) {
             $drawnNumbers = BingoDraw::where('room_id', $bingoRoom->id)
+                ->where('round_id', $roundId)
                 ->orderBy('time')
                 ->orderBy('created_at')
                 ->pluck('chip')

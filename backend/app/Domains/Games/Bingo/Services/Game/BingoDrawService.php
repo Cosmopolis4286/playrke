@@ -752,7 +752,7 @@ final class BingoDrawService
         // Evita la tormenta de lecturas cuando múltiples clientes hacen resync
         // simultáneamente. La clave es la misma que usa BingoGameService::getDrawState().
         Cache::put(
-            "bingo:draw-state:draw:{$roomId}",
+            "bingo:draw-state:draw:{$roomId}:{$roundId}",
             $allDrawnSoFar,
             max($this->currentInterval + 2, 6),
         );
@@ -1285,7 +1285,7 @@ final class BingoDrawService
                 'total_drawn' => count($drawnSoFar),
             ]);
 
-            Cache::put("bingo:draw-state:draw:{$roomId}", $drawnSoFar, max($this->currentInterval + 2, 6));
+            Cache::put("bingo:draw-state:draw:{$roomId}:{$roundId}", $drawnSoFar, max($this->currentInterval + 2, 6));
 
             // Verificar si ya hay ganadores registrados antes de llamar detectWinnerAndEnd.
             // Si existen BingoCardPrize para esta ronda, sólo cerramos sin re-declarar.
@@ -1337,7 +1337,7 @@ final class BingoDrawService
             // justo durante el resume recibirán el snapshot correcto en lugar de
             // un cache expirado o del crash anterior. TTL provisional hasta que el
             // loop de fichas lo refresque con el intervalo correcto.
-            Cache::put("bingo:draw-state:draw:{$roomId}", $drawnSoFar, max($this->currentInterval + 2, 6));
+            Cache::put("bingo:draw-state:draw:{$roomId}:{$roundId}", $drawnSoFar, max($this->currentInterval + 2, 6));
 
             // Reemitir GameStarted al recuperar: el intento anterior pudo haber
             // persistido la primera bola y fallado antes de entregar este evento.
