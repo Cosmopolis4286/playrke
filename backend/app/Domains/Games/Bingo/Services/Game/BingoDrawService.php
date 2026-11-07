@@ -1342,7 +1342,8 @@ final class BingoDrawService
             // Reemitir GameStarted al recuperar: el intento anterior pudo haber
             // persistido la primera bola y fallado antes de entregar este evento.
             // Los clientes deben tratar GameStarted como idempotente por draw_id.
-            broadcast(new BingoGameStarted((int) $roomId, (int) $lastDraw->id));
+            $firstDraw = $alreadyDrawn->first();
+            broadcast(new BingoGameStarted((int) $roomId, (int) $firstDraw->id));
             broadcast(new BingoNumberCalled((int) $lastDraw->chip, $roomId));
 
             // Verificar si ya hay ganadores antes de llamar detectWinnerAndEnd en resume,
