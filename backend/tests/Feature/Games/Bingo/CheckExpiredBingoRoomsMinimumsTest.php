@@ -112,7 +112,7 @@ class CheckExpiredBingoRoomsMinimumsTest extends TestCase
         DB::table('bingo_rooms_config')->where('room_id', $roomId)->update(['max_cards_to_start' => 5]);
         $room = BingoRoom::findOrFail($roomId);
 
-        $this->expectException(\\App\\Domains\\Games\\Bingo\\Exceptions\\Room\\BingoRoomException::class);
+        $this->expectException(BingoRoomException::class);
         DB::transaction(fn () => BingoRoomCardCapacityGuard::assertHasCapacityFor($room, 1));
     }
 
