@@ -8,6 +8,7 @@ use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator;
 use App\Domains\Games\Bingo\Services\Room\Metrics\RoomMetricsService;
+use App\Domains\Games\Bingo\Services\Room\User\RoomUserRegistrationService;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Games\Common\ConnectionType\ConnectionType;
@@ -127,6 +128,30 @@ class RoomMetricsServiceConcurrencyTest extends TestCase
         $this->assertFalse($result);
         $this->assertSame(0, (int) $room->fresh()->total_cards);
         $this->assertSame(0.0, (float) $room->fresh()->total_sales);
+    }
+
+    /** @test */
+    public function pos_seller_role_is_not_counted_as_player_and_promotes_when_the_seller_plays()
+    {
+        $room = $this->makeRoom();
+        $service = app(RoomUserRegistrationService::class);
+        $userData = [
+            'roomId' => (string) $room->id,
+            'creator' => ['id' => (string) $room->creator_user_id],
+            'cardCount' => 1,
+            'externalPlayerId' => 'external-buyer-1',
+        ];
+
+        $result = $service->registerOrUpdateRoomUser($userData);
+        $this->assertNotNull($result);
+        $roomUser = BingoRoomUser::findOrFail($result['id']);
+        $this->assertSame(BingoRoomUser::ROLE_SELLER, $roomUser->role);
+
+        unset($userData['externalPlayerId']);
+        $userData['roomUser'] = (string) $roomUser->id;
+        $service->registerOrUpdateRoomUser($userData);
+
+        $this->assertSame(BingoRoomUser::ROLE_PLAYER_SELLER, $roomUser->fresh()->role);
     }
 
     private function makeRoom() : BingoRoom
