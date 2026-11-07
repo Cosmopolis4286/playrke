@@ -2,6 +2,7 @@
 
 namespace App\Domains\Games\Bingo\Services\Card;
 
+use App\Domains\Games\Bingo\Exceptions\Card\BingoCardGenerateException;
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Payment\CommissionCalculationService;
@@ -73,6 +74,14 @@ final class BingoCardGenerationService
 
         if (! in_array($room->status?->code, ['ACTIVE', 'IN_PROGRESS'])) {
             throw new DomainException('Estado inválido: "' . ($room->status?->code ?? 'NULL') . '" — status_id: ' . $room->status_id);
+        }
+
+        // Ninguna vía de compra (billetera del jugador, POS del vendedor) puede
+        // generar cartones con la sala ya iniciada (IN_PROGRESS o unix_date
+        // pasada): el cartón jugaría con fichas ya cantadas. Los callers ya lo
+        // validan antes; esta es la verificación autoritativa dentro de la TX.
+        if ($room->hasStarted()) {
+            throw BingoCardGenerateException::salesClosedRoomStarted();
         }
 
         // Sala DEMO (de prueba, sin dinero real): el cartón es gratis sin

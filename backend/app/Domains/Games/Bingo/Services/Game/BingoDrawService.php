@@ -42,11 +42,11 @@ final class BingoDrawService
 
     /** Número de fichas entre cada verificación de compras mid-sorteo. */
     private const ACTIVE_CARDS_REFRESH_INTERVAL = 5;
-    private const DRAW_LOCK_MIN_TTL_SECONDS = 5400;
-    private const DRAW_LOCK_SAFETY_MARGIN_SECONDS = 1800;
     // En local se usa BINGO_DEV_INTERVAL_SECONDS si no hay time_chip en la config.
     private const CHIP_INTERVAL_DEV = 3;
     private const CHIP_INTERVAL_SECONDS = 5; // fallback si time_chip no está configurado
+    private const DRAW_LOCK_MIN_TTL_SECONDS = 5400;
+    private const DRAW_LOCK_SAFETY_MARGIN_SECONDS = 1800;
 
     /**
      * Cartones elegibles de la sala, cacheados en memoria durante la corrida del sorteo.
@@ -186,6 +186,7 @@ final class BingoDrawService
                     'card_id' => (string) $card->id,
                     'external_player_ids' => $externalPlayerIds->all(),
                 ]);
+
                 return null;
             }
 
@@ -732,22 +733,6 @@ final class BingoDrawService
         return round($usdAmount * $this->requireActiveRate($currencyId), 4);
     }
 
-    /**
-     * No permitir fallback 1:1 entre monedas distintas.
-     *
-     * @throws ExchangeRateException
-     */
-    private function requireActiveRate(string $currencyId) : float
-    {
-        $rate = $this->getActiveRateOrNull($currencyId);
-
-        if ($rate === null || $rate <= 0) {
-            throw ExchangeRateException::noActiveRate($currencyId);
-        }
-
-        return $rate;
-    }
-
     private function createDrawRecord(string $roomId, string $roundId, int $chip, int $time, string $variant, array $allDrawnSoFar) : BingoDraw
     {
         $draw = BingoDraw::create([
@@ -782,6 +767,18 @@ final class BingoDrawService
         // Salida rápida: si el patrón no tiene posiciones definidas no hay bingo posible
         if (empty($patternPositions)) {
             return null;
+        }
+
+        // Reclamo manual ("¡BINGO!" vía check-bingo, incluido el de jugadores externos)
+        // que ganó la carrera: si ya existe un premio para la ronda activa, el ganador
+        // ya fue declarado (y posiblemente pagado) por otro proceso. Sin este chequeo
+        // claimCardWin() devolvía null para ese cartón (premio ya pagado) y el sorteo
+        // seguía cantando fichas — e incluso podía premiar a un segundo cartón en una
+        // ficha posterior. Se verifica ANTES de recorrer los cartones para no crear
+        // premios adicionales en la ronda.
+        $existingPrizes = BingoCardPrize::where('round_id', (string) $round->id)->get();
+        if ($existingPrizes->isNotEmpty()) {
+            return $this->endWithExistingPrizes($room, $round, $pattern, $existingPrizes, $drawnNumbers, $lastDrawId);
         }
 
         $drawnSet = array_flip($drawnNumbers);
@@ -885,6 +882,73 @@ final class BingoDrawService
             'room_id' => $room->id,
             'total_chips' => count($drawnNumbers),
             'winners' => $winners,
+        ];
+    }
+
+    /**
+     * Cierra ronda/sala cuando el ganador ya fue declarado por otro proceso
+     * (reclamo manual vía check-bingo). No crea ni re-paga premios: solo cierra
+     * y emite el fin de juego con los premios ya registrados en la ronda.
+     *
+     * @param \Illuminate\Support\Collection<int, BingoCardPrize> $prizes
+     */
+    private function endWithExistingPrizes(
+        BingoRoom $room,
+        BingoRound $round,
+        BingoPattern $pattern,
+        \Illuminate\Support\Collection $prizes,
+        array $drawnNumbers,
+        int $lastDrawId,
+    ) : array {
+        $this->closeRoundAndRoom($round, $room);
+
+        $winners = $prizes->map(fn (BingoCardPrize $prize) => [
+            'user_id' => (int) $prize->creator_user_id,
+            'card_id' => (string) $prize->winning_card_id,
+            'card_prize_id' => (string) $prize->id,
+            'prize' => (float) $prize->usd_amount,
+            'pattern' => $prize->winning_pattern ?? $pattern->name,
+            'round' => $round->round,
+        ])->values()->all();
+
+        $totalPrize = array_sum(array_column($winners, 'prize'));
+
+        try {
+            broadcast(new BingoGameEnded(
+                roomId: (int) $room->id,
+                drawId: $lastDrawId,
+                hasWinner: true,
+                totalDrawn: count($drawnNumbers),
+                winners: $winners,
+                prize: $totalPrize,
+                endTime: now()->toISOString(),
+            ));
+        } catch (Throwable $e) {
+            Log::error('[BingoDrawService] Error al emitir BingoGameEnded (ganador previo) — sorteo ya cerrado en BD', [
+                'room_id' => $room->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        $this->auditLogger->log($room, BingoRoomAuditLogger::EVENT_DRAW_FINISHED, 'system', 'Sorteo finalizado: ganador ya declarado por reclamo manual', [
+            'round_id' => (string) $round->id,
+            'total_drawn' => count($drawnNumbers),
+            'prize_ids' => array_column($winners, 'card_prize_id'),
+        ]);
+
+        Log::info('[BingoDrawService] Ganador ya declarado por otro proceso — sorteo detenido', [
+            'room_id' => $room->id,
+            'round_id' => (string) $round->id,
+            'drawn' => count($drawnNumbers),
+            'prizes' => count($winners),
+        ]);
+
+        return [
+            'success' => true,
+            'room_id' => $room->id,
+            'total_chips' => count($drawnNumbers),
+            'winners' => $winners,
+            'alreadyFinished' => true,
         ];
     }
 
@@ -1025,6 +1089,36 @@ final class BingoDrawService
         }
     }
 
+    /**
+     * No permitir fallback 1:1 entre monedas distintas.
+     *
+     * @throws ExchangeRateException
+     */
+    private function requireActiveRate(string $currencyId) : float
+    {
+        $rate = $this->getActiveRateOrNull($currencyId);
+
+        if ($rate === null || $rate <= 0) {
+            throw ExchangeRateException::noActiveRate($currencyId);
+        }
+
+        return $rate;
+    }
+
+    /**
+     * Intervalo efectivo entre bolas, compartido por el TTL del lock y el loop.
+     */
+    private function resolveChipInterval(BingoRoom $room) : int
+    {
+        $configInterval = (int) ($room->config?->time_chip ?? 0);
+
+        return $configInterval > 0
+            ? $configInterval
+            : (app()->environment('local')
+                ? (int) env('BINGO_DEV_INTERVAL_SECONDS', self::CHIP_INTERVAL_DEV)
+                : self::CHIP_INTERVAL_SECONDS);
+    }
+
     private function resolvePrizeAmounts(BingoRoom $room, BingoRound $round, BingoCard $card) : array
     {
         if ($round->prize_type === 'FIXED') {
@@ -1083,20 +1177,6 @@ final class BingoDrawService
         }
 
         return ['usd_amount' => $usdAmount, 'local_amount' => $this->convertToLocal($usdAmount, (string) $card->currency_id)];
-    }
-
-    /**
-     * Intervalo efectivo entre bolas, compartido por el TTL del lock y el loop.
-     */
-    private function resolveChipInterval(BingoRoom $room) : int
-    {
-        $configInterval = (int) ($room->config?->time_chip ?? 0);
-
-        return $configInterval > 0
-            ? $configInterval
-            : (app()->environment('local')
-                ? (int) env('BINGO_DEV_INTERVAL_SECONDS', self::CHIP_INTERVAL_DEV)
-                : self::CHIP_INTERVAL_SECONDS);
     }
 
     private function runDraw(BingoRoom $room) : array
