@@ -10,6 +10,7 @@ use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Domains\Games\Bingo\Models\Round\BingoRoundPrize;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomCrudService;
+use App\Models\Games\Common\Utils\GameStatus;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
@@ -121,6 +122,37 @@ class BingoRoomPrizePoolEditGuardTest extends TestCase
                 $this->addToAssertionCount(1);
             }
         }
+    }
+
+    #[Test]
+    public function una_sala_in_progress_se_considera_bloqueada_aunque_no_se_consulte_la_ronda() : void
+    {
+        $room = $this->room();
+        $status = new GameStatus;
+        $status->setAttribute('code', 'IN_PROGRESS');
+        $room->setRelation('status', $status);
+
+        $locked = (new ReflectionMethod(BingoRoomCrudService::class, 'hasStartedDraw'))
+            ->invoke(app(BingoRoomCrudService::class), $room);
+
+        $this->assertTrue($locked);
+    }
+
+    #[Test]
+    public function una_ronda_in_progress_bloquea_la_sala_aunque_su_status_global_siga_active() : void
+    {
+        $room = $this->room();
+        $status = new GameStatus;
+        $status->setAttribute('code', 'ACTIVE');
+        $room->setRelation('status', $status);
+
+        $round = new BingoRound(['round' => 1, 'status' => 'IN_PROGRESS']);
+        $room->setRelation('rounds', collect([$round]));
+
+        $locked = (new ReflectionMethod(BingoRoomCrudService::class, 'hasStartedDraw'))
+            ->invoke(app(BingoRoomCrudService::class), $room);
+
+        $this->assertTrue($locked);
     }
 
     #[Test]
