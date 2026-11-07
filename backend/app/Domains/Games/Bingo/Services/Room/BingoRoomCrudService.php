@@ -403,7 +403,7 @@ class BingoRoomCrudService
                 throw BingoRoomException::notFound();
             }
 
-            $hasStartedRound = $locked->status_id === GameStatus::codeToId('IN_PROGRESS')
+            $hasStartedRound = (string) $locked->status_id === (string) GameStatus::codeToId('IN_PROGRESS')
                 || BingoRound::where('room_id', (string) $locked->id)
                     ->whereIn('status', ['IN_PROGRESS', 'FINISHED'])
                     ->exists();
@@ -1539,10 +1539,6 @@ class BingoRoomCrudService
             // El estado IN_PROGRESS se persiste al comenzar la primera ronda.
             // Desde ese momento la sala queda congelada: no se edita aunque se
             // reenvíe el mismo formulario ni se permitan cambios de campos inocuos.
-            if (! $isCreate && ! in_array($room->status?->code, ['ACTIVE', 'INACTIVE', 'OFFLINE'], true)) {
-                throw BingoRoomException::roomNotEditableStatus();
-            }
-
             if (! $isCreate && ! in_array($room->status?->code, ['ACTIVE', 'INACTIVE', 'OFFLINE'], true)) {
                 throw BingoRoomException::roomNotEditableStatus();
             }
