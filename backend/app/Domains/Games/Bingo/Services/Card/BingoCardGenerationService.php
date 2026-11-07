@@ -61,8 +61,12 @@ final class BingoCardGenerationService
 
         // Cargamos la sala con su estado directamente
         try {
+            // Bloquear la sala desde el inicio: registro del participante,
+            // guardas de capacidad, venta y sincronización deben serializarse
+            // bajo la misma fila para evitar duplicados/overbooking concurrente.
             $room = BingoRoom::with(['status', 'config'])
                 ->where('id', $roomId)
+                ->lockForUpdate()
                 ->first();
         } catch (Throwable $e) {
             throw new DomainException('Error al cargar sala: ' . $e->getMessage());
@@ -136,10 +140,8 @@ final class BingoCardGenerationService
                 'commerce' => (float) ($networkSplit['commerce_amount'] ?? 0),
             ];
 
-            // Verificar tope de cartones ANTES de tocar total_cards — debe ir
-            // antes de updateRoomMetricsWithCommissions() (que ya incrementa
-            // total_cards) o el guard llegaría tarde: la venta ya habría
-            // quedado contabilizada aunque excediera el tope configurado.
+            // Verificar el tope antes de registrar métricas financieras o crear
+            // el lote. El guard usa los lotes ACTIVE bajo el lock de la sala.
             BingoRoomCardCapacityGuard::assertHasCapacityFor($room, $cardCount);
 
             // Actualizar acumulado y comisiones de la sala
