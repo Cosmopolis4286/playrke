@@ -6,6 +6,7 @@ use App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator;
 use App\Models\Games\Common\Utils\GameStatus;
 use Carbon\Carbon;
 use Closure;
@@ -29,6 +30,7 @@ final class CheckExpiredBingoRoomsService
 {
     public function __construct(
         private readonly BingoRoomAuditLogger $auditLogger,
+        private readonly BingoRoomStateCoordinator $roomState,
     ) {
     }
 
@@ -47,6 +49,15 @@ final class CheckExpiredBingoRoomsService
         }
 
         $expiredSubquery = fn ($q) => $q->where('unix_date', '<=', $now);
+
+        // Normalizar los contadores desde lotes/participaciones persistidos antes
+        // de que la expiración tome decisiones de estado o reembolso.
+        $expiredRoomIds = BingoRoom::where('status_id', $activeId)
+            ->whereHas('config', $expiredSubquery)
+            ->pluck('id');
+        foreach ($expiredRoomIds as $expiredRoomId) {
+            $this->roomState->synchronizeCounters((string) $expiredRoomId);
+        }
 
         // 1. Salas con jugadores pero sin mínimo de cartones o de jugadores → CANCELLED + reembolso
         $this->cancelUnderMinimumRooms($activeId, $cancelledId, $expiredSubquery);
@@ -86,7 +97,6 @@ final class CheckExpiredBingoRoomsService
         // Eager load 'config' para evitar N+1 en el filter().
         $underMinimum = BingoRoom::where('status_id', $activeId)
             ->whereHas('config', $expiredSubquery)
-            ->where('total_players', '>', 0)
             ->whereHas('config', fn ($q) => $q->where(fn ($w) => $w->whereNotNull('min_cards_to_start')->orWhereNotNull('min_players')))
             ->with('config')
             ->get()
@@ -180,21 +190,25 @@ final class CheckExpiredBingoRoomsService
      */
     private function unmetMinimum(BingoRoom $room) : ?string
     {
+        $counts = $this->roomState->synchronizeCounters((string) $room->id);
+        $room->forceFill($counts);
+
+        // Una sala vacía debe pasar a INACTIVE, no iniciar un reembolso vacío.
+        if ($counts['total_players'] <= 0) {
+            return null;
+        }
+
         $minCards = $room->config?->min_cards_to_start;
         if ($minCards !== null) {
             // El contador denormalizado de la sala puede estar desfasado; para
             // una decisión financiera de cancelación, contar los lotes vigentes.
-            $totalCards = BingoCardLot::where('room_id', $room->id)
-                ->where('status', '!=', 'REFUNDED')
-                ->sum('card_count');
-
-            if ((int) $totalCards < (int) $minCards) {
+            if ($counts['total_cards'] < (int) $minCards) {
                 return 'cards';
             }
         }
 
         $minPlayers = $room->config?->min_players;
-        if ($minPlayers !== null && ($room->total_players ?? 0) < $minPlayers) {
+        if ($minPlayers !== null && $counts['total_players'] < $minPlayers) {
             return 'players';
         }
 

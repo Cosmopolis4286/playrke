@@ -263,10 +263,6 @@ final class BingoCardLotRefundJob implements ShouldQueue
     {
         $lot->update(['status' => 'REFUNDED']);
 
-        // Mantener los agregados alineados con los lotes ACTIVE tras el reembolso.
-        app(\App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator::class)
-            ->synchronizeCounters((string) $room->id);
-
         BingoLotRefundFailure::where('lot_id', $lot->id)
             ->where('room_id', $room->id)
             ->whereNull('resolved_at')
