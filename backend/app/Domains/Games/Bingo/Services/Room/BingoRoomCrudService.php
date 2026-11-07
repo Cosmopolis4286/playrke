@@ -1287,32 +1287,6 @@ class BingoRoomCrudService
     }
 
     /**
-     * Una vez iniciada cualquier ronda, su configuración queda inmutable aunque
-     * la sala todavía figure ACTIVE (por ejemplo, entre rondas de un sorteo múltiple).
-     * Los demás campos de la sala pueden seguir editándose.
-     *
-     * @throws BingoRoomException Si se intenta cambiar la cantidad o los premios de las rondas
-     */
-    private function guardRoundsLockedByProgress(BingoRoom $room, BingoRoomUpdateDTO $dto) : void
-    {
-        $room->loadMissing(['config', 'rounds.prizes']);
-        $current = $room->config;
-        if (! $current) {
-            return;
-        }
-
-        $num = fn ($v) => $v === null ? null : round((float) $v, 2);
-        $changed = ($dto->rounds !== null && (int) $current->rounds !== $dto->rounds)
-            || ($dto->roundsPct !== null && $num($current->rounds_pct) !== $num($dto->roundsPct))
-            || ($dto->roundsConfig !== null
-                && $this->normalizeRounds($this->roundsConfigFromRoom($room)) !== $this->normalizeRounds($dto->roundsConfig));
-
-        if ($changed) {
-            throw BingoRoomException::fieldsLockedBySales(['las rondas y sus premios']);
-        }
-    }
-
-    /**
      * Determina si el usuario tiene rol admin o superadmin vigente.
      */
     private function isUserAdmin(int $userId) : bool
