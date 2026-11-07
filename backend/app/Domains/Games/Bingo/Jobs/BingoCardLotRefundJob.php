@@ -95,6 +95,16 @@ final class BingoCardLotRefundJob implements ShouldQueue
                 }
 
                 if ((float) $lot->sale_amount <= 0) {
+                    // Un lote sin importe también debe cerrar el ciclo: dejarlo ACTIVE
+                    // provoca reintentos inútiles y conserva fallos históricos pendientes.
+                    $this->completeLotRefund(
+                        $lot,
+                        $room,
+                        $auditLogger,
+                        0.0,
+                        'Reembolso sin importe: lote marcado como reembolsado',
+                    );
+
                     return;
                 }
 

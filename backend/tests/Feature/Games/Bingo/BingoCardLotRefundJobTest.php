@@ -74,4 +74,65 @@ class BingoCardLotRefundJobTest extends TestCase
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
         }
     }
+
+    public function test_zero_amount_lot_is_finalized_and_resolves_pending_failure() : void
+    {
+        $roomId = '970000000000000201';
+        $lotId = '970000000000000202';
+        $failureId = '970000000000000203';
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+        try {
+            DB::table('bingo_rooms')->insert([
+                'id' => $roomId,
+                'uuid_code' => 'zero-refund-test',
+                'status_id' => '970000000000000204',
+                'creator_user_id' => '970000000000000205',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('bingo_card_lots')->insert([
+                'id' => $lotId,
+                'room_id' => $roomId,
+                'user_id' => '970000000000000205',
+                'room_user_id' => '970000000000000206',
+                'currency_id' => '970000000000000207',
+                'card_count' => 1,
+                'card_price' => 0,
+                'exchange_rate' => 1,
+                'sale_amount' => 0,
+                'status' => 'ACTIVE',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('bingo_lot_refund_failures')->insert([
+                'id' => $failureId,
+                'room_id' => $roomId,
+                'lot_id' => $lotId,
+                'user_id' => '970000000000000205',
+                'currency_id' => '970000000000000207',
+                'amount' => 0,
+                'error_message' => 'Fallo previo',
+                'status' => 'PENDING',
+                'attempts' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            (new BingoCardLotRefundJob($lotId, $roomId))->handle(
+                app(WalletService::class),
+                app(BingoRoomAuditLogger::class),
+            );
+
+            $this->assertSame('REFUNDED', DB::table('bingo_card_lots')->where('id', $lotId)->value('status'));
+            $failure = DB::table('bingo_lot_refund_failures')->where('id', $failureId)->first();
+            $this->assertSame('RESOLVED', $failure->status);
+            $this->assertNotNull($failure->resolved_at);
+        } finally {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        }
+    }
 }
