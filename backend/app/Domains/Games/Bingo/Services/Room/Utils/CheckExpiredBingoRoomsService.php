@@ -62,29 +62,40 @@ final class CheckExpiredBingoRoomsService
         // 1. Salas con jugadores pero sin mínimo de cartones o de jugadores → CANCELLED + reembolso
         $this->cancelUnderMinimumRooms($activeId, $cancelledId, $expiredSubquery);
 
-        // 2. Salas con jugadores (y ambos mínimos alcanzados) → IN_PROGRESS
-        // 3. Salas sin jugadores → INACTIVE
-        DB::transaction(function() use ($activeId, $inProgressId, $inactiveId, $expiredSubquery) : void {
-            BingoRoom::where('status_id', $activeId)
-                ->whereHas('config', $expiredSubquery)
-                ->where('total_players', '>', 0)
-                ->where(function($q) {
-                    // Solo si el mínimo de cartones está satisfecho (o no aplica)
-                    $q->whereHas('config', fn ($c) => $c->whereNull('min_cards_to_start'))
-                        ->orWhereHas('config', fn ($c) => $c->whereColumn('min_cards_to_start', '<=', DB::raw('(SELECT COALESCE(SUM(card_count),0) FROM bingo_card_lots WHERE room_id = bingo_rooms.id AND status != \'REFUNDED\')')));
-                })
-                ->where(function($q) {
-                    // Y el mínimo de jugadores también (o no aplica)
-                    $q->whereHas('config', fn ($c) => $c->whereNull('min_players'))
-                        ->orWhereHas('config', fn ($c) => $c->whereColumn('min_players', '<=', 'bingo_rooms.total_players'));
-                })
-                ->update(['status_id' => $inProgressId]);
+        // 2. Revalidar cada sala bajo lock con las mismas reglas de conteo.
+        // No usar SQL contra total_players ni SUM(card_count): son snapshots y
+        // pueden divergir de lotes/participaciones tras reembolsos o ventas POS.
+        foreach ($expiredRoomIds as $expiredRoomId) {
+            DB::transaction(function() use ($expiredRoomId, $activeId, $inProgressId, $inactiveId, $now) : void {
+                $locked = BingoRoom::query()
+                    ->whereKey((string) $expiredRoomId)
+                    ->where('status_id', $activeId)
+                    ->with('config')
+                    ->lockForUpdate()
+                    ->first();
 
-            BingoRoom::where('status_id', $activeId)
-                ->whereHas('config', $expiredSubquery)
-                ->where(fn ($q) => $q->where('total_players', 0)->orWhereNull('total_players'))
-                ->update(['status_id' => $inactiveId]);
-        });
+                if (! $locked || ! $locked->config || (int) $locked->config->unix_date > $now) {
+                    return;
+                }
+
+                $counts = $this->roomState->synchronizeCounters((string) $locked->id);
+                $locked->forceFill($counts);
+
+                if ($counts['total_players'] <= 0) {
+                    $locked->update(['status_id' => $inactiveId]);
+
+                    return;
+                }
+
+                // Si sigue faltando algún mínimo, el flujo de cancelación ya lo
+                // dejó CANCELLED; no iniciar una sala que no puede sortearse.
+                if ($this->unmetMinimum($locked) !== null) {
+                    return;
+                }
+
+                $locked->update(['status_id' => $inProgressId]);
+            }, 3);
+        }
     }
 
     /**
