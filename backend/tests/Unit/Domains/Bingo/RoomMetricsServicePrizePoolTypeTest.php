@@ -126,6 +126,7 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
         $keptLot = BingoCardLot::create([
             'room_id' => $room->id,
             'user_id' => '1',
+            'room_user_id' => '930000000000000701',
             'currency_id' => $this->currencyId,
             'card_count' => 1,
             'card_price' => 40,
@@ -137,6 +138,7 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
         $lot = BingoCardLot::create([
             'room_id' => $room->id,
             'user_id' => '1',
+            'room_user_id' => '930000000000000702',
             'currency_id' => $this->currencyId,
             'card_count' => 1,
             'card_price' => 100,
