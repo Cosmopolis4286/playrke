@@ -242,13 +242,13 @@ class BingoWinnerDetectionServiceTest extends TestCase
             'payment_status' => 'PENDING',
         ]);
 
-        \\App\\Domains\\Games\\Bingo\\Models\\Card\\BingoCardLot::whereKey($card->card_lot_id)
+        \App\Domains\Games\Bingo\Models\Card\BingoCardLot::whereKey($card->card_lot_id)
             ->update(['status' => 'REFUNDED']);
 
         try {
             app(BingoCardPaymentReviewService::class)->approve($payment);
             $this->fail('No se debe aprobar un pago cuyo lote ya fue reembolsado.');
-        } catch (\\DomainException $e) {
+        } catch (\DomainException $e) {
             $this->assertStringContainsString('lote de cartones', $e->getMessage());
         }
 
