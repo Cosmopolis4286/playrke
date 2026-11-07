@@ -13,6 +13,7 @@ use App\Domains\Games\Bingo\Services\Room\Metrics\BingoLotSaleReversalService;
 use App\Domains\Wallet\Exceptions\WalletUnavailableException;
 use App\Domains\Wallet\Services\WalletService;
 use App\Models\Roles\Player\External\ExternalPlayer;
+use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Models\Roles\Player\External\ExternalPlayerParticipation;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -292,10 +293,9 @@ final class BingoCardLotRefundJob implements ShouldQueue
     /**
      * Resuelve el ExternalPlayer comprador real de este lote, si aplica.
      * Un lote vendedor→externo vincula CADA cartón individual a su
-     * ExternalPlayer (ver BingoCardGenerationService::generateCards()) — con
-     * que uno tenga participación basta para identificar al comprador, ya
-     * que todos los cartones de un mismo lote pertenecen al mismo comprador
-     * (una sola llamada a generateCards() por compra).
+     * ExternalPlayer (ver BingoCardGenerationService::generateCards()).
+     * El resolver verifica todos los cartones y falla de forma segura si
+     * encuentra más de un comprador asociado al mismo lote.
      */
     private function resolveExternalBuyer(BingoCardLot $lot) : ?ExternalPlayer
     {
