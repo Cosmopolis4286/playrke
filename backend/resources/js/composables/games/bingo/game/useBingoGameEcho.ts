@@ -24,7 +24,8 @@ export interface UseBingoGameEchoOptions {
   playWinner:        () => void
   onRoomUpdated:     (e: { prize_pool: number; total_players: number }) => void
   onPlayerJoined:    (e: { current_players: number }) => void
-  onNumberCalled:    (e: { number: number }) => void
+  /** index: posición de la ficha en la ronda (1 = primera), si el backend la envía. */
+  onNumberCalled:    (e: { number: number; index?: number }) => void
   onPlayersProgress: (e: { players: PlayerProgress[] }) => void
   onGameStarted:     () => void
   onWinnerDeclared:  () => void
@@ -38,7 +39,7 @@ export interface UseBingoGameEchoOptions {
 
 const ROOM_EVENTS = [
   '.RoomUpdated', '.PlayerJoined', '.BingoNumberCalled', '.PlayersProgress',
-  '.GameStarted', '.WinnerDeclared', '.GameEnded', '.RoomTimeSync',
+  '.GameStarted', '.WinnerDeclared', '.GameEnded', '.RoomTimeSync'
 ] as const
 
 export function useBingoGameEcho(options: UseBingoGameEchoOptions) {
@@ -48,7 +49,7 @@ export function useBingoGameEcho(options: UseBingoGameEchoOptions) {
     clearDrawTimer, playNext,
     onRoomUpdated, onPlayerJoined, onNumberCalled,
     onPlayersProgress, onGameStarted, onWinnerDeclared,
-    onGameEnded, onReconnected,
+    onGameEnded, onReconnected
   } = options
 
   let roomChannelName: string | null = null
@@ -95,7 +96,7 @@ export function useBingoGameEcho(options: UseBingoGameEchoOptions) {
       onPlayerJoined(e)
     })
 
-    channel.listen('.BingoNumberCalled', (e: { number: number }) => {
+    channel.listen('.BingoNumberCalled', (e: { number: number; index?: number }) => {
       if (e.number !== null && e.number !== undefined && !calledNumbers.has(e.number)) {
         calledNumbers.add(e.number)
         onNumberCalled(e)

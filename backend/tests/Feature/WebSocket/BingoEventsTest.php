@@ -267,6 +267,12 @@ class BingoEventsTest extends TestCase
         }
     }
 
+    public function test_bingo_number_called_includes_its_position_in_the_round() : void
+    {
+        $this->assertSame(['number' => 42, 'index' => 7], (new BingoNumberCalled(42, 123, 7))->broadcastWith());
+        $this->assertSame(['number' => 42], (new BingoNumberCalled(42, 123))->broadcastWith());
+    }
+
     protected function createEventInstance($class)
     {
         return match ($class) {
