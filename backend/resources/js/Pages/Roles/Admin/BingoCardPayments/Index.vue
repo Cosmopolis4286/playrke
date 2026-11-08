@@ -1,315 +1,316 @@
 <script setup lang="ts">
-  import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-  import { router } from '@inertiajs/vue3'
-  import Swal from 'sweetalert2'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { router } from '@inertiajs/vue3'
+import Swal from 'sweetalert2'
 
-  import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
-  import StatTile from '@/js/Components/Common/StatTile/StatTile.vue'
-  import Modal from '@/js/Components/Common/Modal/Modal.vue'
-  import RelativeTime from '@/js/Components/Common/RelativeTime/RelativeTime.vue'
-  import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+import PageHeader from '@/js/Components/Common/PageHeader/PageHeader.vue'
+import StatTile from '@/js/Components/Common/StatTile/StatTile.vue'
+import Modal from '@/js/Components/Common/Modal/Modal.vue'
+import RelativeTime from '@/js/Components/Common/RelativeTime/RelativeTime.vue'
+import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+import PrizeReviewSection from '@/js/Components/Roles/Admin/BingoCardPayments/PrizeReviewSection.vue'
 
-  import backendClient from '@/js/plugins/axios'
-  import { showToast } from '@/js/utils/toastNotify'
+import backendClient from '@/js/plugins/axios'
+import { showToast } from '@/js/utils/toastNotify'
 
-  import type { Column } from '@/js/types/common/table/column-row'
-  import type { TableFilterInterface } from '@/js/types/common/table/table-filter'
-  import type {
-    CardPaymentReviewPageProps,
-    PaymentUrgency,
-    PendingCardPayment,
-    PendingPaymentPolicy,
-  } from '@/js/types/games/bingo/payment/card-payment-review'
+import type { Column } from '@/js/types/common/table/column-row'
+import type { TableFilterInterface } from '@/js/types/common/table/table-filter'
+import type {
+  CardPaymentReviewPageProps,
+  PaymentUrgency,
+  PendingCardPayment,
+  PendingPaymentPolicy
+} from '@/js/types/games/bingo/payment/card-payment-review'
 
-  /* -------------------------------------------------------------------------- */
-  /* Props                                                                       */
-  /* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/* Props                                                                       */
+/* -------------------------------------------------------------------------- */
 
-  const props = defineProps<CardPaymentReviewPageProps>()
+const props = defineProps<CardPaymentReviewPageProps>()
 
-  /** Minutos antes del inicio a partir de los cuales la sala se marca "pronto". */
-  const SOON_MINUTES = 30
+/** Minutos antes del inicio a partir de los cuales la sala se marca "pronto". */
+const SOON_MINUTES = 30
 
-  const POLICY_OPTIONS: { value: PendingPaymentPolicy; icon: string; title: string; text: string }[] = [
-    {
-      value: 'keep_review',
-      icon:  'fa-hourglass-half',
-      title: 'Mantener en revisión',
-      text:  'Sigue en esta cola marcado "pendiente tras el inicio". Si lo apruebas, el comprador entra con las bolas ya cantadas.',
-    },
-    {
-      value: 'reject_refund',
-      icon:  'fa-rotate-left',
-      title: 'Rechazar con reembolso',
-      text:  'Se anulan los cartones y se reembolsa al vendedor, que debe devolverle el dinero al comprador.',
-    },
-  ]
-
-  const POLICY_LABELS: Record<PendingPaymentPolicy, string> = {
-    keep_review:   'Mantener en revisión',
-    reject_refund: 'Rechazar con reembolso',
+const POLICY_OPTIONS: { value: PendingPaymentPolicy; icon: string; title: string; text: string }[] = [
+  {
+    value: 'keep_review',
+    icon: 'fa-hourglass-half',
+    title: 'Mantener en revisión',
+    text: 'Sigue en esta cola marcado "pendiente tras el inicio". Si lo apruebas, el comprador entra con las bolas ya cantadas.'
+  },
+  {
+    value: 'reject_refund',
+    icon: 'fa-rotate-left',
+    title: 'Rechazar con reembolso',
+    text: 'Se anulan los cartones y se reembolsa al vendedor, que debe devolverle el dinero al comprador.'
   }
+]
 
-  const URGENCY: Record<PaymentUrgency, { label: string; badge: string; icon: string }> = {
-    started: { label: 'Sorteo iniciado', badge: 'badge bg-danger',             icon: 'fa-circle-play' },
-    soon:    { label: 'Inicia pronto',   badge: 'badge bg-warning text-dark',  icon: 'fa-stopwatch' },
-    later:   { label: 'Programada',      badge: 'badge bg-success',            icon: 'fa-calendar-check' },
-    manual:  { label: 'Inicio manual',   badge: 'badge bg-secondary',          icon: 'fa-hand-pointer' },
+const POLICY_LABELS: Record<PendingPaymentPolicy, string> = {
+  keep_review: 'Mantener en revisión',
+  reject_refund: 'Rechazar con reembolso'
+}
+
+const URGENCY: Record<PaymentUrgency, { label: string; badge: string; icon: string }> = {
+  started: { label: 'Sorteo iniciado', badge: 'badge bg-danger',             icon: 'fa-circle-play' },
+  soon: { label: 'Inicia pronto',   badge: 'badge bg-warning text-dark',  icon: 'fa-stopwatch' },
+  later: { label: 'Programada',      badge: 'badge bg-success',            icon: 'fa-calendar-check' },
+  manual: { label: 'Inicio manual',   badge: 'badge bg-secondary',          icon: 'fa-hand-pointer' }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Reloj (cuenta regresiva y urgencia)                                         */
+/* -------------------------------------------------------------------------- */
+
+const now = ref(Date.now())
+let timer: ReturnType<typeof setInterval> | undefined
+onMounted(() => { timer = setInterval(() => { now.value = Date.now() }, 30_000) })
+onBeforeUnmount(() => clearInterval(timer))
+
+function startsInMinutes(p: PendingCardPayment): number | null {
+  return p.room_starts_at ? (new Date(p.room_starts_at).getTime() - now.value) / 60_000 : null
+}
+
+function urgencyOf(p: PendingCardPayment): PaymentUrgency {
+  const minutes = startsInMinutes(p)
+  if (p.room_started || (minutes !== null && minutes <= 0)) return 'started'
+  if (minutes === null) return 'manual'
+  return minutes <= SOON_MINUTES ? 'soon' : 'later'
+}
+
+function humanizeMinutes(totalMinutes: number): string {
+  const m = Math.max(1, Math.round(totalMinutes))
+  if (m < 60) return `${m} min`
+  const h = Math.floor(m / 60)
+  if (h < 24) return m % 60 ? `${h} h ${m % 60} min` : `${h} h`
+  return `${Math.floor(h / 24)} d ${h % 24} h`
+}
+
+function countdownLabel(p: PendingCardPayment): string {
+  const urgency = urgencyOf(p)
+  if (urgency === 'started') return URGENCY.started.label
+  if (urgency === 'manual') return URGENCY.manual.label
+  return `Inicia en ${humanizeMinutes(startsInMinutes(p) ?? 0)}`
+}
+
+function formatDateTime(iso: string | null): string {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString('es-VE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
+
+/* -------------------------------------------------------------------------- */
+/* Tabla                                                                       */
+/* -------------------------------------------------------------------------- */
+
+const columns: Column[] = [
+  { key: 'room_short_code',      label: 'Sala' },
+  { key: 'seller_name',          label: 'Vendedor' },
+  { key: 'buyer_name',           label: 'Comprador' },
+  { key: 'amount_label',         label: 'Monto' },
+  { key: 'payment_method_label', label: 'Pago', hideBelow: 'md' },
+  { key: 'created_at',           label: 'Recibido', sortable: true, searchable: false, hideBelow: 'lg' },
+  { key: 'actions',              label: '', searchable: false }
+]
+
+/** Campos planos para la búsqueda global y los filtros de la tabla. */
+const rows = computed(() => props.payments.map(p => ({
+  ...p,
+  buyer_name: p.external_player ? `${p.external_player.name} ${p.external_player.phone ?? ''}`.trim() : '',
+  urgency: urgencyOf(p),
+  late_pending: p.pending_at_start_at ? 'yes' : 'no'
+})))
+
+const filters = computed<readonly TableFilterInterface[]>(() => [
+  {
+    key: 'urgency',
+    label: 'Inicio de la sala',
+    options: (Object.keys(URGENCY) as PaymentUrgency[]).map(value => ({ value, label: URGENCY[value].label }))
+  },
+  {
+    key: 'payment_method_label',
+    label: 'Método',
+    options: [...new Set(props.payments.map(p => p.payment_method_label).filter((v): v is string => !!v))]
+      .map(value => ({ value, label: value }))
+  },
+  {
+    key: 'late_pending',
+    label: 'Pendiente tras el inicio',
+    options: [{ value: 'yes', label: 'Sí' }, { value: 'no', label: 'No' }]
   }
+])
 
-  /* -------------------------------------------------------------------------- */
-  /* Reloj (cuenta regresiva y urgencia)                                         */
-  /* -------------------------------------------------------------------------- */
+const stats = computed(() => {
+  const byUrgency = rows.value.reduce<Record<PaymentUrgency, number>>(
+    (acc, row) => ({ ...acc, [row.urgency]: acc[row.urgency] + 1 }),
+    { started: 0, soon: 0, later: 0, manual: 0 }
+  )
+  return { ...byUrgency, total: props.summary.total }
+})
 
-  const now = ref(Date.now())
-  let timer: ReturnType<typeof setInterval> | undefined
-  onMounted(() => { timer = setInterval(() => { now.value = Date.now() }, 30_000) })
-  onBeforeUnmount(() => clearInterval(timer))
+/* -------------------------------------------------------------------------- */
+/* Regla al iniciar el sorteo (solo comercializadora)                          */
+/* -------------------------------------------------------------------------- */
 
-  function startsInMinutes(p: PendingCardPayment): number | null {
-    return p.room_starts_at ? (new Date(p.room_starts_at).getTime() - now.value) / 60_000 : null
+const policy = ref<PendingPaymentPolicy | null>(props.policy)
+const savingPolicy = ref(false)
+
+async function savePolicy(value: PendingPaymentPolicy): Promise<void> {
+  if (savingPolicy.value || policy.value === value) return
+  const previous = policy.value
+  policy.value = value
+  savingPolicy.value = true
+  try {
+    await backendClient.patch('/bingo/card-payments/policy', { policy: value })
+    showToast(`Regla guardada: ${POLICY_LABELS[value]}`, 'success')
+  } catch (error: any) {
+    policy.value = previous
+    showToast(error?.response?.data?.message ?? 'No se pudo guardar la regla', 'error')
+  } finally {
+    savingPolicy.value = false
   }
+}
 
-  function urgencyOf(p: PendingCardPayment): PaymentUrgency {
-    const minutes = startsInMinutes(p)
-    if (p.room_started || (minutes !== null && minutes <= 0)) return 'started'
-    if (minutes === null) return 'manual'
-    return minutes <= SOON_MINUTES ? 'soon' : 'later'
-  }
+/* -------------------------------------------------------------------------- */
+/* Revisión                                                                    */
+/* -------------------------------------------------------------------------- */
 
-  function humanizeMinutes(totalMinutes: number): string {
-    const m = Math.max(1, Math.round(totalMinutes))
-    if (m < 60) return `${m} min`
-    const h = Math.floor(m / 60)
-    if (h < 24) return m % 60 ? `${h} h ${m % 60} min` : `${h} h`
-    return `${Math.floor(h / 24)} d ${h % 24} h`
-  }
+const selected = ref<PendingCardPayment | null>(null)
+const showDetail = ref(false)
+const notes = ref('')
+const approving = ref(false)
+const rejecting = ref(false)
 
-  function countdownLabel(p: PendingCardPayment): string {
-    const urgency = urgencyOf(p)
-    if (urgency === 'started') return URGENCY.started.label
-    if (urgency === 'manual') return URGENCY.manual.label
-    return `Inicia en ${humanizeMinutes(startsInMinutes(p) ?? 0)}`
-  }
+const selectedUrgency = computed(() => (selected.value ? urgencyOf(selected.value) : null))
+const isCash = computed(() => ['cash', 'seller_cash'].includes(selected.value?.payment_method ?? ''))
 
-  function formatDateTime(iso: string | null): string {
-    if (!iso) return '—'
-    return new Date(iso).toLocaleString('es-VE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-  }
+function openDetail(id: string): void {
+  selected.value = props.payments.find(p => p.id === id) ?? null
+  notes.value = ''
+  showDetail.value = !!selected.value
+}
 
-  /* -------------------------------------------------------------------------- */
-  /* Tabla                                                                       */
-  /* -------------------------------------------------------------------------- */
+watch(showDetail, isOpen => {
+  if (!isOpen) selected.value = null
+})
 
-  const columns: Column[] = [
-    { key: 'room_short_code',      label: 'Sala' },
-    { key: 'seller_name',          label: 'Vendedor' },
-    { key: 'buyer_name',           label: 'Comprador' },
-    { key: 'amount_label',         label: 'Monto' },
-    { key: 'payment_method_label', label: 'Pago', hideBelow: 'md' },
-    { key: 'created_at',           label: 'Recibido', sortable: true, searchable: false, hideBelow: 'lg' },
-    { key: 'actions',              label: '', searchable: false },
-  ]
+function reloadQueue(): void {
+  router.reload({ only: ['payments', 'summary', 'refundFailures', 'prizeReviews'] })
+}
 
-  /** Campos planos para la búsqueda global y los filtros de la tabla. */
-  const rows = computed(() => props.payments.map(p => ({
-    ...p,
-    buyer_name:   p.external_player ? `${p.external_player.name} ${p.external_player.phone ?? ''}`.trim() : '',
-    urgency:      urgencyOf(p),
-    late_pending: p.pending_at_start_at ? 'yes' : 'no',
-  })))
+async function handleApprove(): Promise<void> {
+  const payment = selected.value
+  if (!payment) return
 
-  const filters = computed<readonly TableFilterInterface[]>(() => [
-    {
-      key:   'urgency',
-      label: 'Inicio de la sala',
-      options: (Object.keys(URGENCY) as PaymentUrgency[]).map(value => ({ value, label: URGENCY[value].label })),
-    },
-    {
-      key:   'payment_method_label',
-      label: 'Método',
-      options: [...new Set(props.payments.map(p => p.payment_method_label).filter((v): v is string => !!v))]
-        .map(value => ({ value, label: value })),
-    },
-    {
-      key:   'late_pending',
-      label: 'Pendiente tras el inicio',
-      options: [{ value: 'yes', label: 'Sí' }, { value: 'no', label: 'No' }],
-    },
-  ])
-
-  const stats = computed(() => {
-    const byUrgency = rows.value.reduce<Record<PaymentUrgency, number>>(
-      (acc, row) => ({ ...acc, [row.urgency]: acc[row.urgency] + 1 }),
-      { started: 0, soon: 0, later: 0, manual: 0 },
-    )
-    return { ...byUrgency, total: props.summary.total }
+  const started = urgencyOf(payment) === 'started'
+  const confirmed = await Swal.fire({
+    title: started ? '¿Aprobar con el sorteo iniciado?' : '¿Aprobar pago?',
+    html: started
+      ? `El sorteo de la sala <b>#${payment.room_short_code}</b> ya inició: los cartones entrarán con las bolas ya cantadas. Apruébalo solo si el comprador lo acepta.`
+      : `Se liberarán <b>${payment.card_count ?? 0} cartón(es)</b> de <b>${payment.external_player?.name ?? 'el comprador'}</b> por <b>${payment.amount_label}</b>.`,
+    icon: started ? 'warning' : 'question',
+    showCancelButton: true,
+    confirmButtonText: started ? 'Sí, aprobar igual' : 'Sí, aprobar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#16a34a',
+    reverseButtons: true
   })
+  if (!confirmed.isConfirmed) return
 
-  /* -------------------------------------------------------------------------- */
-  /* Regla al iniciar el sorteo (solo comercializadora)                          */
-  /* -------------------------------------------------------------------------- */
+  await sendApprove(payment, started)
+}
 
-  const policy = ref<PendingPaymentPolicy | null>(props.policy)
-  const savingPolicy = ref(false)
-
-  async function savePolicy(value: PendingPaymentPolicy): Promise<void> {
-    if (savingPolicy.value || policy.value === value) return
-    const previous = policy.value
-    policy.value = value
-    savingPolicy.value = true
-    try {
-      await backendClient.patch('/bingo/card-payments/policy', { policy: value })
-      showToast(`Regla guardada: ${POLICY_LABELS[value]}`, 'success')
-    } catch (error: any) {
-      policy.value = previous
-      showToast(error?.response?.data?.message ?? 'No se pudo guardar la regla', 'error')
-    } finally {
-      savingPolicy.value = false
-    }
-  }
-
-  /* -------------------------------------------------------------------------- */
-  /* Revisión                                                                    */
-  /* -------------------------------------------------------------------------- */
-
-  const selected = ref<PendingCardPayment | null>(null)
-  const showDetail = ref(false)
-  const notes = ref('')
-  const approving = ref(false)
-  const rejecting = ref(false)
-
-  const selectedUrgency = computed(() => (selected.value ? urgencyOf(selected.value) : null))
-  const isCash = computed(() => ['cash', 'seller_cash'].includes(selected.value?.payment_method ?? ''))
-
-  function openDetail(id: string): void {
-    selected.value = props.payments.find(p => p.id === id) ?? null
-    notes.value = ''
-    showDetail.value = !!selected.value
-  }
-
-  watch(showDetail, isOpen => {
-    if (!isOpen) selected.value = null
-  })
-
-  function reloadQueue(): void {
-    router.reload({ only: ['payments', 'summary', 'refundFailures'] })
-  }
-
-  async function handleApprove(): Promise<void> {
-    const payment = selected.value
-    if (!payment) return
-
-    const started = urgencyOf(payment) === 'started'
-    const confirmed = await Swal.fire({
-      title: started ? '¿Aprobar con el sorteo iniciado?' : '¿Aprobar pago?',
-      html: started
-        ? `El sorteo de la sala <b>#${payment.room_short_code}</b> ya inició: los cartones entrarán con las bolas ya cantadas. Apruébalo solo si el comprador lo acepta.`
-        : `Se liberarán <b>${payment.card_count ?? 0} cartón(es)</b> de <b>${payment.external_player?.name ?? 'el comprador'}</b> por <b>${payment.amount_label}</b>.`,
-      icon: started ? 'warning' : 'question',
-      showCancelButton: true,
-      confirmButtonText: started ? 'Sí, aprobar igual' : 'Sí, aprobar',
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#16a34a',
-      reverseButtons: true,
+async function sendApprove(payment: PendingCardPayment, confirmLate: boolean): Promise<void> {
+  try {
+    approving.value = true
+    await backendClient.post(`/bingo/card-payments/${payment.id}/approve`, {
+      admin_notes: notes.value.trim() || null,
+      confirm_late: confirmLate
     })
-    if (!confirmed.isConfirmed) return
-
-    await sendApprove(payment, started)
-  }
-
-  async function sendApprove(payment: PendingCardPayment, confirmLate: boolean): Promise<void> {
-    try {
-      approving.value = true
-      await backendClient.post(`/bingo/card-payments/${payment.id}/approve`, {
-        admin_notes:  notes.value.trim() || null,
-        confirm_late: confirmLate,
-      })
-      showToast('Pago aprobado: el comprador ya puede ver y jugar sus cartones', 'success')
-      showDetail.value = false
-      reloadQueue()
-    } catch (error: any) {
-      // El sorteo inició con la pantalla abierta: el backend pide la confirmación tardía.
-      if (!confirmLate && error?.response?.data?.error_code === 'BINGO_PAYMENT_LATE_APPROVAL_CONFIRM') {
-        approving.value = false
-        const again = await Swal.fire({
-          title: 'El sorteo ya inició',
-          text: error.response.data.message,
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonText: 'Sí, aprobar igual',
-          cancelButtonText: 'Cancelar',
-          confirmButtonColor: '#16a34a',
-          reverseButtons: true,
-        })
-        if (again.isConfirmed) await sendApprove(payment, true)
-        return
-      }
-      showToast(error?.response?.data?.message ?? 'No se pudo aprobar el pago', 'error')
-    } finally {
+    showToast('Pago aprobado: el comprador ya puede ver y jugar sus cartones', 'success')
+    showDetail.value = false
+    reloadQueue()
+  } catch (error: any) {
+    // El sorteo inició con la pantalla abierta: el backend pide la confirmación tardía.
+    if (!confirmLate && error?.response?.data?.error_code === 'BINGO_PAYMENT_LATE_APPROVAL_CONFIRM') {
       approving.value = false
+      const again = await Swal.fire({
+        title: 'El sorteo ya inició',
+        text: error.response.data.message,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, aprobar igual',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#16a34a',
+        reverseButtons: true
+      })
+      if (again.isConfirmed) await sendApprove(payment, true)
+      return
     }
+    showToast(error?.response?.data?.message ?? 'No se pudo aprobar el pago', 'error')
+  } finally {
+    approving.value = false
   }
+}
 
-  async function handleReject(): Promise<void> {
-    const payment = selected.value
-    if (!payment) return
+async function handleReject(): Promise<void> {
+  const payment = selected.value
+  if (!payment) return
 
-    const result = await Swal.fire({
-      title: 'Rechazar pago',
-      html: 'Los cartones se anulan y se reembolsa al vendedor, que debe devolverle el dinero al comprador. El vendedor recibe el motivo.',
-      input: 'textarea',
-      inputLabel: 'Motivo del rechazo',
-      inputValue: notes.value,
-      inputPlaceholder: 'Ej. el comprobante no corresponde, monto incompleto...',
-      inputValidator: value => (!value || !value.trim() ? 'El motivo es obligatorio' : undefined),
-      showCancelButton: true,
-      confirmButtonText: 'Rechazar',
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#dc2626',
-      reverseButtons: true,
-    })
-    if (!result.isConfirmed || !result.value) return
+  const result = await Swal.fire({
+    title: 'Rechazar pago',
+    html: 'Los cartones se anulan y se reembolsa al vendedor, que debe devolverle el dinero al comprador. El vendedor recibe el motivo.',
+    input: 'textarea',
+    inputLabel: 'Motivo del rechazo',
+    inputValue: notes.value,
+    inputPlaceholder: 'Ej. el comprobante no corresponde, monto incompleto...',
+    inputValidator: value => (!value || !value.trim() ? 'El motivo es obligatorio' : undefined),
+    showCancelButton: true,
+    confirmButtonText: 'Rechazar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#dc2626',
+    reverseButtons: true
+  })
+  if (!result.isConfirmed || !result.value) return
 
-    try {
-      rejecting.value = true
-      await backendClient.post(`/bingo/card-payments/${payment.id}/reject`, { admin_notes: String(result.value).trim() })
-      showToast('Pago rechazado: cartones anulados y reembolso en proceso', 'success')
-      showDetail.value = false
-      reloadQueue()
-    } catch (error: any) {
-      showToast(error?.response?.data?.message ?? 'No se pudo rechazar el pago', 'error')
-    } finally {
-      rejecting.value = false
-    }
+  try {
+    rejecting.value = true
+    await backendClient.post(`/bingo/card-payments/${payment.id}/reject`, { admin_notes: String(result.value).trim() })
+    showToast('Pago rechazado: cartones anulados y reembolso en proceso', 'success')
+    showDetail.value = false
+    reloadQueue()
+  } catch (error: any) {
+    showToast(error?.response?.data?.message ?? 'No se pudo rechazar el pago', 'error')
+  } finally {
+    rejecting.value = false
   }
+}
 
-  /* -------------------------------------------------------------------------- */
-  /* Lightbox del comprobante                                                    */
-  /* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/* Lightbox del comprobante                                                    */
+/* -------------------------------------------------------------------------- */
 
-  const lightboxUrl = ref<string | null>(null)
+const lightboxUrl = ref<string | null>(null)
 
-  /* -------------------------------------------------------------------------- */
-  /* Reembolsos con fallos                                                       */
-  /* -------------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/* Reembolsos con fallos                                                       */
+/* -------------------------------------------------------------------------- */
 
-  const refundColumns: Column[] = [
-    { key: 'room_uuid_code',    label: 'Sala' },
-    { key: 'amount_label',      label: 'Monto' },
-    { key: 'status',            label: 'Estado' },
-    { key: 'attempts',          label: 'Intentos', searchable: false },
-    { key: 'error_message',     label: 'Último error', truncate: true, hideBelow: 'md' },
-    { key: 'last_attempted_at', label: 'Último intento', sortable: true, searchable: false },
-  ]
+const refundColumns: Column[] = [
+  { key: 'room_uuid_code',    label: 'Sala' },
+  { key: 'amount_label',      label: 'Monto' },
+  { key: 'status',            label: 'Estado' },
+  { key: 'attempts',          label: 'Intentos', searchable: false },
+  { key: 'error_message',     label: 'Último error', truncate: true, hideBelow: 'md' },
+  { key: 'last_attempted_at', label: 'Último intento', sortable: true, searchable: false }
+]
 
-  const refundFilters: readonly TableFilterInterface[] = [
-    {
-      key:   'status',
-      label: 'Estado',
-      options: [{ value: 'PENDING', label: 'En reintento' }, { value: 'ABANDONED', label: 'Abandonado' }],
-    },
-  ]
+const refundFilters: readonly TableFilterInterface[] = [
+  {
+    key: 'status',
+    label: 'Estado',
+    options: [{ value: 'PENDING', label: 'En reintento' }, { value: 'ABANDONED', label: 'Abandonado' }]
+  }
+]
 </script>
 
 <template>
@@ -325,10 +326,30 @@
   >
     <template #actions>
       <div class="bcp-stats">
-        <StatTile label="Por revisar" :value="stats.total" icon="fa-hourglass-half" :variant="stats.total > 0 ? 'warning' : 'default'" />
-        <StatTile label="Monto en revisión" :value="summary.amount ?? '—'" icon="fa-money-bill-wave" variant="info" />
-        <StatTile label="Sorteo ya iniciado" :value="stats.started" icon="fa-circle-play" :variant="stats.started > 0 ? 'danger' : 'default'" />
-        <StatTile :label="`Inician en ≤ ${SOON_MINUTES} min`" :value="stats.soon" icon="fa-stopwatch" :variant="stats.soon > 0 ? 'warning' : 'default'" />
+        <StatTile
+          label="Por revisar"
+          :value="stats.total"
+          icon="fa-hourglass-half"
+          :variant="stats.total > 0 ? 'warning' : 'default'"
+        />
+        <StatTile
+          label="Monto en revisión"
+          :value="summary.amount ?? '—'"
+          icon="fa-money-bill-wave"
+          variant="info"
+        />
+        <StatTile
+          label="Sorteo ya iniciado"
+          :value="stats.started"
+          icon="fa-circle-play"
+          :variant="stats.started > 0 ? 'danger' : 'default'"
+        />
+        <StatTile
+          :label="`Inician en ≤ ${SOON_MINUTES} min`"
+          :value="stats.soon"
+          icon="fa-stopwatch"
+          :variant="stats.soon > 0 ? 'warning' : 'default'"
+        />
       </div>
     </template>
   </PageHeader>
@@ -336,12 +357,16 @@
   <!-- Regla para los pagos que siguen pendientes cuando inicia el sorteo -->
   <section v-if="policy" class="bcp-policy">
     <div class="bcp-policy__head">
-      <span class="bcp-policy__icon"><i class="fas fa-gavel"></i></span>
+      <span class="bcp-policy__icon"><i class="fas fa-gavel" /></span>
       <div>
-        <h3 class="bcp-policy__title">Si el sorteo inicia y un pago sigue sin revisar</h3>
-        <p class="bcp-policy__hint">Te avisamos al cerrar la venta, minutos antes del inicio. Esta regla aplica a toda tu red.</p>
+        <h3 class="bcp-policy__title">
+          Si el sorteo inicia y un pago sigue sin revisar
+        </h3>
+        <p class="bcp-policy__hint">
+          Te avisamos al cerrar la venta, minutos antes del inicio. Esta regla aplica a toda tu red.
+        </p>
       </div>
-      <span v-if="savingPolicy" class="spinner-border spinner-border-sm text-muted ml-auto"></span>
+      <span v-if="savingPolicy" class="spinner-border spinner-border-sm text-muted ml-auto" />
     </div>
     <div class="bcp-policy__options" role="radiogroup" aria-label="Regla al iniciar el sorteo">
       <button
@@ -355,23 +380,23 @@
         :disabled="savingPolicy"
         @click="savePolicy(option.value)"
       >
-        <i class="fas bcp-policy__option-icon" :class="option.icon"></i>
+        <i class="fas bcp-policy__option-icon" :class="option.icon" />
         <span class="bcp-policy__option-body">
           <strong>{{ option.title }}</strong>
           <small>{{ option.text }}</small>
         </span>
-        <i class="fas bcp-policy__check" :class="policy === option.value ? 'fa-circle-check' : 'fa-circle'"></i>
+        <i class="fas bcp-policy__check" :class="policy === option.value ? 'fa-circle-check' : 'fa-circle'" />
       </button>
     </div>
   </section>
 
   <div v-if="stats.started" class="alert alert-danger bcp-alert" role="alert">
-    <i class="fas fa-triangle-exclamation mr-2"></i>
+    <i class="fas fa-triangle-exclamation mr-2" />
     <strong>{{ stats.started }} pago(s)</strong> de salas cuyo sorteo ya inició. Si los apruebas, los cartones entran con las bolas ya cantadas.
   </div>
 
   <div v-if="summary.truncated" class="alert alert-warning bcp-alert" role="alert">
-    <i class="fas fa-circle-info mr-2"></i>
+    <i class="fas fa-circle-info mr-2" />
     Se muestran los {{ payments.length }} más urgentes de {{ summary.total }}. Resuelve estos para ver el resto.
   </div>
 
@@ -395,7 +420,7 @@
         <span class="bcp-code" :title="row.room_uuid_code ?? ''">#{{ row.room_short_code ?? '—' }}</span>
         <span class="text-muted small">{{ row.room_starts_at ? formatDateTime(row.room_starts_at) : 'Sin hora' }}</span>
         <span :class="URGENCY[row.urgency as PaymentUrgency].badge" class="bcp-badge">
-          <i class="fas mr-1" :class="URGENCY[row.urgency as PaymentUrgency].icon"></i>{{ countdownLabel(row as PendingCardPayment) }}
+          <i class="fas mr-1" :class="URGENCY[row.urgency as PaymentUrgency].icon" />{{ countdownLabel(row as PendingCardPayment) }}
         </span>
         <span v-if="row.pending_at_start_at" class="badge bcp-badge bcp-badge--late">
           Pendiente tras el inicio
@@ -404,26 +429,40 @@
     </template>
 
     <template #cell-seller_name="{ row }">
-      <div class="font-weight-bold">{{ row.seller_name ?? '—' }}</div>
-      <div class="text-muted small">{{ row.seller_network ?? row.commerce_name ?? '' }}</div>
+      <div class="font-weight-bold">
+        {{ row.seller_name ?? '—' }}
+      </div>
+      <div class="text-muted small">
+        {{ row.seller_network ?? row.commerce_name ?? '' }}
+      </div>
       <div v-if="!policy && row.commerce_name" class="text-muted small">
-        <i class="fas fa-gavel mr-1"></i>{{ POLICY_LABELS[row.pending_policy as PendingPaymentPolicy] }}
+        <i class="fas fa-gavel mr-1" />{{ POLICY_LABELS[row.pending_policy as PendingPaymentPolicy] }}
       </div>
     </template>
 
     <template #cell-buyer_name="{ row }">
-      <div class="font-weight-bold">{{ row.external_player?.name ?? '—' }}</div>
-      <div class="text-muted small">{{ row.external_player?.phone ?? '' }}</div>
+      <div class="font-weight-bold">
+        {{ row.external_player?.name ?? '—' }}
+      </div>
+      <div class="text-muted small">
+        {{ row.external_player?.phone ?? '' }}
+      </div>
     </template>
 
     <template #cell-amount_label="{ row }">
-      <div class="font-weight-bold text-nowrap">{{ row.amount_label }}</div>
-      <div class="text-muted small">{{ row.card_count ?? 0 }} cartón(es)</div>
+      <div class="font-weight-bold text-nowrap">
+        {{ row.amount_label }}
+      </div>
+      <div class="text-muted small">
+        {{ row.card_count ?? 0 }} cartón(es)
+      </div>
     </template>
 
     <template #cell-payment_method_label="{ row }">
       <div>{{ row.payment_method_label ?? '—' }}</div>
-      <div v-if="row.transaction_reference" class="text-muted small">Ref. {{ row.transaction_reference }}</div>
+      <div v-if="row.transaction_reference" class="text-muted small">
+        Ref. {{ row.transaction_reference }}
+      </div>
     </template>
 
     <template #cell-created_at="{ value }">
@@ -439,10 +478,10 @@
           title="Ver comprobante"
           @click="lightboxUrl = row.payment_proof_url"
         >
-          <img :src="row.payment_proof_url" alt="Comprobante" loading="lazy" />
+          <img :src="row.payment_proof_url" alt="Comprobante" loading="lazy">
         </button>
         <button type="button" class="btn btn-sm btn-primary text-nowrap" @click="openDetail(String(row.id))">
-          <i class="fas fa-magnifying-glass mr-1"></i>Revisar
+          <i class="fas fa-magnifying-glass mr-1" />Revisar
         </button>
       </div>
     </template>
@@ -479,23 +518,35 @@
     </TableWithFilterBridge>
   </div>
 
+  <PrizeReviewSection :prizes="prizeReviews ?? []" />
+
   <!-- Modal: revisión del pago -->
-  <Modal v-model="showDetail" title="Revisión de pago" icon="fa-receipt" size="lg">
+  <Modal
+    v-model="showDetail"
+    title="Revisión de pago"
+    icon="fa-receipt"
+    size="lg"
+  >
     <template v-if="selected">
       <div v-if="selectedUrgency === 'started'" class="alert alert-danger py-2 small">
-        <i class="fas fa-triangle-exclamation mr-1"></i>
+        <i class="fas fa-triangle-exclamation mr-1" />
         El sorteo ya inició: si apruebas, el comprador entra con las bolas ya cantadas.
       </div>
 
       <div class="row">
         <div class="col-md-5">
           <small class="text-muted d-block mb-1">Comprobante</small>
-          <button v-if="selected.payment_proof_url" type="button" class="bcp-proof" @click="lightboxUrl = selected.payment_proof_url">
-            <img :src="selected.payment_proof_url" alt="Comprobante de pago" />
-            <span class="bcp-proof__zoom"><i class="fas fa-magnifying-glass-plus"></i></span>
+          <button
+            v-if="selected.payment_proof_url"
+            type="button"
+            class="bcp-proof"
+            @click="lightboxUrl = selected.payment_proof_url"
+          >
+            <img :src="selected.payment_proof_url" alt="Comprobante de pago">
+            <span class="bcp-proof__zoom"><i class="fas fa-magnifying-glass-plus" /></span>
           </button>
           <div v-else class="bcp-proof bcp-proof--empty">
-            <i class="fas" :class="isCash ? 'fa-money-bill-wave' : 'fa-image'"></i>
+            <i class="fas" :class="isCash ? 'fa-money-bill-wave' : 'fa-image'" />
             <span>{{ isCash ? 'Pago en efectivo: confirma que el vendedor te entregó el dinero.' : 'Sin comprobante adjunto' }}</span>
           </div>
         </div>
@@ -525,20 +576,39 @@
           </dl>
 
           <label for="bcp-notes" class="small text-muted mb-1">Notas para el vendedor (opcional)</label>
-          <textarea id="bcp-notes" v-model="notes" class="form-control form-control-sm" rows="2" maxlength="255" placeholder="Se incluyen en el aviso al vendedor"></textarea>
+          <textarea
+            id="bcp-notes"
+            v-model="notes"
+            class="form-control form-control-sm"
+            rows="2"
+            maxlength="255"
+            placeholder="Se incluyen en el aviso al vendedor"
+          />
         </div>
       </div>
     </template>
 
     <template #footer>
-      <button type="button" class="btn btn-outline-secondary" @click="showDetail = false">Cerrar</button>
-      <button type="button" class="btn btn-danger" :disabled="rejecting || approving" @click="handleReject">
-        <span v-if="rejecting" class="spinner-border spinner-border-sm mr-1"></span>
-        <i v-else class="fas fa-times mr-1"></i>Rechazar
+      <button type="button" class="btn btn-outline-secondary" @click="showDetail = false">
+        Cerrar
       </button>
-      <button type="button" class="btn btn-success" :disabled="approving || rejecting" @click="handleApprove">
-        <span v-if="approving" class="spinner-border spinner-border-sm mr-1"></span>
-        <i v-else class="fas fa-check mr-1"></i>{{ selectedUrgency === 'started' ? 'Aprobar igual' : 'Aprobar' }}
+      <button
+        type="button"
+        class="btn btn-danger"
+        :disabled="rejecting || approving"
+        @click="handleReject"
+      >
+        <span v-if="rejecting" class="spinner-border spinner-border-sm mr-1" />
+        <i v-else class="fas fa-times mr-1" />Rechazar
+      </button>
+      <button
+        type="button"
+        class="btn btn-success"
+        :disabled="approving || rejecting"
+        @click="handleApprove"
+      >
+        <span v-if="approving" class="spinner-border spinner-border-sm mr-1" />
+        <i v-else class="fas fa-check mr-1" />{{ selectedUrgency === 'started' ? 'Aprobar igual' : 'Aprobar' }}
       </button>
     </template>
   </Modal>
@@ -546,14 +616,24 @@
   <!-- Lightbox: comprobante a pantalla completa -->
   <Teleport to="body">
     <div v-if="lightboxUrl" class="bcp-lightbox" @click.self="lightboxUrl = null">
-      <button type="button" class="bcp-lightbox__close" title="Cerrar" @click="lightboxUrl = null">
-        <i class="fas fa-times"></i>
+      <button
+        type="button"
+        class="bcp-lightbox__close"
+        title="Cerrar"
+        @click="lightboxUrl = null"
+      >
+        <i class="fas fa-times" />
       </button>
       <figure class="bcp-lightbox__figure">
-        <img :src="lightboxUrl" alt="Comprobante de pago" class="bcp-lightbox__image" />
+        <img :src="lightboxUrl" alt="Comprobante de pago" class="bcp-lightbox__image">
         <figcaption>
-          <a :href="lightboxUrl" target="_blank" rel="noopener" class="bcp-lightbox__link">
-            <i class="fas fa-up-right-from-square mr-1"></i>Abrir en otra pestaña
+          <a
+            :href="lightboxUrl"
+            target="_blank"
+            rel="noopener"
+            class="bcp-lightbox__link"
+          >
+            <i class="fas fa-up-right-from-square mr-1" />Abrir en otra pestaña
           </a>
         </figcaption>
       </figure>

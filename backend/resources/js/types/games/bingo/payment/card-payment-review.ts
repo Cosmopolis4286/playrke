@@ -48,6 +48,8 @@ export interface CardPaymentReviewPageProps {
     title: string
     payments: PendingCardPayment[]
     refundFailures: CardPaymentRefundFailure[]
+    /** Premios suspendidos o con reintentos agotados (solo admin). */
+    prizeReviews?: BingoPrizeReview[]
     /** Regla propia (solo comercializadora); null para admin. */
     policy: PendingPaymentPolicy | null
     summary: {
@@ -55,4 +57,18 @@ export interface CardPaymentReviewPageProps {
         amount: string | null
         truncated: boolean
     }
+}
+
+/** Premio de Bingo que el pago automático no resolvió solo (BingoPrizeReviewService). */
+export interface BingoPrizeReview {
+    id: string
+    room_uuid_code: string | null
+    winner: string
+    amount_label: string
+    prize_status: 'suspended' | 'waiting' | 'processing'
+    /** external: comprador externo; no_wallet: ganador sin billetera; exhausted: reintentos agotados. */
+    reason: 'external' | 'no_wallet' | 'exhausted'
+    attempts: number
+    last_error: string | null
+    created_at: string | null
 }
