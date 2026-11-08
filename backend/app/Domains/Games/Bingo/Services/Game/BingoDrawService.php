@@ -47,6 +47,8 @@ final class BingoDrawService
     private const CHIP_INTERVAL_SECONDS = 5; // fallback si time_chip no está configurado
     private const DRAW_LOCK_MIN_TTL_SECONDS = 5400;
     private const DRAW_LOCK_SAFETY_MARGIN_SECONDS = 1800;
+    /** Margen extra antes de dar por muerto al worker dueño del lock (ver heartbeatIsStale). */
+    private const HEARTBEAT_GRACE_SECONDS = 60;
 
     /**
      * Cartones elegibles de la sala, cacheados en memoria durante la corrida del sorteo.
@@ -76,6 +78,23 @@ final class BingoDrawService
     /** Cache de tasas de cambio activas resuelta por moneda durante la corrida actual. */
     private array $rateCache = [];
 
+    private static function heartbeatKey(string $roomId) : string
+    {
+        return "bingo:draw-heartbeat:{$roomId}";
+    }
+
+    /** Parte igual de $amount entre $shares, truncada a $decimals (nunca hacia arriba). */
+    private static function shareDown(float $amount, int $shares, int $decimals) : float
+    {
+        if ($shares <= 1) {
+            return $amount;
+        }
+
+        $factor = 10 ** $decimals;
+
+        return floor(round($amount * $factor / $shares, 6)) / $factor;
+    }
+
     public function __construct(
         private readonly BingoPrizePayoutService $prizePayoutService,
         private readonly WinEventService $winEventService,
@@ -103,8 +122,13 @@ final class BingoDrawService
         string $cardId,
         int $lastDrawId,
         bool $isLuckyWinner = false,
+        int $shareCount = 1,
     ) : ?array {
         $roundId = (string) $round->id;
+        // Cartones que completaron el patrón con la MISMA ficha: dividen el
+        // premio de la ronda en partes iguales (antes cada uno cobraba el
+        // premio completo y la sala pagaba N veces el bote).
+        $shareCount = max(1, $shareCount);
         $cardPrize = null;
 
         // Pre-cargar prizes FUERA de la transacción para no hacer un SELECT adicional
@@ -118,7 +142,7 @@ final class BingoDrawService
         $isDemoRoom = $room->isDemo();
 
         /** @var array{winnerData: array<string,mixed>, broadcast: array<string,mixed>}|null $txResult */
-        $txResult = DB::transaction(function() use ($room, $round, $roundId, $pattern, $cardId, $lastDrawId, $isDemoRoom, &$cardPrize) {
+        $txResult = DB::transaction(function() use ($room, $round, $roundId, $pattern, $cardId, $lastDrawId, $isDemoRoom, $shareCount, &$cardPrize) {
             // Mantener el mismo orden de locks que BingoCardPaymentReviewService::reject():
             // primero pagos y después cartón. Así un rechazo concurrente no puede
             // confirmar un pago inválido mientras este proceso registra un ganador.
@@ -288,7 +312,7 @@ final class BingoDrawService
             $card->update(['status' => BingoCard::STATUS_WINNER]);
             $this->invalidateActiveCardsCache();
 
-            $prizeAmounts = $this->resolvePrizeAmounts($room, $round, $card);
+            $prizeAmounts = $this->resolvePrizeAmounts($room, $round, $card, $shareCount);
             $prize = $prizeAmounts['usd_amount'];
 
             // prize_type viene del enum canónico de la ronda (PCT/FIXED/OTHER),
@@ -325,6 +349,9 @@ final class BingoDrawService
                 // reintentos (waiting/processing) lo acreditan nunca.
                 'prize_status' => $isDemoRoom ? 'cancelled' : ($hasExternalPlayer ? 'suspended' : 'waiting'),
                 'verification_code' => strtoupper(bin2hex(random_bytes(8))),
+                'prize_notes' => $shareCount > 1
+                    ? "Premio compartido entre {$shareCount} cartones que completaron el patrón con la misma ficha."
+                    : null,
             ]);
 
             Log::info('[BingoDrawService] Premio registrado en bingo_card_prizes', [
@@ -544,16 +571,35 @@ final class BingoDrawService
         $drawLock = Cache::lock("bingo:draw-lock:{$roomId}", $lockTtl);
 
         if (! $drawLock->get()) {
-            Log::warning('[BingoDrawService] Otro worker ya tiene el lock del sorteo — abortando duplicado', [
-                'room_id' => $roomId,
-            ]);
+            // El lock dura todo el sorteo (mínimo 90 min). Si el worker que lo
+            // tenía murió (deploy, OOM), sin esto la sala quedaba congelada
+            // hasta que venciera. El latido lo renueva cada ficha: si está
+            // vencido, el dueño anterior ya no sortea y se puede retomar.
+            if (! $this->heartbeatIsStale($roomId, $this->resolveChipInterval($room))) {
+                Log::warning('[BingoDrawService] Otro worker ya tiene el lock del sorteo — abortando duplicado', [
+                    'room_id' => $roomId,
+                ]);
 
-            return ['success' => false, 'room_id' => $roomId, 'reason' => 'lock_held'];
+                return ['success' => false, 'room_id' => $roomId, 'reason' => 'lock_held'];
+            }
+
+            Log::warning('[BingoDrawService] Lock del sorteo sin latido — el worker anterior murió, se retoma', [
+                'room_id' => $roomId,
+                'last_heartbeat' => Cache::get(self::heartbeatKey($roomId)),
+            ]);
+            $drawLock->forceRelease();
+
+            if (! $drawLock->get()) {
+                return ['success' => false, 'room_id' => $roomId, 'reason' => 'lock_held'];
+            }
         }
 
         try {
+            $this->beatHeartbeat($roomId);
+
             return $this->runDraw($room);
         } finally {
+            Cache::forget(self::heartbeatKey($roomId));
             $drawLock->release();
         }
     }
@@ -604,6 +650,12 @@ final class BingoDrawService
         }
 
         return $this->activeCardsCache[$withKey];
+    }
+
+    /** Marca de "sigo sorteando" del worker que tiene el lock (se renueva cada ficha). */
+    private function beatHeartbeat(string $roomId) : void
+    {
+        Cache::put(self::heartbeatKey($roomId), now()->timestamp, now()->addDay());
     }
 
     private function broadcastPlayersProgress(BingoRoom $room, array $patternPositions, array $drawnNumbers) : void
@@ -795,7 +847,7 @@ final class BingoDrawService
         $isLuckyWinner = $remainingChips <= self::LUCKY_WINNER_REMAINING_THRESHOLD;
         $hasFreeCell = BingoVariant::hasFreeCell($variant);
 
-        $winners = [];
+        $winningCardIds = [];
 
         foreach ($cards as $card) {
             $matrix = $card->card_numbers ?? [];
@@ -822,7 +874,15 @@ final class BingoDrawService
                 continue;
             }
 
-            $winnerData = $this->claimCardWin($room, $round, $pattern, $card->id, $lastDrawId, $isLuckyWinner);
+            $winningCardIds[] = (string) $card->id;
+        }
+
+        // Primero todos los ganadores de esta ficha, después el reparto: cada
+        // claimCardWin() paga en el acto, así que el divisor tiene que estar
+        // decidido antes del primer pago.
+        $winners = [];
+        foreach ($winningCardIds as $cardId) {
+            $winnerData = $this->claimCardWin($room, $round, $pattern, $cardId, $lastDrawId, $isLuckyWinner, count($winningCardIds));
             if ($winnerData !== null) {
                 $winners[] = $winnerData;
             }
@@ -1001,6 +1061,22 @@ final class BingoDrawService
         }
     }
 
+    /**
+     * Sin latido reciente: el worker dueño del lock dejó de sortear. Margen de
+     * tres intervalos más 60 s, para no robar el lock a un sorteo vivo que tarde
+     * en emitir una ficha. Sin latido registrado (lock de una versión anterior)
+     * no se considera vencido: se respeta el TTL del lock.
+     */
+    private function heartbeatIsStale(string $roomId, int $interval) : bool
+    {
+        $last = Cache::get(self::heartbeatKey($roomId));
+        if ($last === null) {
+            return false;
+        }
+
+        return now()->timestamp - (int) $last > max($interval, 1) * 3 + self::HEARTBEAT_GRACE_SECONDS;
+    }
+
     /** Invalida el cache de cartones activos — usar tras cambiar el status de un cartón. */
     private function invalidateActiveCardsCache() : void
     {
@@ -1119,14 +1195,22 @@ final class BingoDrawService
                 : self::CHIP_INTERVAL_SECONDS);
     }
 
-    private function resolvePrizeAmounts(BingoRoom $room, BingoRound $round, BingoCard $card) : array
+    /**
+     * Monto del premio de UN cartón ganador. Con $shareCount > 1 (varios
+     * cartones completaron el patrón con la misma ficha) cada uno recibe una
+     * parte igual, redondeada hacia abajo para que la suma nunca supere el
+     * premio de la ronda.
+     */
+    private function resolvePrizeAmounts(BingoRoom $room, BingoRound $round, BingoCard $card, int $shareCount = 1) : array
     {
+        $shareCount = max(1, $shareCount);
+
         if ($round->prize_type === 'FIXED') {
             // prizes pre-cargados por claimCardWin() antes de abrir la TX
             $fixedPrize = $round->prizes->firstWhere('currency_id', (string) $card->currency_id);
 
             if ($fixedPrize) {
-                $localAmount = (float) $fixedPrize->prize_value;
+                $localAmount = self::shareDown((float) $fixedPrize->prize_value, $shareCount, 2);
                 $rate = $this->requireActiveRate((string) $card->currency_id);
                 $usdAmount = round($localAmount / $rate, 4);
 
@@ -1176,7 +1260,16 @@ final class BingoDrawService
             $usdAmount = round($totalUsd / $totalRounds, 4);
         }
 
-        return ['usd_amount' => $usdAmount, 'local_amount' => $this->convertToLocal($usdAmount, (string) $card->currency_id)];
+        // usd_amount es decimal(12,2): truncar a 2 decimales (MySQL redondearía, a veces hacia arriba).
+        $usdAmount = self::shareDown($usdAmount, $shareCount, 2);
+        $localAmount = $this->convertToLocal($usdAmount, (string) $card->currency_id);
+
+        return [
+            'usd_amount' => $usdAmount,
+            // La billetera acredita con 2 decimales: redondear hacia abajo evita
+            // que el redondeo de cada parte sume más que el premio.
+            'local_amount' => $shareCount > 1 ? floor($localAmount * 100) / 100 : $localAmount,
+        ];
     }
 
     private function runDraw(BingoRoom $room) : array
@@ -1553,6 +1646,7 @@ final class BingoDrawService
             // Append después del broadcast: detectWinnerAndEnd no verá el chip
             // hasta aquí, garantizando que los clientes ya lo recibieron.
             $drawnSoFar[] = $chip;
+            $this->beatHeartbeat((string) $roomId);
 
             if (($totalChips - count($drawnSoFar)) <= 10) {
                 try {

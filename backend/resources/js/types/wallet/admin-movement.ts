@@ -22,6 +22,14 @@ export interface MovementCurrency {
 export interface MovementMetadata {
   directory_id?:   string
   directory_type?: string
+  /** Depósito: cuenta de la plataforma a la que el jugador dice haber pagado (D1). */
+  deposit_account?: {
+    label:              string
+    method_label:       string
+    bank_name:          string | null
+    holder_name:        string
+    account_identifier: string
+  }
   [key: string]:   unknown
 }
 

@@ -111,6 +111,137 @@ class BingoDrawIntegrityTest extends TestCase
     }
 
     /**
+     * Una sala ya iniciada se retoma aunque haya quedado por debajo de los
+     * mínimos (p. ej. se rechazaron pagos pendientes al inicio): los mínimos
+     * solo deciden si arranca.
+     */
+    #[Test]
+    public function el_chequeo_de_salud_no_bloquea_retomar_por_los_minimos() : void
+    {
+        ['room' => $room, 'round' => $round] = $this->makeRoom('N3');
+        $room->config->update(['min_players' => 5, 'min_cards_to_start' => 10]);
+        $this->makeCard($room, 'APPROVED');
+        $health = app(\App\Domains\Games\Bingo\Services\Game\BingoRoomHealthCheckService::class);
+
+        // Sala IN_PROGRESS con la ronda en curso: se retoma.
+        $round->update(['status' => 'IN_PROGRESS']);
+        $this->assertSame([], $health->collectErrors($room->fresh()));
+
+        // Sala que todavía no arrancó: los mínimos sí aplican.
+        $round->update(['status' => 'ACTIVE']);
+        $room->update(['status_id' => GameStatus::codeToId('ACTIVE')]);
+        $errors = $health->collectErrors($room->fresh());
+        $this->assertNotEmpty($errors);
+        $this->assertStringContainsString('mínimo', implode(' ', $errors));
+    }
+
+    /**
+     * Reclamo manual ("¡BINGO!"): también reparte con los demás cartones que
+     * completaron el patrón con las mismas fichas. Si solo premiara al que
+     * reclama, el sorteo cerraría la ronda al ver ese premio y los demás
+     * ganadores quedarían sin nada.
+     */
+    #[Test]
+    public function el_reclamo_manual_reparte_con_los_demas_ganadores() : void
+    {
+        config(['anticheat.bingo.min_claim_delay_ms' => 0]);
+        ['room' => $room, 'round' => $round] = $this->makeRoom('N3');
+        $room->update(['prize_pool' => 100]);
+        $round->update(['status' => 'IN_PROGRESS']);
+        $claimant = $this->makeCard($room, 'APPROVED');
+        $other = $this->makeCard($room, 'APPROVED');
+        \App\Domains\Games\Bingo\Models\Draw\BingoDraw::create([
+            'room_id' => $room->id, 'round_id' => $round->id, 'chip' => '7', 'code' => 'B7', 'time' => 1, 'status' => 'FINISHED',
+        ]);
+
+        $winner = app(\App\Domains\Games\Bingo\Services\Game\BingoWinnerDetectionService::class)
+            ->checkWinnerForUser($room->fresh(), (int) $claimant->creator_user_id);
+
+        $this->assertNotNull($winner);
+        $this->assertSame((string) $claimant->id, $winner['card_id']);
+        $prizes = BingoCardPrize::where('round_id', $round->id)->get()->keyBy('winning_card_id');
+        $this->assertCount(2, $prizes);
+        $this->assertEqualsWithDelta(50.0, (float) $prizes[(string) $claimant->id]->usd_amount, 0.0001);
+        $this->assertEqualsWithDelta(50.0, (float) $prizes[(string) $other->id]->usd_amount, 0.0001);
+    }
+
+    #[Test]
+    public function el_reparto_nunca_supera_el_premio_de_la_ronda() : void
+    {
+        ['room' => $room, 'round' => $round] = $this->makeRoom('N3');
+        $room->update(['prize_pool' => 100]);
+        foreach (range(1, 3) as $_) {
+            $this->makeCard($room, 'APPROVED');
+        }
+
+        app(BingoDrawService::class)->startDraw($room->fresh());
+
+        $prizes = BingoCardPrize::where('round_id', $round->id)->get();
+        $this->assertCount(3, $prizes);
+        $this->assertLessThanOrEqual(100.0, (float) $prizes->sum('usd_amount'));
+        $this->assertLessThanOrEqual(100.0, (float) $prizes->sum('local_amount'));
+        $this->assertEqualsWithDelta(33.33, (float) $prizes[0]->usd_amount, 0.0001);
+    }
+
+    /**
+     * Varios cartones completan el patrón con la misma ficha: dividen el premio
+     * de la ronda. Antes cada uno cobraba el premio completo (2 ganadores con
+     * un bote de 100 → 200 pagados).
+     */
+    #[Test]
+    public function ganadores_de_la_misma_ficha_dividen_el_premio() : void
+    {
+        ['room' => $room, 'round' => $round] = $this->makeRoom('N3');
+        $room->update(['prize_pool' => 100]);
+        $this->makeCard($room, 'APPROVED');
+        $this->makeCard($room, 'APPROVED');
+
+        $result = app(BingoDrawService::class)->startDraw($room->fresh());
+
+        $this->assertCount(2, $result['winners']);
+        $prizes = BingoCardPrize::where('round_id', $round->id)->get();
+        $this->assertCount(2, $prizes);
+        $this->assertEqualsWithDelta(50.0, (float) $prizes[0]->usd_amount, 0.0001);
+        $this->assertEqualsWithDelta(50.0, (float) $prizes[1]->usd_amount, 0.0001);
+        $this->assertStringContainsString('compartido entre 2', (string) $prizes[0]->prize_notes);
+    }
+
+    #[Test]
+    public function lock_con_latido_reciente_o_sin_latido_se_respeta() : void
+    {
+        ['room' => $room] = $this->makeRoom('N3');
+        $this->makeCard($room, 'APPROVED');
+        Cache::lock("bingo:draw-lock:{$room->id}", 5400)->get();
+
+        // Sin latido (lock de una versión anterior): se respeta.
+        $this->assertSame('lock_held', app(BingoDrawService::class)->startDraw($room->fresh())['reason'] ?? null);
+
+        // Latido reciente: el dueño sigue sorteando.
+        Cache::put("bingo:draw-heartbeat:{$room->id}", now()->timestamp, now()->addDay());
+        $this->assertSame('lock_held', app(BingoDrawService::class)->startDraw($room->fresh())['reason'] ?? null);
+        $this->assertSame(0, BingoCardPrize::where('room_id', $room->id)->count());
+    }
+
+    /**
+     * El worker que tenía el lock murió (sin latido reciente): el sorteo se
+     * retoma en vez de esperar a que venza el lock (mínimo 90 min).
+     */
+    #[Test]
+    public function lock_sin_latido_se_libera_y_el_sorteo_se_retoma() : void
+    {
+        ['room' => $room] = $this->makeRoom('N3');
+        $this->makeCard($room, 'APPROVED');
+
+        Cache::lock("bingo:draw-lock:{$room->id}", 5400)->get();
+        Cache::put("bingo:draw-heartbeat:{$room->id}", now()->subMinutes(10)->timestamp, now()->addDay());
+
+        $result = app(BingoDrawService::class)->startDraw($room->fresh());
+
+        $this->assertTrue($result['success']);
+        $this->assertNotEmpty($result['winners'] ?? []);
+    }
+
+    /**
      * Carrera: el reclamo manual (check-bingo → claimCardWin) paga primero.
      * Antes el sorteo seguía cantando fichas (claimCardWin devolvía null para el
      * premio ya pagado) y podía premiar a otro cartón; ahora cierra ronda y sala.

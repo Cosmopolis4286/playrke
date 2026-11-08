@@ -272,6 +272,12 @@ class SidebarMenuService
                     // conteo inicial al cargar la página.
                     'badge_counter' => 'pendingWalletMovementsCount',
                 ],
+                'deposit_accounts' => [
+                    'title' => 'Cuentas para Depósitos',
+                    'route' => 'deposit-accounts.index',
+                    'permission' => 'wallet.movements.manage',
+                    'group' => 'Configuración',
+                ],
                 'movement_types' => [
                     'title' => 'Tipos de Movimiento',
                     'route' => 'movement-types.index',

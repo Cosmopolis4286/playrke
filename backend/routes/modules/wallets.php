@@ -4,6 +4,7 @@ use App\Domains\Wallet\Models\WalletMovement;
 use App\Http\Controllers\Directories\Crypto\BinanceController;
 use App\Http\Controllers\Marketplace\Crypto\DepositAddressController;
 use App\Http\Controllers\MovementTypeController;
+use App\Http\Controllers\Wallet\DepositAccountController;
 use App\Http\Controllers\Wallet\WalletMovementController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\WalletLimitController;
@@ -42,6 +43,9 @@ Route::middleware(['auth', 'verified', 'multiPermission:wallet.view,wallet.depos
     // detrás de config('crypto.deposits_enabled'), false por defecto —
     // TronUsdtProvider es un stub, la dirección devuelta nunca es real.
     Route::get('wallet/deposit-address', [DepositAddressController::class, 'show'])->name('wallet.deposit-address');
+
+    // Cuentas de la plataforma donde depositar en una moneda (D1).
+    Route::get('wallet/deposit-accounts', [DepositAccountController::class, 'activeForCurrency'])->name('wallet.deposit-accounts');
 
     // Operaciones financieras: requieren TOS + throttle antifraude
     // throttle:5,1 → máximo 5 intentos por minuto por usuario
@@ -130,6 +134,17 @@ Route::middleware(['auth', 'multiPermission:wallet.movements.view,wallet.movemen
         Route::put('wallet-movements/{movement}/assign', [WalletMovementController::class, 'assign'])->name('wallet-movements.assign');
         Route::put('wallet-movements/{movement}/unassign', [WalletMovementController::class, 'unassign'])->name('wallet-movements.unassign');
     });
+});
+
+// ====================================
+// CUENTAS PARA DEPÓSITOS (ADMIN/TESORERÍA)
+// ====================================
+// Mismo permiso que revisar depósitos: quien los aprueba define dónde se paga.
+Route::middleware(['auth', 'multiPermission:wallet.movements.manage'])->group(function() {
+    Route::get('deposit-accounts', [DepositAccountController::class, 'index'])->name('deposit-accounts.index');
+    Route::post('deposit-accounts', [DepositAccountController::class, 'store'])->name('deposit-accounts.store');
+    Route::put('deposit-accounts/{id}', [DepositAccountController::class, 'update'])->name('deposit-accounts.update');
+    Route::delete('deposit-accounts/{id}', [DepositAccountController::class, 'destroy'])->name('deposit-accounts.destroy');
 });
 
 // ====================================

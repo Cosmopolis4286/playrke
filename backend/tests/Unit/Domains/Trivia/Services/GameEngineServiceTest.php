@@ -109,6 +109,36 @@ class GameEngineServiceTest extends TestCase
         $this->service->startGame((string) $room->id, ['player-1']);
     }
 
+    public function test_finish_does_not_close_again_when_redis_lost_the_finished_state() : void
+    {
+        $room = $this->createRoomWithQuestions();
+        $gameState = $this->service->startGame((string) $room->id, ['player-1']);
+        $this->service->finishGame($gameState->gameId);
+
+        // Redis vuelve a decir "activo" (expiró y se reconstruyó), la BD dice terminado.
+        app(\App\Domains\Games\Trivia\Contracts\GameStateRepositoryInterface::class)
+            ->saveState($gameState->gameId, $gameState);
+
+        \Illuminate\Support\Facades\Event::fake([\App\Domains\Games\Trivia\Events\GameFinished::class]);
+        $state = $this->service->finishGame($gameState->gameId);
+
+        $this->assertTrue($state->isFinished());
+        \Illuminate\Support\Facades\Event::assertNotDispatched(\App\Domains\Games\Trivia\Events\GameFinished::class);
+    }
+
+    public function test_finishing_twice_closes_the_game_only_once() : void
+    {
+        $room = $this->createRoomWithQuestions();
+        $gameState = $this->service->startGame((string) $room->id, ['player-1']);
+
+        \Illuminate\Support\Facades\Event::fake([\App\Domains\Games\Trivia\Events\GameFinished::class]);
+
+        $this->service->finishGame($gameState->gameId);
+        $this->service->finishGame($gameState->gameId);
+
+        \Illuminate\Support\Facades\Event::assertDispatchedTimes(\App\Domains\Games\Trivia\Events\GameFinished::class, 1);
+    }
+
     public function test_game_is_active_after_start() : void
     {
         $room = $this->createRoomWithQuestions();
