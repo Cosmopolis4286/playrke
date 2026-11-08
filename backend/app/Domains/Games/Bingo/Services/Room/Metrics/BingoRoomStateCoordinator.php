@@ -71,49 +71,7 @@ class BingoRoomStateCoordinator
                     ['total_cards' => (int) $cardCount],
                 );
             }
-            $roomUserIds = $activeLots->pluck('room_user_id')->filter()->map(fn ($id) => (string) $id)->unique();
-
-            $internalPlayerIds = $roomUserIds->isEmpty()
-                ? collect()
-                : BingoRoomUser::query()
-                    ->where('room_id', $roomId)
-                    ->whereIn('id', $roomUserIds)
-                    ->whereIn('role', [
-                        BingoRoomUser::ROLE_PLAYER,
-                        BingoRoomUser::ROLE_PLAYER_SELLER,
-                    ])
-                    ->distinct()
-                    ->pluck('user_id')
-                    ->map(fn ($id) => (string) $id);
-
-            $externalIds = DB::table('external_player_participations')
-                ->join('bingo_cards', function ($join) {
-                    $join->on(
-                        DB::raw('JSON_UNQUOTE(external_player_participations.participable_id)'),
-                        '=',
-                        'bingo_cards.id',
-                    );
-                })
-                ->join('bingo_card_lots', 'bingo_card_lots.id', '=', 'bingo_cards.card_lot_id')
-                ->where('external_player_participations.participable_type', BingoCard::class)
-                ->whereNull('external_player_participations.deleted_at')
-                ->whereNull('bingo_cards.deleted_at')
-                ->whereNull('bingo_card_lots.deleted_at')
-                ->where('bingo_cards.room_id', $roomId)
-                ->where('bingo_card_lots.status', 'ACTIVE')
-                ->distinct()
-                ->pluck('external_player_participations.external_player_id');
-
-            $externalPlayerKeys = $externalIds->isEmpty()
-                ? collect()
-                : ExternalPlayer::query()
-                    ->whereIn('id', $externalIds)
-                    ->get(['id', 'converted_user_id'])
-                    ->map(fn (ExternalPlayer $player) => $player->converted_user_id
-                        ? (string) $player->converted_user_id
-                        : 'external:' . (string) $player->id);
-
-            $totalPlayers = $internalPlayerIds->concat($externalPlayerKeys)->unique()->count();
+            $totalPlayers = $this->countPersistedPlayers($roomId);
 
             $lockedRoom->forceFill([
                 'total_players' => $totalPlayers,
@@ -205,7 +163,9 @@ class BingoRoomStateCoordinator
 
     public function countPlayers(BingoRoom|string $room) : int
     {
-        return $this->synchronizeCounters($room)['total_players'];
+        $roomId = $room instanceof BingoRoom ? (string) $room->id : $room;
+
+        return $this->countPersistedPlayers($roomId);
     }
 
     /**
@@ -225,6 +185,62 @@ class BingoRoomStateCoordinator
 
     public function countCards(BingoRoom|string $room) : int
     {
-        return $this->synchronizeCounters($room)['total_cards'];
+        $roomId = $room instanceof BingoRoom ? (string) $room->id : $room;
+
+        return (int) BingoCardLot::query()
+            ->where('room_id', $roomId)
+            ->where('status', 'ACTIVE')
+            ->sum('card_count');
+    }
+
+    /**
+     * Lectura pura de participantes persistidos. No bloquea ni modifica la sala.
+     */
+    private function countPersistedPlayers(string $roomId) : int
+    {
+        $activeLots = BingoCardLot::query()
+            ->where('room_id', $roomId)
+            ->where('status', 'ACTIVE')
+            ->get(['id', 'room_user_id']);
+
+        $roomUserIds = $activeLots->pluck('room_user_id')->filter()->map(fn ($id) => (string) $id)->unique();
+        $internalPlayerIds = $roomUserIds->isEmpty()
+            ? collect()
+            : BingoRoomUser::query()
+                ->where('room_id', $roomId)
+                ->whereIn('id', $roomUserIds)
+                ->whereIn('role', [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER])
+                ->distinct()
+                ->pluck('user_id')
+                ->map(fn ($id) => (string) $id);
+
+        $externalIds = DB::table('external_player_participations')
+            ->join('bingo_cards', function ($join) {
+                $join->on(
+                    DB::raw('JSON_UNQUOTE(external_player_participations.participable_id)'),
+                    '=',
+                    'bingo_cards.id',
+                );
+            })
+            ->join('bingo_card_lots', 'bingo_card_lots.id', '=', 'bingo_cards.card_lot_id')
+            ->where('external_player_participations.participable_type', BingoCard::class)
+            ->whereNull('external_player_participations.deleted_at')
+            ->whereNull('bingo_cards.deleted_at')
+            ->whereNull('bingo_card_lots.deleted_at')
+            ->where('bingo_cards.room_id', $roomId)
+            ->where('bingo_card_lots.status', 'ACTIVE')
+            ->distinct()
+            ->pluck('external_player_participations.external_player_id');
+
+        $externalPlayerKeys = $externalIds->isEmpty()
+            ? collect()
+            : ExternalPlayer::query()
+                ->whereIn('id', $externalIds)
+                ->get(['id', 'converted_user_id'])
+                ->map(fn (ExternalPlayer $player) => $player->converted_user_id
+                    ? (string) $player->converted_user_id
+                    : 'external:' . (string) $player->id);
+
+        return $internalPlayerIds->concat($externalPlayerKeys)->unique()->count();
     }
 }
