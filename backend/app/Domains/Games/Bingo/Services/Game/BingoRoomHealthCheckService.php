@@ -166,6 +166,22 @@ final class BingoRoomHealthCheckService
         $registeredPlayers = $roomState->countPlayers($room);
         $totalCards = $roomState->countEligibleCardsForDraw($room);
 
+        $structural = [
+            fn () => $this->assertValidStatus($room),
+            fn () => $this->assertNotAlreadyFinished($room),
+            fn () => $this->assertHasRounds($room),
+            fn () => $this->assertRoundsHavePatterns($room),
+        ];
+
+        // Sorteo ya iniciado (sala o alguna ronda IN_PROGRESS): se retoma o se
+        // pasa a la ronda siguiente. Los mínimos y el bote solo deciden si
+        // ARRANCA; aplicarlos aquí dejaba la sala IN_PROGRESS con fichas
+        // cantadas para siempre si después del inicio se rechazaron pagos
+        // pendientes y bajó del mínimo (no se retomaba ni se cancelaba).
+        if ($this->drawHasStarted($room)) {
+            return $structural;
+        }
+
         return [
             fn () => $this->assertValidStatus($room),
             fn () => $this->assertNotAlreadyFinished($room),
@@ -176,5 +192,11 @@ final class BingoRoomHealthCheckService
             fn () => $this->assertMinPlayersReached($room, $registeredPlayers),
             fn () => $this->assertPrizePoolCoherent($room),
         ];
+    }
+
+    private function drawHasStarted(BingoRoom $room) : bool
+    {
+        return $room->status?->code === 'IN_PROGRESS'
+            || $room->rounds->contains(fn ($round) => in_array($round->status, ['IN_PROGRESS', 'FINISHED'], true));
     }
 }
