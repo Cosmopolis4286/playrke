@@ -76,6 +76,18 @@ final class BingoDrawService
     /** Cache de tasas de cambio activas resuelta por moneda durante la corrida actual. */
     private array $rateCache = [];
 
+    /** Parte igual de $amount entre $shares, truncada a $decimals (nunca hacia arriba). */
+    private static function shareDown(float $amount, int $shares, int $decimals) : float
+    {
+        if ($shares <= 1) {
+            return $amount;
+        }
+
+        $factor = 10 ** $decimals;
+
+        return floor(round($amount * $factor / $shares, 6)) / $factor;
+    }
+
     public function __construct(
         private readonly BingoPrizePayoutService $prizePayoutService,
         private readonly WinEventService $winEventService,
@@ -103,8 +115,13 @@ final class BingoDrawService
         string $cardId,
         int $lastDrawId,
         bool $isLuckyWinner = false,
+        int $shareCount = 1,
     ) : ?array {
         $roundId = (string) $round->id;
+        // Cartones que completaron el patrón con la MISMA ficha: dividen el
+        // premio de la ronda en partes iguales (antes cada uno cobraba el
+        // premio completo y la sala pagaba N veces el bote).
+        $shareCount = max(1, $shareCount);
         $cardPrize = null;
 
         // Pre-cargar prizes FUERA de la transacción para no hacer un SELECT adicional
@@ -118,7 +135,7 @@ final class BingoDrawService
         $isDemoRoom = $room->isDemo();
 
         /** @var array{winnerData: array<string,mixed>, broadcast: array<string,mixed>}|null $txResult */
-        $txResult = DB::transaction(function() use ($room, $round, $roundId, $pattern, $cardId, $lastDrawId, $isDemoRoom, &$cardPrize) {
+        $txResult = DB::transaction(function() use ($room, $round, $roundId, $pattern, $cardId, $lastDrawId, $isDemoRoom, $shareCount, &$cardPrize) {
             // Mantener el mismo orden de locks que BingoCardPaymentReviewService::reject():
             // primero pagos y después cartón. Así un rechazo concurrente no puede
             // confirmar un pago inválido mientras este proceso registra un ganador.
@@ -288,7 +305,7 @@ final class BingoDrawService
             $card->update(['status' => BingoCard::STATUS_WINNER]);
             $this->invalidateActiveCardsCache();
 
-            $prizeAmounts = $this->resolvePrizeAmounts($room, $round, $card);
+            $prizeAmounts = $this->resolvePrizeAmounts($room, $round, $card, $shareCount);
             $prize = $prizeAmounts['usd_amount'];
 
             // prize_type viene del enum canónico de la ronda (PCT/FIXED/OTHER),
@@ -325,6 +342,9 @@ final class BingoDrawService
                 // reintentos (waiting/processing) lo acreditan nunca.
                 'prize_status' => $isDemoRoom ? 'cancelled' : ($hasExternalPlayer ? 'suspended' : 'waiting'),
                 'verification_code' => strtoupper(bin2hex(random_bytes(8))),
+                'prize_notes' => $shareCount > 1
+                    ? "Premio compartido entre {$shareCount} cartones que completaron el patrón con la misma ficha."
+                    : null,
             ]);
 
             Log::info('[BingoDrawService] Premio registrado en bingo_card_prizes', [
@@ -795,7 +815,7 @@ final class BingoDrawService
         $isLuckyWinner = $remainingChips <= self::LUCKY_WINNER_REMAINING_THRESHOLD;
         $hasFreeCell = BingoVariant::hasFreeCell($variant);
 
-        $winners = [];
+        $winningCardIds = [];
 
         foreach ($cards as $card) {
             $matrix = $card->card_numbers ?? [];
@@ -822,7 +842,15 @@ final class BingoDrawService
                 continue;
             }
 
-            $winnerData = $this->claimCardWin($room, $round, $pattern, $card->id, $lastDrawId, $isLuckyWinner);
+            $winningCardIds[] = (string) $card->id;
+        }
+
+        // Primero todos los ganadores de esta ficha, después el reparto: cada
+        // claimCardWin() paga en el acto, así que el divisor tiene que estar
+        // decidido antes del primer pago.
+        $winners = [];
+        foreach ($winningCardIds as $cardId) {
+            $winnerData = $this->claimCardWin($room, $round, $pattern, $cardId, $lastDrawId, $isLuckyWinner, count($winningCardIds));
             if ($winnerData !== null) {
                 $winners[] = $winnerData;
             }
@@ -1119,14 +1147,22 @@ final class BingoDrawService
                 : self::CHIP_INTERVAL_SECONDS);
     }
 
-    private function resolvePrizeAmounts(BingoRoom $room, BingoRound $round, BingoCard $card) : array
+    /**
+     * Monto del premio de UN cartón ganador. Con $shareCount > 1 (varios
+     * cartones completaron el patrón con la misma ficha) cada uno recibe una
+     * parte igual, redondeada hacia abajo para que la suma nunca supere el
+     * premio de la ronda.
+     */
+    private function resolvePrizeAmounts(BingoRoom $room, BingoRound $round, BingoCard $card, int $shareCount = 1) : array
     {
+        $shareCount = max(1, $shareCount);
+
         if ($round->prize_type === 'FIXED') {
             // prizes pre-cargados por claimCardWin() antes de abrir la TX
             $fixedPrize = $round->prizes->firstWhere('currency_id', (string) $card->currency_id);
 
             if ($fixedPrize) {
-                $localAmount = (float) $fixedPrize->prize_value;
+                $localAmount = self::shareDown((float) $fixedPrize->prize_value, $shareCount, 2);
                 $rate = $this->requireActiveRate((string) $card->currency_id);
                 $usdAmount = round($localAmount / $rate, 4);
 
@@ -1176,7 +1212,16 @@ final class BingoDrawService
             $usdAmount = round($totalUsd / $totalRounds, 4);
         }
 
-        return ['usd_amount' => $usdAmount, 'local_amount' => $this->convertToLocal($usdAmount, (string) $card->currency_id)];
+        // usd_amount es decimal(12,2): truncar a 2 decimales (MySQL redondearía, a veces hacia arriba).
+        $usdAmount = self::shareDown($usdAmount, $shareCount, 2);
+        $localAmount = $this->convertToLocal($usdAmount, (string) $card->currency_id);
+
+        return [
+            'usd_amount' => $usdAmount,
+            // La billetera acredita con 2 decimales: redondear hacia abajo evita
+            // que el redondeo de cada parte sume más que el premio.
+            'local_amount' => $shareCount > 1 ? floor($localAmount * 100) / 100 : $localAmount,
+        ];
     }
 
     private function runDraw(BingoRoom $room) : array
