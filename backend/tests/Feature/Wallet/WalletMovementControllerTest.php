@@ -98,6 +98,59 @@ class WalletMovementControllerTest extends TestCase
             ->assertOk();
     }
 
+    public function test_admin_cannot_approve_a_movement_of_their_own_wallet() : void
+    {
+        $ownWallet = Wallet::create([
+            'user_id' => $this->admin->id,
+            'currency_id' => $this->wallet->currency_id,
+            'balance' => 0,
+            'bonus_balance' => 0,
+            'status' => 'ACTIVE',
+        ]);
+        $own = WalletMovement::create([
+            'wallet_id' => $ownWallet->id,
+            'user_id' => $this->admin->id,
+            'type' => WalletMovement::TYPE_DEPOSIT,
+            'status' => WalletMovement::STATUS_PENDING,
+            'amount' => 500.0,
+            'balance_before' => 0,
+            'balance_after' => 0,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('wallet-movements.approve', $own))
+            ->assertForbidden()
+            ->assertJsonPath('message', 'No puedes aprobar movimientos de tu propia billetera: debe hacerlo otro administrador.');
+
+        $response = $this->actingAs($this->admin)
+            ->postJson(route('wallet-movements.bulk-approve'), ['ids' => [(string) $own->id]])
+            ->assertOk();
+        $response->assertJsonPath('updated', 0);
+
+        $this->assertSame(WalletMovement::STATUS_PENDING, $own->fresh()->status);
+        $this->assertSame(0.0, (float) $ownWallet->fresh()->balance);
+    }
+
+    public function test_approving_a_withdrawal_requires_the_payout_reference() : void
+    {
+        $movement = $this->makePendingWithdrawal(30.0);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('wallet-movements.approve', $movement))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('payout_reference');
+        $this->assertSame(WalletMovement::STATUS_PENDING, $movement->fresh()->status);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('wallet-movements.approve', $movement), ['payout_reference' => ' PM-0042 '])
+            ->assertOk()
+            ->assertJsonPath('data.status', WalletMovement::STATUS_COMPLETED);
+
+        $this->assertSame('PM-0042', $movement->fresh()->reference_id);
+        // El saldo ya se descontó al solicitar: aprobar no lo vuelve a tocar.
+        $this->assertSame(100.0, (float) $this->wallet->fresh()->balance);
+    }
+
     public function test_approving_an_already_completed_movement_fails() : void
     {
         $movement = $this->makePendingDeposit();
@@ -132,26 +185,6 @@ class WalletMovementControllerTest extends TestCase
         $this->assertSame('999999999999999999', $response->json('skipped.0.id'));
 
         $this->assertSame(130.0, (float) $this->wallet->fresh()->balance);
-    }
-
-    public function test_approving_a_withdrawal_requires_the_payout_reference() : void
-    {
-        $movement = $this->makePendingWithdrawal(30.0);
-
-        $this->actingAs($this->admin)
-            ->postJson(route('wallet-movements.approve', $movement))
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('payout_reference');
-        $this->assertSame(WalletMovement::STATUS_PENDING, $movement->fresh()->status);
-
-        $this->actingAs($this->admin)
-            ->postJson(route('wallet-movements.approve', $movement), ['payout_reference' => ' PM-0042 '])
-            ->assertOk()
-            ->assertJsonPath('data.status', WalletMovement::STATUS_COMPLETED);
-
-        $this->assertSame('PM-0042', $movement->fresh()->reference_id);
-        // El saldo ya se descontó al solicitar: aprobar no lo vuelve a tocar.
-        $this->assertSame(100.0, (float) $this->wallet->fresh()->balance);
     }
 
     public function test_bulk_approve_skips_withdrawals() : void
@@ -212,6 +245,24 @@ class WalletMovementControllerTest extends TestCase
         $this->actingAs($this->player)
             ->get(route('wallet-movements.index'))
             ->assertRedirect(route('dashboard'));
+    }
+
+    public function test_player_movement_detail_exposes_player_message_but_not_internal_notes() : void
+    {
+        $movement = $this->makePendingDeposit();
+        $movement->update([
+            'admin_notes' => 'Observación privada para tesorería',
+            'player_message' => 'Pago no recibido en la cuenta destino',
+        ]);
+
+        $this->actingAs($this->player);
+        $response = app(WalletController::class)->showMovement((string) $movement->id);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $data = $response->getData(true)['data'];
+        $this->assertSame('Pago no recibido en la cuenta destino', $data['player_message']);
+        $this->assertArrayNotHasKey('admin_notes', $data);
+        $this->assertStringNotContainsString('Observación privada para tesorería', json_encode($data));
     }
 
     public function test_reject_requires_a_reason() : void
@@ -299,24 +350,6 @@ class WalletMovementControllerTest extends TestCase
 
         $this->assertSame(WalletMovement::STATUS_PENDING, $movement->fresh()->status);
         $this->assertSame(100.0, (float) $this->wallet->fresh()->balance);
-    }
-
-    public function test_player_movement_detail_exposes_player_message_but_not_internal_notes(): void
-    {
-        $movement = $this->makePendingDeposit();
-        $movement->update([
-            'admin_notes' => 'Observación privada para tesorería',
-            'player_message' => 'Pago no recibido en la cuenta destino',
-        ]);
-
-        $this->actingAs($this->player);
-        $response = app(WalletController::class)->showMovement((string) $movement->id);
-
-        $this->assertSame(200, $response->getStatusCode());
-        $data = $response->getData(true)['data'];
-        $this->assertSame('Pago no recibido en la cuenta destino', $data['player_message']);
-        $this->assertArrayNotHasKey('admin_notes', $data);
-        $this->assertStringNotContainsString('Observación privada para tesorería', json_encode($data));
     }
 
     private function makePendingDeposit(float $amount = 50.0) : WalletMovement

@@ -211,29 +211,61 @@ final class BingoWinnerDetectionService
         $remainingChips = BingoVariant::totalChips($variant) - count($drawnNumbers);
         $isLuckyWinner = $remainingChips <= BingoDrawService::LUCKY_WINNER_REMAINING_THRESHOLD;
 
-        foreach ($cards as $card) {
-            if (! $this->checkBingo($card, $drawnNumbers, $patternPositions, $variant)) {
-                continue;
-            }
+        $claimantCardIds = $cards
+            ->filter(fn (BingoCard $card) => $this->checkBingo($card, $drawnNumbers, $patternPositions, $variant))
+            ->map(fn (BingoCard $card) => (string) $card->id)
+            ->values()
+            ->all();
 
+        if ($claimantCardIds === []) {
+            return null;
+        }
+
+        // Mismas reglas que el sorteo automático: todos los cartones de la sala
+        // que completaron el patrón con estas fichas ganan y dividen el premio.
+        // Si el reclamo manual premiara solo al que reclama, el sorteo cerraría
+        // la ronda al ver ese premio y los demás ganadores quedarían sin nada.
+        $roomWinnerIds = $this->roomWinningCardIds($room, $drawnNumbers, $patternPositions, $variant);
+        $allWinnerIds = array_values(array_unique([...$claimantCardIds, ...$roomWinnerIds]));
+
+        $claimantWinner = null;
+        foreach ($allWinnerIds as $cardId) {
             // Persistencia + broadcasts bajo lock: si el sorteo automático ya reclamó
-            // este cartón en paralelo, claimCardWin devuelve null y seguimos buscando
-            $winnerData = $this->drawService->claimCardWin($room, $round, $pattern, (string) $card->id, $lastDrawId, $isLuckyWinner);
+            // este cartón en paralelo, claimCardWin devuelve null.
+            $winnerData = $this->drawService->claimCardWin($room, $round, $pattern, $cardId, $lastDrawId, $isLuckyWinner, count($allWinnerIds));
 
-            if ($winnerData === null) {
-                continue;
+            if ($winnerData !== null && $claimantWinner === null && in_array($cardId, $claimantCardIds, true)) {
+                $claimantWinner = $winnerData;
             }
+        }
 
+        if ($claimantWinner !== null) {
             Log::info('[BingoWinnerDetection] Bingo detectado (verificación manual)', [
                 'room_id' => $room->id,
                 'variant' => $variant,
                 'pattern' => $pattern->name,
-                'winner' => $winnerData,
+                'winner' => $claimantWinner,
+                'shared_with' => count($allWinnerIds),
             ]);
-
-            return $winnerData;
         }
 
-        return null;
+        return $claimantWinner;
+    }
+
+    /**
+     * Cartones elegibles de la sala que completan el patrón con las fichas dadas.
+     *
+     * @return list<string>
+     */
+    private function roomWinningCardIds(BingoRoom $room, array $drawnNumbers, array $patternPositions, string $variant) : array
+    {
+        return BingoCard::where('room_id', (string) $room->id)
+            ->where('status', BingoCard::STATUS_ACTIVE)
+            ->eligibleForDraw()
+            ->get(['id', 'card_numbers'])
+            ->filter(fn (BingoCard $card) => $this->checkBingo($card, $drawnNumbers, $patternPositions, $variant))
+            ->map(fn (BingoCard $card) => (string) $card->id)
+            ->values()
+            ->all();
     }
 }

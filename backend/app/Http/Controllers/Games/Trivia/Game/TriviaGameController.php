@@ -373,9 +373,14 @@ final class TriviaGameController extends Controller
             ->where('player_id', (string) $user->id)
             ->first();
 
-        // Obtener todos los scores para el ranking
+        // Obtener todos los scores para el ranking. El orden es la `position`
+        // que GameEngineService::finishGame() calculó y con la que se pagaron
+        // los premios (aciertos, tiempo, racha, inscripción); antes se ordenaba
+        // por puntaje y el jugador podía verse 1º sin haber ganado el premio.
         $allScores = $pgsql->table('trivia_scores')
             ->where('game_id', $gameId)
+            ->orderByRaw('position IS NULL')
+            ->orderBy('position')
             ->orderBy('final_score', 'desc')
             ->orderBy('correct_answers', 'desc')
             ->get();

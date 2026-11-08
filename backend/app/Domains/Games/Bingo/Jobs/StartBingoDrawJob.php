@@ -58,6 +58,10 @@ final class StartBingoDrawJob implements ShouldBeUniqueUntilProcessing, ShouldQu
 
     public function __construct(private readonly string $roomId)
     {
+        // Siempre por la conexión/cola dedicada del sorteo (ver
+        // config('queue.bingo_draw_connection')), la escuchen los workers que sea.
+        $this->onConnection(config('queue.bingo_draw_connection'));
+        $this->onQueue('bingo-draw');
     }
 
     public function handle(BingoDrawService $drawService, BingoRoomHealthCheckService $healthCheck) : void

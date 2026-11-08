@@ -1,7 +1,22 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import backendClient from '@js/plugins/axios'
 import type { Wallet } from '@js/types/wallet'
 import { formatAmount } from '@js/composables/wallet/useWalletOperationFormatters'
+import { useDepositAccountSelection } from '@js/composables/wallet/useDepositAccountSelection'
+
+/** Cuenta de la plataforma donde depositar (D1, DepositAccount::toPublicArray). */
+interface DepositAccount {
+  id: string
+  method: string
+  method_label: string
+  label: string
+  bank_name: string | null
+  holder_name: string
+  holder_document: string | null
+  account_identifier: string
+  instructions: string | null
+}
 
 const props = defineProps<{
   activeWallet: Wallet | null
@@ -18,6 +33,41 @@ const emit = defineEmits<{
   (e: 'update:notes', v: string): void
 }>()
 
+// ── Cuentas donde pagar (D1) ──────────────────────────────────────────────────
+const accounts        = ref<DepositAccount[]>([])
+const accountsLoading = ref(false)
+const copiedKey       = ref<string | null>(null)
+const { selectedDepositAccountId: depositAccountId } = useDepositAccountSelection()
+
+onMounted(async () => {
+  if (!props.activeWallet) return
+  accountsLoading.value = true
+  try {
+    const { data } = await backendClient.get('/wallet/deposit-accounts', {
+      params: { currency_id: props.activeWallet.currency_id }
+    })
+    accounts.value = data.data ?? []
+    // Una sola cuenta: queda elegida.
+    if (accounts.value.length === 1 && !depositAccountId.value) {
+      depositAccountId.value = accounts.value[0].id
+    }
+  } catch {
+    accounts.value = []
+  } finally {
+    accountsLoading.value = false
+  }
+})
+
+async function copy(text: string, key: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    copiedKey.value = key
+    setTimeout(() => { if (copiedKey.value === key) copiedKey.value = null }, 1500)
+  } catch {
+    // Sin permiso de portapapeles: el dato sigue visible para copiarlo a mano.
+  }
+}
+
 const receiptPreviewUrl = computed(() => {
   if (!props.receipt) return null
   if (!props.receipt.type.startsWith('image/')) return null
@@ -33,10 +83,54 @@ function onReceiptChange(e: Event) {
 <template>
   <!-- Resumen del monto -->
   <div class="op-summary">
-    <i class="fas fa-arrow-down op-summary__icon op-summary__icon--deposit"></i>
+    <i class="fas fa-arrow-down op-summary__icon op-summary__icon--deposit" />
     <div>
-      <p class="op-summary__label">Depositando</p>
-      <p class="op-summary__amount">{{ activeWallet?.currency.symbol }} {{ formatAmount(parsedAmount, activeWallet?.currency.decimal_places ?? 2) }}</p>
+      <p class="op-summary__label">
+        Depositando
+      </p>
+      <p class="op-summary__amount">
+        {{ activeWallet?.currency.symbol }} {{ formatAmount(parsedAmount, activeWallet?.currency.decimal_places ?? 2) }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Cuentas de la plataforma donde pagar -->
+  <div v-if="accountsLoading" class="op-field op-accounts__hint">
+    Cargando cuentas para depositar…
+  </div>
+  <div v-else-if="accounts.length" class="op-field">
+    <label class="op-field__label">
+      Paga a una de estas cuentas <span class="op-required">*</span>
+    </label>
+    <div class="op-accounts">
+      <label
+        v-for="account in accounts"
+        :key="account.id"
+        class="op-account"
+        :class="{ 'op-account--selected': depositAccountId === account.id }"
+      >
+        <input
+          type="radio"
+          name="deposit-account"
+          class="op-account__radio"
+          :value="account.id"
+          :checked="depositAccountId === account.id"
+          @change="depositAccountId = account.id"
+        >
+        <div class="op-account__body">
+          <p class="op-account__title">{{ account.label }} <span class="op-account__method">{{ account.method_label }}</span></p>
+          <p v-if="account.bank_name" class="op-account__line">Banco: {{ account.bank_name }}</p>
+          <p class="op-account__line">Titular: {{ account.holder_name }}<span v-if="account.holder_document"> · {{ account.holder_document }}</span></p>
+          <p class="op-account__line op-account__id">
+            {{ account.account_identifier }}
+            <button type="button" class="op-account__copy" @click.prevent="copy(account.account_identifier, account.id)">
+              <i class="fas" :class="copiedKey === account.id ? 'fa-check' : 'fa-copy'" />
+              {{ copiedKey === account.id ? 'Copiado' : 'Copiar' }}
+            </button>
+          </p>
+          <p v-if="account.instructions" class="op-account__hint">{{ account.instructions }}</p>
+        </div>
+      </label>
     </div>
   </div>
 
@@ -45,14 +139,19 @@ function onReceiptChange(e: Event) {
       Comprobante de pago <span class="op-required">*</span>
     </label>
     <label class="op-file-drop" :class="{ 'op-file-drop--selected': receipt }">
-      <input type="file" accept="image/jpeg,image/png,application/pdf" class="op-file-input" @change="onReceiptChange" />
+      <input
+        type="file"
+        accept="image/jpeg,image/png,application/pdf"
+        class="op-file-input"
+        @change="onReceiptChange"
+      >
       <template v-if="receipt">
-        <i class="fas fa-file-check op-file-drop__icon op-file-drop__icon--ok"></i>
+        <i class="fas fa-file-check op-file-drop__icon op-file-drop__icon--ok" />
         <p class="op-file-drop__name">{{ receipt.name }}</p>
         <p class="op-file-drop__hint">Haz clic para cambiar</p>
       </template>
       <template v-else>
-        <i class="fas fa-cloud-upload-alt op-file-drop__icon"></i>
+        <i class="fas fa-cloud-upload-alt op-file-drop__icon" />
         <p class="op-file-drop__name">Selecciona o arrastra el comprobante</p>
         <p class="op-file-drop__hint">JPG, PNG o PDF · máx. 5 MB</p>
       </template>
@@ -60,7 +159,7 @@ function onReceiptChange(e: Event) {
 
     <!-- Previsualización de imagen -->
     <div v-if="receiptPreviewUrl" class="op-receipt-preview">
-      <img :src="receiptPreviewUrl" alt="Vista previa del comprobante" class="op-receipt-preview__img" />
+      <img :src="receiptPreviewUrl" alt="Vista previa del comprobante" class="op-receipt-preview__img">
     </div>
   </div>
 
@@ -73,7 +172,7 @@ function onReceiptChange(e: Event) {
       placeholder="Ej: 00123456"
       maxlength="100"
       @input="emit('update:reference', ($event.target as HTMLInputElement).value)"
-    />
+    >
   </div>
 
   <div class="op-field">
@@ -85,18 +184,41 @@ function onReceiptChange(e: Event) {
       placeholder="Información adicional para el administrador..."
       maxlength="500"
       @input="emit('update:notes', ($event.target as HTMLTextAreaElement).value)"
-    ></textarea>
+    />
   </div>
 
   <Transition name="msg-fade">
     <div v-if="errorMsg" class="op-msg op-msg--error">
-      <div class="op-msg__icon"><i class="fas fa-exclamation-triangle"></i></div>
-      <div><p class="op-msg__title">Error</p><p>{{ errorMsg }}</p></div>
+      <div class="op-msg__icon">
+        <i class="fas fa-exclamation-triangle" />
+      </div>
+      <div>
+        <p class="op-msg__title">
+          Error
+        </p><p>{{ errorMsg }}</p>
+      </div>
     </div>
   </Transition>
 </template>
 
 <style scoped>
+/* ── Cuentas para depositar ── */
+.op-accounts { display: flex; flex-direction: column; gap: 8px; }
+.op-account {
+  display: flex; gap: 10px; align-items: flex-start;
+  border: 1px solid var(--ds-border); border-radius: 12px;
+  padding: 0.75rem; cursor: pointer; background: var(--ds-surface-2);
+}
+.op-account--selected { border-color: #16a34a; box-shadow: 0 0 0 1px #16a34a inset; }
+.op-account__radio { margin-top: 4px; }
+.op-account__body { min-width: 0; }
+.op-account__title { margin: 0; font-weight: 700; color: var(--ds-text); font-size: 0.9rem; }
+.op-account__method { font-weight: 500; font-size: 0.72rem; color: var(--ds-text-muted); margin-left: 4px; }
+.op-account__line { margin: 0; font-size: 0.8rem; color: var(--ds-text-2); word-break: break-word; }
+.op-account__id { font-weight: 700; color: var(--ds-text); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.op-account__copy { border: 0; background: none; color: #4f46e5; font-size: 0.75rem; padding: 0; cursor: pointer; }
+.op-account__hint, .op-accounts__hint { margin: 0; font-size: 0.75rem; color: var(--ds-text-muted); }
+
 .op-summary {
   display: flex;
   align-items: center;

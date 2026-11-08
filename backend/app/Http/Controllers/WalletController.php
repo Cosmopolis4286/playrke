@@ -9,13 +9,14 @@ use App\Exceptions\Domain\DomainException;
 use App\Http\Requests\WalletDepositRequest;
 use App\Http\Requests\WalletWithdrawRequest;
 use App\Models\MovementType;
+use App\Models\Platform\DepositAccount;
 use App\Services\Roles\RoleUserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -40,6 +41,21 @@ class WalletController extends Controller
             $wallet = $this->walletService->findOwnedWalletByCurrency(
                 $request->input('currency_id'),
             );
+
+            // Si la moneda tiene cuentas para depositar, el jugador indica a cuál
+            // pagó: el admin verifica el depósito en esa cuenta.
+            $activeAccounts = DepositAccount::activeFor((string) $wallet->currency_id)->get();
+            $depositAccount = null;
+            if ($activeAccounts->isNotEmpty()) {
+                $depositAccount = $activeAccounts->firstWhere('id', (string) $request->input('deposit_account_id'));
+                if (! $depositAccount) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Indica a qué cuenta hiciste el pago.',
+                        'errors' => ['deposit_account_id' => ['Indica a qué cuenta hiciste el pago.']],
+                    ], 422);
+                }
+            }
 
             $file = $request->file('receipt');
 
@@ -69,6 +85,7 @@ class WalletController extends Controller
                 receiptHash: $receiptHash,
                 reference: $request->input('reference'),
                 notes: $request->input('notes'),
+                depositAccount: $depositAccount?->toPublicArray(),
             );
 
             return response()->json([
