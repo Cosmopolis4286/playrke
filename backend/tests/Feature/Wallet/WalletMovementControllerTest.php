@@ -134,6 +134,42 @@ class WalletMovementControllerTest extends TestCase
         $this->assertSame(130.0, (float) $this->wallet->fresh()->balance);
     }
 
+    public function test_approving_a_withdrawal_requires_the_payout_reference() : void
+    {
+        $movement = $this->makePendingWithdrawal(30.0);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('wallet-movements.approve', $movement))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('payout_reference');
+        $this->assertSame(WalletMovement::STATUS_PENDING, $movement->fresh()->status);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('wallet-movements.approve', $movement), ['payout_reference' => ' PM-0042 '])
+            ->assertOk()
+            ->assertJsonPath('data.status', WalletMovement::STATUS_COMPLETED);
+
+        $this->assertSame('PM-0042', $movement->fresh()->reference_id);
+        // El saldo ya se descontó al solicitar: aprobar no lo vuelve a tocar.
+        $this->assertSame(100.0, (float) $this->wallet->fresh()->balance);
+    }
+
+    public function test_bulk_approve_skips_withdrawals() : void
+    {
+        $deposit = $this->makePendingDeposit(10.0);
+        $withdrawal = $this->makePendingWithdrawal(30.0);
+
+        $response = $this->actingAs($this->admin)
+            ->postJson(route('wallet-movements.bulk-approve'), [
+                'ids' => [(string) $deposit->id, (string) $withdrawal->id],
+            ])
+            ->assertOk();
+
+        $response->assertJsonPath('updated', 1);
+        $this->assertSame((string) $withdrawal->id, $response->json('skipped.0.id'));
+        $this->assertSame(WalletMovement::STATUS_PENDING, $withdrawal->fresh()->status);
+    }
+
     public function test_bulk_reject_requires_a_reason() : void
     {
         $movement = $this->makePendingDeposit();
@@ -292,6 +328,19 @@ class WalletMovementControllerTest extends TestCase
             'status' => WalletMovement::STATUS_PENDING,
             'amount' => $amount,
             'balance_before' => 100.0,
+            'balance_after' => 100.0,
+        ]);
+    }
+
+    private function makePendingWithdrawal(float $amount) : WalletMovement
+    {
+        return WalletMovement::create([
+            'wallet_id' => $this->wallet->id,
+            'user_id' => $this->player->id,
+            'type' => WalletMovement::TYPE_WITHDRAWAL,
+            'status' => WalletMovement::STATUS_PENDING,
+            'amount' => $amount,
+            'balance_before' => 100.0 + $amount,
             'balance_after' => 100.0,
         ]);
     }

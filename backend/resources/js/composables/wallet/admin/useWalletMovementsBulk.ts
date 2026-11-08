@@ -30,7 +30,10 @@ export function useWalletMovementsBulk(onProcessed: () => void) {
 
     const confirmed = await showToastConfirmAction({
       title: `¿Aprobar ${pending.length} movimiento(s)?`,
-      html: buildBulkItemListHtml(itemNames(pending)) + nonPendingNotice(movements, pending),
+      html: buildBulkItemListHtml(itemNames(pending)) + nonPendingNotice(movements, pending)
+        + (pending.some(m => m.type === 'WITHDRAWAL')
+          ? '<p class="text-warning mt-2 mb-0">Los retiros no se aprueban en lote: cada uno necesita la referencia de su pago y quedará pendiente.</p>'
+          : ''),
       icon: 'warning',
       confirmButtonText: 'Sí, aprobar'
     })

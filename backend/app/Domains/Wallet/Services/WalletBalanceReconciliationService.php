@@ -9,6 +9,7 @@ use App\Domains\Wallet\Models\WalletMovement;
 use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Detecta (nunca auto-corrige) drift entre wallets.balance y el ledger de
@@ -47,24 +48,25 @@ final class WalletBalanceReconciliationService
      */
     public function findDrifted() : Collection
     {
-        // Último movimiento por wallet_id en una sola query (evita N+1 de
-        // "por cada wallet, buscar su último movimiento"). created_at puede
-        // empatar entre dos movimientos de la misma wallet insertados en el
-        // mismo segundo — se desempata por id (Snowflake, monótono
-        // creciente), mismo criterio que CommandService::notifyIfNewFailure().
-        $latestMovementIds = WalletMovement::query()
-            ->selectRaw('wallet_id, MAX(id) as latest_id')
-            ->groupBy('wallet_id')
-            ->pluck('latest_id');
+        // Movimiento cuyo balance_after se escribió último, por wallet. No es
+        // siempre el de mayor id: aprobar un depósito (o un movimiento
+        // genérico) reescribe balance_after del movimiento PENDING original en
+        // el momento de aprobarlo (processed_at), aunque después de crearlo
+        // haya habido otros movimientos. Comparar contra el último por id daba
+        // drift falso cada vez que se aprobaba un depósito con compras en el
+        // medio. Los retiros aprobados NO reescriben balance_after (el saldo
+        // ya se descontó al solicitarse): su foto es la de created_at.
+        // Empates en el mismo segundo: por id (Snowflake, monótono creciente).
+        $snapshotAt = "CASE WHEN status = 'COMPLETED' AND type <> '" . WalletMovement::TYPE_WITHDRAWAL . "' AND processed_at IS NOT NULL AND processed_at > created_at THEN processed_at ELSE created_at END";
 
-        // La agregación anterior por MAX(id) asume que un id mayor siempre
-        // es más reciente en created_at — cierto para Snowflake IDs
-        // (monótonos crecientes por timestamp de generación), pero NO
-        // necesariamente el mismo id que MAX(created_at) devolvería si
-        // hubiera relojes desincronizados entre workers. Confirmar el orden
-        // real con un segundo pase por wallet sería más robusto, pero
-        // encarece la query sin un caso conocido de reloj desincronizado en
-        // este proyecto (un solo servidor de aplicación).
+        $ranked = WalletMovement::query()
+            ->selectRaw("id, ROW_NUMBER() OVER (PARTITION BY wallet_id ORDER BY {$snapshotAt} DESC, id DESC) AS rn");
+
+        $latestMovementIds = DB::query()
+            ->fromSub($ranked, 'ranked')
+            ->where('rn', 1)
+            ->pluck('id');
+
         $latestMovements = WalletMovement::whereIn('id', $latestMovementIds)
             ->get(['id', 'wallet_id', 'user_id', 'balance_after', 'created_at']);
 

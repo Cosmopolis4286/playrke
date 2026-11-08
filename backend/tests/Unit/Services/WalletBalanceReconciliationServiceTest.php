@@ -101,6 +101,33 @@ class WalletBalanceReconciliationServiceTest extends TestCase
         $this->assertCount(0, $drifted);
     }
 
+    public function test_deposit_approved_after_later_movements_is_not_drifted() : void
+    {
+        // Depósito pedido ayer (saldo 100), compra hace una hora (saldo 100 →
+        // 100: el depósito todavía no se acreditaba) y aprobación ahora (130).
+        // El último por id es la compra; el último balance escrito, el depósito.
+        $wallet = $this->makeWallet(130.0);
+        $deposit = $this->makeMovement($wallet, balanceAfter: 100.0, createdAt: now()->subDay());
+        $this->makeMovement($wallet, balanceAfter: 100.0, createdAt: now()->subHour());
+        $deposit->forceFill(['balance_after' => 130.0, 'processed_at' => now()])->save();
+
+        $this->assertCount(0, $this->service->findDrifted());
+    }
+
+    public function test_withdrawal_approved_later_keeps_its_creation_snapshot() : void
+    {
+        // Retiro pedido ayer (saldo ya descontado: 50), compra hace una hora
+        // (40) y aprobación del retiro ahora: aprobarlo no reescribe
+        // balance_after, así que la foto vigente es la de la compra.
+        $wallet = $this->makeWallet(40.0);
+        $withdrawal = $this->makeMovement($wallet, balanceAfter: 50.0, createdAt: now()->subDay());
+        $withdrawal->forceFill(['type' => WalletMovement::TYPE_WITHDRAWAL])->save();
+        $this->makeMovement($wallet, balanceAfter: 40.0, createdAt: now()->subHour());
+        $withdrawal->forceFill(['processed_at' => now()])->save();
+
+        $this->assertCount(0, $this->service->findDrifted());
+    }
+
     private function makeMovement(Wallet $wallet, float $balanceAfter, ?DateTimeInterface $createdAt = null) : WalletMovement
     {
         $movement = WalletMovement::create([
