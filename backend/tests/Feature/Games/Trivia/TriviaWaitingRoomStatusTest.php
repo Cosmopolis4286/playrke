@@ -44,6 +44,33 @@ class TriviaWaitingRoomStatusTest extends TestCase
     }
 
     #[Test]
+    public function results_rank_players_by_the_position_used_for_prizes() : void
+    {
+        $winner = $this->makePlayer();
+        $highScore = $this->makePlayer();
+        $room = $this->makeRoom('finished');
+        $game = $this->makeGame($room);
+        $game->update(['status' => 'finished']);
+
+        // Más puntaje pero menos aciertos: el premio fue para $winner (position 1).
+        \App\Domains\Games\Trivia\Models\TriviaScore::create([
+            'game_id' => (string) $game->id, 'player_id' => (string) $highScore->id,
+            'final_score' => 900, 'correct_answers' => 3, 'position' => 2,
+        ]);
+        \App\Domains\Games\Trivia\Models\TriviaScore::create([
+            'game_id' => (string) $game->id, 'player_id' => (string) $winner->id,
+            'final_score' => 700, 'correct_answers' => 4, 'position' => 1,
+        ]);
+
+        $this->actingAs($highScore)->get("/trivia/play/{$game->id}/results")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('game.rank', 2)
+                ->where('topPlayers.0.isCurrentPlayer', false)
+                ->where('topPlayers.1.isCurrentPlayer', true));
+    }
+
+    #[Test]
     public function state_gives_the_running_game_only_to_participants() : void
     {
         $player = $this->makePlayer();
