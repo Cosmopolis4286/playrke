@@ -108,7 +108,7 @@ export function useWalletMovementDetail(
         confirmButtonText: 'Sí, aprobar',
         cancelButtonText: 'Cancelar',
         reverseButtons: true,
-        focusCancel: true,
+        focusCancel: true
       })
       if (!result.isConfirmed || !result.value) return
       payoutReference = String(result.value).trim()
@@ -127,7 +127,7 @@ export function useWalletMovementDetail(
     try {
       const { data } = await backendClient.post(`/wallet-movements/${detail.value.id}/approve`, {
         admin_notes: adminNotes.value.trim() || null,
-        ...(payoutReference ? { payout_reference: payoutReference } : {}),
+        ...(payoutReference ? { payout_reference: payoutReference } : {})
       })
       onUpdated(data.data)
       adminNotes.value = ''
