@@ -16,7 +16,9 @@ const emit = defineEmits<{
   <!-- ── Comprobante (DEPOSIT) ───────────────────────────────────── -->
   <template v-if="detail.type === 'DEPOSIT'">
     <div class="mv-detail__section">
-      <p class="mv-detail__label">Comprobante / Baucher</p>
+      <p class="mv-detail__label">
+        Comprobante / Baucher
+      </p>
       <div v-if="detail.receipt_url" class="mv-receipt">
         <!-- Imagen -->
         <template v-if="isReceiptImage">
@@ -28,15 +30,25 @@ const emit = defineEmits<{
               :src="detail.receipt_url"
               alt="Comprobante"
               class="mv-receipt__img"
-              @click="emit('update:receiptZoom', !receiptZoom)"
               title="Clic para ampliar"
-            />
+              @click="emit('update:receiptZoom', !receiptZoom)"
+            >
             <div class="mv-receipt__toolbar">
-              <button class="mv-receipt__btn" @click="emit('update:receiptZoom', !receiptZoom)" type="button" :title="receiptZoom ? 'Reducir' : 'Ampliar'">
-                <i :class="receiptZoom ? 'fas fa-compress-alt' : 'fas fa-expand-alt'"></i>
+              <button
+                class="mv-receipt__btn"
+                type="button"
+                :title="receiptZoom ? 'Reducir' : 'Ampliar'"
+                @click="emit('update:receiptZoom', !receiptZoom)"
+              >
+                <i :class="receiptZoom ? 'fas fa-compress-alt' : 'fas fa-expand-alt'" />
               </button>
-              <a class="mv-receipt__btn" :href="detail.receipt_url" target="_blank" title="Abrir en nueva pestaña">
-                <i class="fas fa-external-link-alt"></i>
+              <a
+                class="mv-receipt__btn"
+                :href="detail.receipt_url"
+                target="_blank"
+                title="Abrir en nueva pestaña"
+              >
+                <i class="fas fa-external-link-alt" />
               </a>
             </div>
           </div>
@@ -44,23 +56,44 @@ const emit = defineEmits<{
         <!-- PDF u otro -->
         <template v-else>
           <div class="mv-receipt__file">
-            <i class="fas fa-file-pdf mv-receipt__file-icon"></i>
+            <i class="fas fa-file-pdf mv-receipt__file-icon" />
             <div>
-              <p class="mv-receipt__file-name">{{ detail.receipt_path?.split('/').pop() }}</p>
+              <p class="mv-receipt__file-name">
+                {{ detail.receipt_path?.split('/').pop() }}
+              </p>
               <a :href="detail.receipt_url" target="_blank" class="mv-receipt__file-link">
-                <i class="fas fa-external-link-alt me-1"></i> Abrir archivo
+                <i class="fas fa-external-link-alt me-1" /> Abrir archivo
               </a>
             </div>
           </div>
         </template>
       </div>
-      <p v-else class="mv-detail__value text-muted">Sin comprobante adjunto</p>
+      <p v-else class="mv-detail__value text-muted">
+        Sin comprobante adjunto
+      </p>
+    </div>
+
+    <!-- Cuenta a la que pagó (D1) -->
+    <div v-if="detail.metadata?.deposit_account" class="mv-detail__section mt-2">
+      <p class="mv-detail__label">
+        Pagado a
+      </p>
+      <p class="mv-detail__value">
+        {{ detail.metadata.deposit_account.label }} · {{ detail.metadata.deposit_account.method_label }}
+      </p>
+      <p class="mv-detail__value mv-detail__value--mono">
+        {{ detail.metadata.deposit_account.account_identifier }} — {{ detail.metadata.deposit_account.holder_name }}
+      </p>
     </div>
 
     <!-- Referencia del usuario -->
     <div v-if="detail.reference_id" class="mv-detail__section mt-2">
-      <p class="mv-detail__label">Número de referencia</p>
-      <p class="mv-detail__value mv-detail__value--mono">{{ detail.reference_id }}</p>
+      <p class="mv-detail__label">
+        Número de referencia
+      </p>
+      <p class="mv-detail__value mv-detail__value--mono">
+        {{ detail.reference_id }}
+      </p>
     </div>
 
     <div class="mv-detail__divider" />

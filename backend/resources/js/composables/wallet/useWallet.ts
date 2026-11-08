@@ -13,9 +13,10 @@ import type {
   UserDirectory,
   DirectoriesResponse,
   PendingOperation,
-  PendingOperationResponse,
+  PendingOperationResponse
 } from '@js/types/wallet'
 import type { WithdrawalLimitUsage } from '@js/types/kyc'
+import { useDepositAccountSelection } from '@js/composables/wallet/useDepositAccountSelection'
 
 // Pasos del flujo
 // deposit: 1=monto  → 2=comprobante → 3=confirmado
@@ -37,7 +38,7 @@ export function useWallet(
   initialWallets: Wallet[],
   userId?: string,
   walletLimitUsage?: Ref<WithdrawalLimitUsage | null>,
-  hasWithdrawalPin?: Ref<boolean>,
+  hasWithdrawalPin?: Ref<boolean>
 ) {
   const wallets      = ref<Wallet[]>(initialWallets)
   const activeWallet = ref<Wallet | null>(wallets.value[0] ?? null)
@@ -55,6 +56,8 @@ export function useWallet(
   const receipt    = ref<File | null>(null)
   const reference  = ref<string>('')
   const notes      = ref<string>('')
+  /** Cuenta de la plataforma a la que pagó (D1); null si la moneda no tiene cuentas. */
+  const { selectedDepositAccountId: depositAccountId } = useDepositAccountSelection()
 
   // Paso 2 retiro – directorio
   const directories        = ref<UserDirectory[]>([])
@@ -97,7 +100,7 @@ export function useWallet(
     const { balance, currency } = activeWallet.value
     return new Intl.NumberFormat('es-VE', {
       minimumFractionDigits: currency.decimal_places,
-      maximumFractionDigits: currency.decimal_places,
+      maximumFractionDigits: currency.decimal_places
     }).format(balance)
   })
 
@@ -108,7 +111,7 @@ export function useWallet(
     const { bonus_balance, currency } = activeWallet.value
     return new Intl.NumberFormat('es-VE', {
       minimumFractionDigits: currency.decimal_places,
-      maximumFractionDigits: currency.decimal_places,
+      maximumFractionDigits: currency.decimal_places
     }).format(bonus_balance)
   })
 
@@ -146,7 +149,7 @@ export function useWallet(
     return Math.max(0, Math.min(
       daily.max - daily.used,
       weekly.max - weekly.used,
-      monthly.max - monthly.used,
+      monthly.max - monthly.used
     ))
   })
 
@@ -159,6 +162,7 @@ export function useWallet(
     receipt.value             = null
     reference.value           = ''
     notes.value               = ''
+    depositAccountId.value    = null
     selectedDirectory.value   = null
     withdrawalPin.value       = ''
     directories.value         = []
@@ -263,6 +267,7 @@ export function useWallet(
       formData.append('receipt', receipt.value)
       if (reference.value) formData.append('reference', reference.value)
       if (notes.value) formData.append('notes', notes.value)
+      if (depositAccountId.value) formData.append('deposit_account_id', depositAccountId.value)
 
       const { data } = await backendClient.post<WalletOperationResponse>(
         'wallet/deposit',
@@ -304,12 +309,12 @@ export function useWallet(
       await getCsrfCookie()
 
       const { data } = await backendClient.post<WalletOperationResponse>('wallet/withdraw', {
-        currency_id:     activeWallet.value.currency_id,
-        amount:          parsedAmount.value,
-        directory_id:    selectedDirectory.value.id,
-        directory_type:  selectedDirectory.value.type,
-        notes:           notes.value || undefined,
-        withdrawal_pin:  withdrawalPin.value || undefined,
+        currency_id: activeWallet.value.currency_id,
+        amount: parsedAmount.value,
+        directory_id: selectedDirectory.value.id,
+        directory_type: selectedDirectory.value.type,
+        notes: notes.value || undefined,
+        withdrawal_pin: withdrawalPin.value || undefined
       })
 
       if (data.success) {
@@ -362,7 +367,7 @@ export function useWallet(
     try {
       const { data } = await backendClient.get<WalletMovementsResponse>(
         'wallet/movements',
-        { params: { currency_id: activeWallet.value.currency_id, page, per_page: 20 } },
+        { params: { currency_id: activeWallet.value.currency_id, page, per_page: 20 } }
       )
       if (data.success) {
         movements.value     = page === 1 ? data.data : [...movements.value, ...data.data]
@@ -403,7 +408,7 @@ export function useWallet(
       detail: {
         balance,
         currency_symbol: activeWallet.value?.currency.symbol ?? '',
-        decimal_places:  activeWallet.value?.currency.decimal_places ?? 2,
+        decimal_places: activeWallet.value?.currency.decimal_places ?? 2
       }
     }))
   }
@@ -421,8 +426,8 @@ export function useWallet(
       }
       window.dispatchEvent(new CustomEvent('wallet:updated', {
         detail: {
-          balance:         payload.balance,
-          currency_symbol: payload.currency_symbol,
+          balance: payload.balance,
+          currency_symbol: payload.currency_symbol
         }
       }))
     }
@@ -434,24 +439,24 @@ export function useWallet(
         const idx = movements.value.findIndex(m => m.id === payload.movement_id)
         if (idx !== -1) {
           const statusDescriptions: Record<string, Record<string, string>> = {
-            DEPOSIT:    { COMPLETED: 'Depósito acreditado', REJECTED: 'Depósito rechazado' },
-            WITHDRAWAL: { COMPLETED: 'Retiro procesado',    REJECTED: 'Retiro rechazado — saldo reintegrado' },
+            DEPOSIT: { COMPLETED: 'Depósito acreditado', REJECTED: 'Depósito rechazado' },
+            WITHDRAWAL: { COMPLETED: 'Retiro procesado',    REJECTED: 'Retiro rechazado — saldo reintegrado' }
           }
           const desc = statusDescriptions[payload.movement_type]?.[payload.movement_status]
           movements.value[idx] = {
             ...movements.value[idx],
-            status:      payload.movement_status as WalletMovementStatus,
-            description: desc ?? movements.value[idx].description,
+            status: payload.movement_status as WalletMovementStatus,
+            description: desc ?? movements.value[idx].description
           }
         }
       }
 
       if (resultToastTimer) clearTimeout(resultToastTimer)
       resultToast.value = {
-        type:           payload.movement_status === 'COMPLETED' ? 'approved' : 'rejected',
-        movementType:   payload.movement_type as 'DEPOSIT' | 'WITHDRAWAL',
-        amount:         payload.amount,
-        currencySymbol: payload.currency_symbol,
+        type: payload.movement_status === 'COMPLETED' ? 'approved' : 'rejected',
+        movementType: payload.movement_type as 'DEPOSIT' | 'WITHDRAWAL',
+        amount: payload.amount,
+        currencySymbol: payload.currency_symbol
       }
       resultToastTimer = setTimeout(() => { resultToast.value = null }, 8000)
 
@@ -474,7 +479,7 @@ export function useWallet(
   onMounted(() => {
     if (!userId) return
     echo.private(`App.Models.User.${userId}`)
-        .listen('.wallet.updated', _handleWalletUpdated)
+      .listen('.wallet.updated', _handleWalletUpdated)
   })
 
   onBeforeUnmount(() => {
@@ -504,6 +509,6 @@ export function useWallet(
     openModal, closeModal,
     goToStep1, goToStep2,
     selectWallet, loadMovements, loadMoreMovements,
-    submit, dismissResultToast,
+    submit, dismissResultToast
   }
 }

@@ -1303,54 +1303,6 @@ final class WalletService
     }
 
     /**
-     * Devuelve a la wallet el monto de un débito PENDING que se rechaza
-     * (retiro o débito genérico, cuyo saldo se descontó al solicitarse) y lo
-     * deja como movimiento propio WITHDRAWAL_REVERSAL. Antes el saldo volvía
-     * sin movimiento: el jugador no veía el reintegro en su historial y la
-     * conciliación de saldos lo marcaba como drift (balance distinto del
-     * último balance_after).
-     *
-     * pending_debt se cobra de cualquier crédito entrante, incluido este
-     * reintegro — ver recordRefund() para el porqué. Debe llamarse dentro de
-     * la transacción que bloqueó el movimiento.
-     */
-    private function creditRejectedDebit(WalletMovement $locked, string $description) : WalletMovement
-    {
-        $wallet = Wallet::lockForUpdate()->findOrFail($locked->wallet_id);
-        $balanceBefore = (float) $wallet->balance;
-
-        $netAmount = $this->settlePendingDebt($wallet, (float) $locked->amount);
-        if ($netAmount > 0) {
-            $this->walletRepository->incrementBalance((string) $wallet->id, $netAmount);
-        }
-        $wallet->refresh();
-        $locked->setRelation('wallet', $wallet);
-
-        $debtSettled = round((float) $locked->amount - $netAmount, 2);
-
-        return $this->movementRepository->record([
-            'wallet_id' => (string) $wallet->id,
-            'user_id' => (string) $wallet->user_id,
-            'type' => WalletMovement::TYPE_WITHDRAWAL_REVERSAL,
-            'status' => WalletMovement::STATUS_COMPLETED,
-            'amount' => (float) $locked->amount,
-            'balance_before' => $balanceBefore,
-            'balance_after' => (float) $wallet->balance,
-            'description' => $debtSettled > 0
-                ? "{$description} (se descontaron {$debtSettled} de deuda pendiente)"
-                : $description,
-            'reference_id' => (string) $locked->id,
-            'processed_by' => (string) Auth::id(),
-            'processed_at' => now(),
-            'metadata' => [
-                'reversed_movement_id' => (string) $locked->id,
-                'reversed_movement_type' => $locked->type,
-                'pending_debt_settled' => $debtSettled,
-            ],
-        ]);
-    }
-
-    /**
      * Registrar solicitud de depósito con comprobante (STATUS_PENDING, sin tocar el saldo).
      * Recibe la wallet ya resuelta y verificada desde el controller.
      */
@@ -1361,6 +1313,7 @@ final class WalletService
         ?string $receiptHash = null,
         ?string $reference = null,
         ?string $notes = null,
+        ?array $depositAccount = null,
     ) : Wallet {
         if ($wallet->isBlocked()) {
             throw WalletDomainException::walletBlocked();
@@ -1392,6 +1345,8 @@ final class WalletService
             'reference_id' => $reference,
             'receipt_path' => $receipt,
             'receipt_hash' => $receiptHash,
+            // Foto de la cuenta a la que pagó (sobrevive a ediciones del catálogo).
+            'metadata' => $depositAccount ? ['deposit_account' => $depositAccount] : null,
         ]);
 
         // Sin esto, checkDepositVelocity() sigue viendo el conteo cacheado
@@ -1877,6 +1832,54 @@ final class WalletService
     }
 
     /**
+     * Devuelve a la wallet el monto de un débito PENDING que se rechaza
+     * (retiro o débito genérico, cuyo saldo se descontó al solicitarse) y lo
+     * deja como movimiento propio WITHDRAWAL_REVERSAL. Antes el saldo volvía
+     * sin movimiento: el jugador no veía el reintegro en su historial y la
+     * conciliación de saldos lo marcaba como drift (balance distinto del
+     * último balance_after).
+     *
+     * pending_debt se cobra de cualquier crédito entrante, incluido este
+     * reintegro — ver recordRefund() para el porqué. Debe llamarse dentro de
+     * la transacción que bloqueó el movimiento.
+     */
+    private function creditRejectedDebit(WalletMovement $locked, string $description) : WalletMovement
+    {
+        $wallet = Wallet::lockForUpdate()->findOrFail($locked->wallet_id);
+        $balanceBefore = (float) $wallet->balance;
+
+        $netAmount = $this->settlePendingDebt($wallet, (float) $locked->amount);
+        if ($netAmount > 0) {
+            $this->walletRepository->incrementBalance((string) $wallet->id, $netAmount);
+        }
+        $wallet->refresh();
+        $locked->setRelation('wallet', $wallet);
+
+        $debtSettled = round((float) $locked->amount - $netAmount, 2);
+
+        return $this->movementRepository->record([
+            'wallet_id' => (string) $wallet->id,
+            'user_id' => (string) $wallet->user_id,
+            'type' => WalletMovement::TYPE_WITHDRAWAL_REVERSAL,
+            'status' => WalletMovement::STATUS_COMPLETED,
+            'amount' => (float) $locked->amount,
+            'balance_before' => $balanceBefore,
+            'balance_after' => (float) $wallet->balance,
+            'description' => $debtSettled > 0
+                ? "{$description} (se descontaron {$debtSettled} de deuda pendiente)"
+                : $description,
+            'reference_id' => (string) $locked->id,
+            'processed_by' => (string) Auth::id(),
+            'processed_at' => now(),
+            'metadata' => [
+                'reversed_movement_id' => (string) $locked->id,
+                'reversed_movement_type' => $locked->type,
+                'pending_debt_settled' => $debtSettled,
+            ],
+        ]);
+    }
+
+    /**
      * Obtiene una wallet del usuario autenticado por su ID (uso interno / admin).
      *
      * Siempre se llama dentro de un DB::transaction() (deposit/withdraw/recordCardPurchase)
@@ -1900,8 +1903,6 @@ final class WalletService
      * al dueño de la wallet. Se consulta bajo lock para evitar que se desactive
      * o reasigne mientras se registra la solicitud.
      */
-
-
     private function getBinanceDirectories(string $userId) : array
     {
         return BinanceAccount::where('user_id', $userId)
