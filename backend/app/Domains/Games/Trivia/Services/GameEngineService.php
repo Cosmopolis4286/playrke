@@ -335,7 +335,7 @@ class GameEngineService implements GameEngineInterface
         // el TriviaGame, resultando en dos partidas 'playing' para la misma
         // sala y, más grave, en PrizeDistributionService::distribute()
         // ejecutándose dos veces al finalizar cada una.
-        [$room, $game, $playerIds] = DB::connection('pgsql_trivia')->transaction(function() use ($roomId, $playerIds) {
+        [$room, $game, $playerIds, $insufficient] = DB::connection('pgsql_trivia')->transaction(function() use ($roomId, $playerIds) {
             $room = TriviaRoom::lockForUpdate()->findOrFail($roomId);
 
             if (! $room->canStart()) {
@@ -372,6 +372,17 @@ class GameEngineService implements GameEngineInterface
             // total_questions desde la configuración de la sala (banco global, sin room_id)
             $totalQuestions = max(1, (int) $room->question_count);
 
+            // Sin preguntas suficientes la partida terminaba vacía (o corta) y se
+            // quedaba con la entrada. Se deja la sala en 'cancelling' (se confirma
+            // aunque se lance la excepción: ver abajo) para que StartGameAction —o,
+            // si eso falla, trivia:cancel-stale-rooms— reembolse y la cierre.
+            $availableQuestions = TriviaQuestion::availableCount();
+            if ($availableQuestions < $totalQuestions) {
+                $room->update(['status' => 'cancelling']);
+
+                return [$room, null, $playerIds, [$availableQuestions, $totalQuestions]];
+            }
+
             // Crear juego en base de datos
             $game = TriviaGame::create([
                 'room_id' => $roomId,
@@ -387,8 +398,12 @@ class GameEngineService implements GameEngineInterface
             // otra request vea 'waiting' entre el commit del juego y este update.
             $room->update(['status' => 'playing', 'started_at' => now()]);
 
-            return [$room, $game, $playerIds];
+            return [$room, $game, $playerIds, null];
         });
+
+        if ($insufficient !== null) {
+            throw TriviaGameException::insufficientQuestions(...$insufficient);
+        }
 
         // Crear estado inicial en Redis
         $gameState = new GameStateDTO(

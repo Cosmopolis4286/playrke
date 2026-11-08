@@ -68,6 +68,15 @@ final class TriviaGameException extends DomainException
     }
 
     /**
+     * El banco no tiene preguntas activas suficientes para la sala: la sala
+     * pasa a 'cancelling' y se reembolsa la entrada (StartGameAction).
+     */
+    public static function insufficientQuestions(int $available, int $required) : self
+    {
+        return new self("No hay preguntas suficientes para iniciar la partida ({$available} de {$required}). La sala se cancela y se reembolsa la entrada.", 409);
+    }
+
+    /**
      * La opción enviada no forma parte de las opciones válidas de la
      * pregunta activa.
      */

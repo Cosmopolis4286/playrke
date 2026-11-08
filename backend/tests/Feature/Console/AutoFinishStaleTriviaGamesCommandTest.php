@@ -97,12 +97,16 @@ class AutoFinishStaleTriviaGamesCommandTest extends TestCase
             'question_count' => 3,
         ]);
 
-        TriviaQuestion::create([
-            'question_text' => 'Pregunta 1',
-            'options' => ['A', 'B', 'C', 'D'],
-            'correct_option_index' => 0,
-            'is_active' => true,
-        ]);
+        // Tantas preguntas activas como pide la sala: con menos, startGame()
+        // cancela la sala y reembolsa (T5).
+        foreach (range(1, 3) as $n) {
+            TriviaQuestion::create([
+                'question_text' => "Pregunta {$n}",
+                'options' => ['A', 'B', 'C', 'D'],
+                'correct_option_index' => 0,
+                'is_active' => true,
+            ]);
+        }
 
         $gameState = app(GameEngineService::class)->startGame((string) $room->id, ['player-1']);
 
