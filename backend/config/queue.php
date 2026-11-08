@@ -15,6 +15,14 @@ return [
     'default' => env('QUEUE_CONNECTION', 'database'),
 
     /*
+     * Conexión de StartBingoDrawJob. Por defecto la dedicada 'bingo-draw'
+     * (retry_after = duración máxima de un sorteo): con la conexión general
+     * (retry_after 90 s) el trabajo de un sorteo en curso volvía a quedar
+     * disponible a los 90 s y otro worker lo tomaba. En pruebas, 'sync'.
+     */
+    'bingo_draw_connection' => env('BINGO_DRAW_QUEUE_CONNECTION', 'bingo-draw'),
+
+    /*
     |--------------------------------------------------------------------------
     | Queue Connections
     |--------------------------------------------------------------------------
