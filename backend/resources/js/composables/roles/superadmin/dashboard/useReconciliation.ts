@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import axios from 'axios'
+import Swal from 'sweetalert2'
 import { showToast, showToastConfirmAction } from '@/js/helpers/form/ui/crudModalUI'
 
 export interface PendingReceivable {
@@ -15,6 +16,8 @@ export interface PendingReceivable {
   jackpot:        number
   prize_pool:     number
   oldest:         string
+  /** Última deuda incluida en el total: el cobro no salda ventas posteriores. */
+  up_to_id:       string
 }
 
 export interface ReconciliationAlert {
@@ -59,23 +62,39 @@ export function useReconciliation(onSettled?: () => void) {
   }
 
   async function settle(r: PendingReceivable) {
-    const ok = await showToastConfirmAction(
-      `¿Confirmás que ${r.debtor} ya pagó ${r.symbol} ${r.total.toFixed(2)} (${r.sales} venta(s): RKE ${r.rke.toFixed(2)} + bote ${r.prize_pool.toFixed(2)} + jackpot ${r.jackpot.toFixed(2)})? Se acreditará a la billetera de plataforma.`,
-      'warning',
-      'Marcar cobrado'
-    )
-    if (!ok) return
+    const total = `${r.symbol} ${r.total.toFixed(2)}`
+    const result = await Swal.fire({
+      title: `¿${r.debtor} ya pagó ${total}?`,
+      text: `${r.sales} venta(s): RKE ${r.rke.toFixed(2)} + bote ${r.prize_pool.toFixed(2)} + jackpot ${r.jackpot.toFixed(2)}. Se acreditará a la billetera de plataforma. Las ventas registradas después de abrir este panel quedan pendientes.`,
+      icon: 'warning',
+      input: 'text',
+      inputLabel: 'Referencia del pago (transferencia, pago móvil, recibo…)',
+      inputPlaceholder: 'Ej.: 00123456789',
+      inputAttributes: { maxlength: '120' },
+      inputValidator: (value) => (!value || !value.trim() ? 'La referencia del pago es obligatoria' : undefined),
+      showCancelButton: true,
+      confirmButtonText: 'Marcar cobrado',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true,
+      focusCancel: true
+    })
+    if (!result.isConfirmed || !result.value) return
     busyKey.value = `${r.debtor_user_id}:${r.currency_id}`
     try {
       const { data } = await axios.post('/superadmin/reconciliation/receivables/settle', {
         debtor_user_id: r.debtor_user_id,
-        currency_id:    r.currency_id,
+        currency_id: r.currency_id,
+        up_to_id: r.up_to_id,
+        expected_amount: r.total,
+        reference: String(result.value).trim()
       })
       showToast(data.message ?? 'Cobro registrado.', 'success')
       await load()
       onSettled?.()
     } catch (e: any) {
       showToast(e?.response?.data?.message ?? 'No se pudo registrar el cobro.', 'error')
+      // 409: el total cambió → recargar para mostrar el monto vigente.
+      if (e?.response?.status === 409) await load()
     } finally {
       busyKey.value = null
     }
