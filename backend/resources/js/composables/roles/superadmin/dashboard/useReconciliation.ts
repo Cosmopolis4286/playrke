@@ -76,17 +76,17 @@ export function useReconciliation(onSettled?: () => void) {
       confirmButtonText: 'Marcar cobrado',
       cancelButtonText: 'Cancelar',
       reverseButtons: true,
-      focusCancel: true,
+      focusCancel: true
     })
     if (!result.isConfirmed || !result.value) return
     busyKey.value = `${r.debtor_user_id}:${r.currency_id}`
     try {
       const { data } = await axios.post('/superadmin/reconciliation/receivables/settle', {
-        debtor_user_id:  r.debtor_user_id,
-        currency_id:     r.currency_id,
-        up_to_id:        r.up_to_id,
+        debtor_user_id: r.debtor_user_id,
+        currency_id: r.currency_id,
+        up_to_id: r.up_to_id,
         expected_amount: r.total,
-        reference:       String(result.value).trim(),
+        reference: String(result.value).trim()
       })
       showToast(data.message ?? 'Cobro registrado.', 'success')
       await load()
