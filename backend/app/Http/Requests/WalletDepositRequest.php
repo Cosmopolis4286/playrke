@@ -33,6 +33,8 @@ class WalletDepositRequest extends FormRequest
             'receipt' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
             'reference' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:500'],
+            // Cuenta de la plataforma a la que pagó (obligatoria si la moneda tiene cuentas activas, ver WalletController::deposit).
+            'deposit_account_id' => ['nullable', 'string'],
         ];
     }
 }
