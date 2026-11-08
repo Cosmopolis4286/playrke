@@ -323,6 +323,35 @@ class WalletServiceTest extends TestCase
         $this->assertSame(9.0, (float) $movement->metadata['balance_amount']);
     }
 
+    public function test_reject_withdrawal_records_the_refund_as_its_own_movement() : void
+    {
+        $wallet = $this->makeWallet(balance: 40.0);
+
+        $movement = WalletMovement::create([
+            'wallet_id' => $wallet->id,
+            'user_id' => $wallet->user_id,
+            'type' => WalletMovement::TYPE_WITHDRAWAL,
+            'status' => WalletMovement::STATUS_PENDING,
+            'amount' => 25.0,
+            'balance_before' => 65.0,
+            'balance_after' => 40.0,
+        ]);
+
+        $this->service->rejectWithdrawal($movement, null, 'Cuenta destino inválida');
+
+        $reversal = WalletMovement::where('wallet_id', $wallet->id)
+            ->where('type', WalletMovement::TYPE_WITHDRAWAL_REVERSAL)
+            ->sole();
+        $this->assertSame(WalletMovement::STATUS_COMPLETED, $reversal->status);
+        $this->assertSame(25.0, (float) $reversal->amount);
+        $this->assertSame(40.0, (float) $reversal->balance_before);
+        $this->assertSame(65.0, (float) $reversal->balance_after);
+        $this->assertSame((string) $movement->id, (string) $reversal->reference_id);
+
+        // El ledger vuelve a cuadrar con el saldo: sin drift falso.
+        $this->assertCount(0, app(\App\Domains\Wallet\Services\WalletBalanceReconciliationService::class)->findDrifted());
+    }
+
     public function test_reject_withdrawal_refunds_balance_and_marks_rejected() : void
     {
         $wallet = $this->makeWallet(balance: 40.0);
@@ -341,6 +370,30 @@ class WalletServiceTest extends TestCase
 
         $this->assertSame(65.0, (float) $wallet->fresh()->balance);
         $this->assertSame(WalletMovement::STATUS_REJECTED, $movement->fresh()->status);
+    }
+
+    public function test_reject_withdrawal_settles_pending_debt_and_reports_it_in_the_reversal() : void
+    {
+        $wallet = $this->makeWallet(balance: 40.0);
+        $wallet->update(['pending_debt' => 10.0]);
+
+        $movement = WalletMovement::create([
+            'wallet_id' => $wallet->id,
+            'user_id' => $wallet->user_id,
+            'type' => WalletMovement::TYPE_WITHDRAWAL,
+            'status' => WalletMovement::STATUS_PENDING,
+            'amount' => 25.0,
+            'balance_before' => 65.0,
+            'balance_after' => 40.0,
+        ]);
+
+        $this->service->rejectWithdrawal($movement);
+
+        $this->assertSame(55.0, (float) $wallet->fresh()->balance);
+        $this->assertSame(0.0, (float) $wallet->fresh()->pending_debt);
+        $reversal = WalletMovement::where('type', WalletMovement::TYPE_WITHDRAWAL_REVERSAL)->sole();
+        $this->assertSame(55.0, (float) $reversal->balance_after);
+        $this->assertSame(10.0, (float) $reversal->metadata['pending_debt_settled']);
     }
 
     public function test_reject_withdrawal_twice_throws_and_does_not_double_refund() : void

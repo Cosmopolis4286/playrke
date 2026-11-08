@@ -1,4 +1,5 @@
 import { ref, computed, type Ref } from 'vue'
+import Swal from 'sweetalert2'
 import backendClient from '@js/plugins/axios'
 import { showToast } from '@js/utils/toast'
 import { showToastConfirmAction } from '@js/utils/toastNotify'
@@ -90,19 +91,43 @@ export function useWalletMovementDetail(
   async function handleApprove() {
     if (!detail.value || actionLoading.value) return
 
-    const confirmed = await showToastConfirmAction({
-      title: 'Aprobar movimiento',
-      text: `Vas a aprobar: ${typeLabel.value}. Esta acción mueve saldo real y no se puede deshacer.`,
-      icon: 'warning',
-      confirmButtonText: 'Sí, aprobar'
-    })
-    if (!confirmed) return
+    // Un retiro se aprueba cuando ya se pagó: se pide la referencia del pago
+    // (WalletMovementController la exige). El resto, confirmación simple.
+    let payoutReference: string | null = null
+    if (detail.value.type === 'WITHDRAWAL') {
+      const result = await Swal.fire({
+        title: 'Aprobar retiro',
+        text: 'Aprobalo solo después de enviar el pago al destino del jugador. Esta acción no se puede deshacer.',
+        icon: 'warning',
+        input: 'text',
+        inputLabel: 'Referencia del pago enviado (transferencia, pago móvil…)',
+        inputPlaceholder: 'Ej.: 00123456789',
+        inputAttributes: { maxlength: '120' },
+        inputValidator: (value) => (!value || value.trim().length < 3 ? 'La referencia del pago es obligatoria (mínimo 3 caracteres)' : undefined),
+        showCancelButton: true,
+        confirmButtonText: 'Sí, aprobar',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true,
+        focusCancel: true,
+      })
+      if (!result.isConfirmed || !result.value) return
+      payoutReference = String(result.value).trim()
+    } else {
+      const confirmed = await showToastConfirmAction({
+        title: 'Aprobar movimiento',
+        text: `Vas a aprobar: ${typeLabel.value}. Esta acción mueve saldo real y no se puede deshacer.`,
+        icon: 'warning',
+        confirmButtonText: 'Sí, aprobar'
+      })
+      if (!confirmed) return
+    }
 
     actionError.value   = ''
     actionLoading.value = true
     try {
       const { data } = await backendClient.post(`/wallet-movements/${detail.value.id}/approve`, {
-        admin_notes: adminNotes.value.trim() || null
+        admin_notes: adminNotes.value.trim() || null,
+        ...(payoutReference ? { payout_reference: payoutReference } : {}),
       })
       onUpdated(data.data)
       adminNotes.value = ''

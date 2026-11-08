@@ -49,6 +49,7 @@ final class WalletMovementController extends Controller
      * así que un rechazo sin motivo le llega sin ninguna explicación.
      */
     private const PLAYER_MESSAGE_RULES = ['required', 'string', 'min:5', 'max:512'];
+    private const PAYOUT_REFERENCE_RULES = ['required', 'string', 'min:3', 'max:120'];
 
     public function __construct(
         private readonly WalletService $walletService,
@@ -69,7 +70,14 @@ final class WalletMovementController extends Controller
     {
         $this->authorize('approve', $movement);
 
-        $request->validate(['admin_notes' => self::APPROVE_NOTES_RULES]);
+        $request->validate([
+            'admin_notes' => self::APPROVE_NOTES_RULES,
+            // Un retiro se aprueba cuando ya se pagó: queda la referencia de la
+            // transferencia/pago móvil para poder rastrearlo después.
+            'payout_reference' => $movement->type === WalletMovement::TYPE_WITHDRAWAL
+                ? self::PAYOUT_REFERENCE_RULES
+                : ['prohibited'],
+        ]);
 
         return $this->handleServiceJson(function() use ($request, $movement) {
             $adminNotes = $request->input('admin_notes');
@@ -78,7 +86,7 @@ final class WalletMovementController extends Controller
 
             $updated = match ($movement->type) {
                 WalletMovement::TYPE_DEPOSIT => $this->walletService->approveDeposit($movement, $adminNotes),
-                WalletMovement::TYPE_WITHDRAWAL => $this->walletService->approveWithdrawal($movement, $adminNotes),
+                WalletMovement::TYPE_WITHDRAWAL => $this->walletService->approveWithdrawal($movement, $adminNotes, trim((string) $request->input('payout_reference'))),
                 default => $this->walletService->approveGeneric($movement, $adminNotes),
             };
 
@@ -699,7 +707,8 @@ final class WalletMovementController extends Controller
                 if ($action === 'approve') {
                     match ($movement->type) {
                         WalletMovement::TYPE_DEPOSIT => $this->walletService->approveDeposit($movement, $adminNotes),
-                        WalletMovement::TYPE_WITHDRAWAL => $this->walletService->approveWithdrawal($movement, $adminNotes),
+                        // Cada retiro lleva la referencia de su propio pago: no se aprueba en lote.
+                        WalletMovement::TYPE_WITHDRAWAL => throw new \DomainException('Un retiro se aprueba individualmente, con la referencia del pago.'),
                         default => $this->walletService->approveGeneric($movement, $adminNotes),
                     };
                 } else {

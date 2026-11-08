@@ -70,6 +70,8 @@ class WalletMovement extends Model
     public const TYPE_RKE_COMMISSION_REVERSAL = 'RKE_COMMISSION_REVERSAL';
     public const TYPE_TRIVIA_ENTRY = 'TRIVIA_ENTRY';
     public const TYPE_WITHDRAWAL = 'WITHDRAWAL';
+    /** Reintegro del saldo de un retiro (o débito) rechazado: el saldo vuelve como movimiento propio. */
+    public const TYPE_WITHDRAWAL_REVERSAL = 'WITHDRAWAL_REVERSAL';
 
     /** @deprecated Usar MovementType::catalog() — se mantiene mientras el frontend termina de migrar. */
     public const TYPES = [
