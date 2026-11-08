@@ -8,6 +8,7 @@ use App\Domains\Wallet\Models\WalletMovement;
 use App\Models\MovementType;
 use App\Models\User;
 use App\Policies\Roles\BaseRolePolicy;
+use Illuminate\Auth\Access\Response;
 
 /**
  * Policy de autorización para movimientos de billetera.
@@ -18,11 +19,22 @@ use App\Policies\Roles\BaseRolePolicy;
  */
 class WalletMovementPolicy extends BaseRolePolicy
 {
-    public function approve(User $user, WalletMovement $movement) : bool
+    public function approve(User $user, WalletMovement $movement) : bool|Response
     {
-        return $this->hasAccess($user)
+        if (! ($this->hasAccess($user)
             && $movement->status === WalletMovement::STATUS_PENDING
-            && (bool) (MovementType::catalog()->get($movement->type)?->requires_approval ?? false);
+            && (bool) (MovementType::catalog()->get($movement->type)?->requires_approval ?? false))) {
+            return false;
+        }
+
+        // Separación de funciones: nadie aprueba movimientos de su propia
+        // billetera (acreditarse un depósito o liberar su propio retiro),
+        // tampoco superadmin. Rechazar sí se permite: no mueve dinero a su favor.
+        if ((string) $movement->user_id === (string) $user->id) {
+            return Response::deny('No puedes aprobar movimientos de tu propia billetera: debe hacerlo otro administrador.');
+        }
+
+        return true;
     }
 
     /**
