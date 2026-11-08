@@ -25,6 +25,27 @@ class TriviaRoomRefundService
     }
 
     /**
+     * Reembolsa a los participantes de una sala en 'cancelling' y la cierra
+     * como 'cancelled'. Si un reembolso falla, la sala queda en 'cancelling' y
+     * trivia:cancel-stale-rooms la reintenta (los reembolsos son idempotentes).
+     *
+     * @return int cantidad de reembolsos nuevos aplicados
+     */
+    public function cancelWithRefund(TriviaRoom $room, string $reasonMessage) : int
+    {
+        $refunded = $this->refundConfirmedParticipants($room, $reasonMessage);
+
+        DB::connection('pgsql_trivia')->transaction(function() use ($room) {
+            $locked = TriviaRoom::lockForUpdate()->find($room->id);
+            if ($locked && $locked->status === 'cancelling') {
+                $locked->update(['status' => 'cancelled', 'ended_at' => now()]);
+            }
+        });
+
+        return $refunded;
+    }
+
+    /**
      * @return int cantidad de reembolsos nuevos aplicados
      */
     public function refundConfirmedParticipants(TriviaRoom $room, string $reasonMessage) : int

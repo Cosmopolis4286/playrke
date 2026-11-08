@@ -59,6 +59,16 @@ class TriviaQuestion extends BaseModel
     protected $table = 'trivia_questions';
 
     /**
+     * Preguntas activas del banco. GameEngineService::sendNextQuestion() usa
+     * primero las de la categoría de la sala y, si se agotan, cualquier otra:
+     * el total activo es lo que limita una partida.
+     */
+    public static function availableCount() : int
+    {
+        return self::query()->where('is_active', true)->count();
+    }
+
+    /**
      * Obtener la opción correcta como texto.
      */
     public function correctOptionText() : ?string

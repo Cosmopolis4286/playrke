@@ -6,6 +6,8 @@ namespace App\Http\Controllers\Games\Trivia\Room;
 
 use App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface;
 use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
+use App\Domains\Games\Trivia\Exceptions\Room\TriviaRoomException;
+use App\Domains\Games\Trivia\Models\TriviaQuestion;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Games\Trivia\Services\TriviaRoomRefundService;
 use App\Http\Controllers\Controller;
@@ -311,6 +313,12 @@ final class TriviaRoomAdminController extends Controller
             $validated['entry_fee'] = array_values($feeByCurrency)[0];
         }
 
+        // Una sala que pide más preguntas de las activas terminaría cancelada al
+        // iniciar (GameEngineService::startGame()): se rechaza al crearla.
+        if ($error = $this->insufficientQuestionsError((int) $validated['question_count'])) {
+            return redirect()->back()->withErrors(['question_count' => $error])->withInput();
+        }
+
         try {
             $roomDto = $this->roomService->createRoom([
                 'host_id' => (string) auth()->id(),
@@ -376,6 +384,10 @@ final class TriviaRoomAdminController extends Controller
         } elseif (empty($feeByCurrency)) {
             $validated['entry_currency_id'] = null;
             $validated['entry_fee'] = 0;
+        }
+
+        if (isset($validated['question_count']) && ($error = $this->insufficientQuestionsError((int) $validated['question_count']))) {
+            return redirect()->back()->withErrors(['question_count' => $error])->withInput();
         }
 
         try {
@@ -466,6 +478,15 @@ final class TriviaRoomAdminController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    private function insufficientQuestionsError(int $questionCount) : ?string
+    {
+        $available = TriviaQuestion::availableCount();
+
+        return $available < $questionCount
+            ? TriviaRoomException::insufficientQuestions($available, $questionCount)->getMessage()
+            : null;
     }
 
     /**

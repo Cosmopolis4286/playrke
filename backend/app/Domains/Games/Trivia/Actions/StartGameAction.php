@@ -7,9 +7,13 @@ namespace App\Domains\Games\Trivia\Actions;
 use App\Domains\Games\Trivia\Contracts\GameEngineInterface;
 use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
 use App\Domains\Games\Trivia\DTOs\GameStateDTO;
+use App\Domains\Games\Trivia\Exceptions\Game\TriviaGameException;
 use App\Domains\Games\Trivia\Exceptions\Room\TriviaRoomException;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
+use App\Domains\Games\Trivia\Services\TriviaRoomRefundService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Action: Iniciar Juego.
@@ -23,6 +27,7 @@ class StartGameAction
     public function __construct(
         private readonly GameEngineInterface $gameEngine,
         private readonly RoomServiceInterface $roomService,
+        private readonly TriviaRoomRefundService $refundService,
     ) {
     }
 
@@ -64,7 +69,29 @@ class StartGameAction
         }
 
         // ── 4. Iniciar juego y enviar primera pregunta ────────────────────────
-        $gameState = $this->gameEngine->startGame($roomId, $playerIds);
+        try {
+            $gameState = $this->gameEngine->startGame($roomId, $playerIds);
+        } catch (TriviaGameException $e) {
+            // Sin preguntas suficientes, startGame() deja la sala en
+            // 'cancelling': se reembolsa la entrada ya, con el motivo real.
+            $room->refresh();
+            if ($room->status === 'cancelling') {
+                try {
+                    $this->refundService->cancelWithRefund(
+                        $room,
+                        "La sala '{$room->title}' ({$room->code}) se canceló porque no había preguntas suficientes para jugar. Se te reembolsó tu entrada.",
+                    );
+                } catch (Throwable $refundError) {
+                    // Queda en 'cancelling': trivia:cancel-stale-rooms reintenta.
+                    Log::error('[StartGameAction] No se pudo completar el reembolso por falta de preguntas', [
+                        'room_id' => $roomId,
+                        'error' => $refundError->getMessage(),
+                    ]);
+                }
+            }
+
+            throw $e;
+        }
         $this->gameEngine->sendNextQuestion($gameState->gameId);
 
         return $gameState;

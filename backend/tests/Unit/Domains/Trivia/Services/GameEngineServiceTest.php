@@ -117,6 +117,23 @@ class GameEngineServiceTest extends TestCase
         $this->assertTrue($this->service->isGameActive($gameState->gameId));
     }
 
+    public function test_start_without_enough_questions_leaves_room_cancelling_without_a_game() : void
+    {
+        $room = $this->createRoomWithQuestions();
+        // La sala pide 3; queda 1 activa.
+        TriviaQuestion::query()->orderBy('id')->limit(2)->update(['is_active' => false]);
+
+        try {
+            $this->service->startGame((string) $room->id, ['player-1']);
+            $this->fail('Debió rechazar el inicio por falta de preguntas');
+        } catch (\App\Domains\Games\Trivia\Exceptions\Game\TriviaGameException $e) {
+            $this->assertStringContainsString('1 de 3', $e->getMessage());
+        }
+
+        $this->assertSame('cancelling', $room->fresh()->status);
+        $this->assertSame(0, \App\Domains\Games\Trivia\Models\TriviaGame::where('room_id', $room->id)->count());
+    }
+
     public function test_wrong_answer_gets_zero_points() : void
     {
         $room = $this->createRoomWithQuestions();

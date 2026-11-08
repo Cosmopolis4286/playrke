@@ -29,6 +29,14 @@ final class TriviaRoomException extends DomainException
     }
 
     /**
+     * Al crear una sala: pide más preguntas de las que hay activas en el banco.
+     */
+    public static function insufficientQuestions(int $available, int $required) : self
+    {
+        return new self("El banco tiene {$available} pregunta(s) activa(s) y la sala pide {$required}. Agrega preguntas o baja la cantidad.", 422);
+    }
+
+    /**
      * El nickname no cumple la longitud mínima/máxima requerida.
      */
     public static function invalidNickname() : self
