@@ -446,14 +446,15 @@ final class TriviaGameController extends Controller
     }
 
     /**
-     * Estado de sala en JSON para polling desde WaitingRoom.
+     * Estado de sala en JSON para polling desde WaitingRoom: respaldo cuando
+     * el evento en tiempo real de inicio no llega (conexión caída, llegó
+     * tarde). Incluye el juego en curso para redirigir al participante y los
+     * estados terminales para avisarle si la sala se canceló.
      * Ruta: GET /trivia/room/{code}/state
      */
     public function roomState(string $code) : \Illuminate\Http\JsonResponse
     {
-        $room = \App\Domains\Games\Trivia\Models\TriviaRoom::where('code', $code)
-            ->whereIn('status', ['waiting', 'playing', 'closed'])
-            ->firstOrFail();
+        $room = \App\Domains\Games\Trivia\Models\TriviaRoom::where('code', $code)->firstOrFail();
 
         // Participantes desde trivia_participants + nombre desde MySQL users
         $participants = DB::connection('pgsql_trivia')
@@ -461,7 +462,7 @@ final class TriviaGameController extends Controller
             ->where('room_id', $room->id)
             ->whereNull('deleted_at')
             ->whereNotIn('status', ['abandoned'])
-            ->select('user_id', 'status')
+            ->select('user_id', 'status', 'registered_at')
             ->get();
 
         $userIds = $participants->pluck('user_id')->all();
@@ -482,8 +483,13 @@ final class TriviaGameController extends Controller
             ];
         })->values()->all();
 
+        $isParticipant = in_array((string) Auth::id(), array_map('strval', $userIds), true);
+
         return response()->json([
             'status' => $room->status,
+            'scheduledAt' => $room->scheduled_at?->toISOString(),
+            // Solo a quien está inscrito: es quien debe entrar a la partida.
+            'gameId' => $isParticipant ? $this->activeGameId((string) $room->id) : null,
             'players' => $players,
         ]);
     }
@@ -492,7 +498,7 @@ final class TriviaGameController extends Controller
      * Sala de espera de una sala específica (WaitingRoom).
      * Ruta: GET /trivia/room/{code}/lobby
      */
-    public function waitingRoom(string $code) : Response
+    public function waitingRoom(string $code) : Response|\Illuminate\Http\RedirectResponse
     {
         $roomService = app(RoomService::class);
         $user = Auth::user();
@@ -536,6 +542,11 @@ final class TriviaGameController extends Controller
         // ── Detectar si el usuario ya está inscrito ───────────────────────────
         $alreadyJoined = collect($initialPlayers)
             ->contains('id', (string) $user->id);
+
+        // Llegó tarde (o recargó) con la partida ya empezada: directo al juego.
+        if ($alreadyJoined && $room->status === 'playing' && ($gameId = $this->activeGameId($roomId))) {
+            return redirect('/trivia/play/' . $gameId);
+        }
 
         // ── Resolver monedas de entrada y wallets del usuario ────────────────
         // fee_by_currency = { currency_id => amount, ... } (multidivisa)
@@ -693,6 +704,7 @@ final class TriviaGameController extends Controller
                 'prizeAmount' => $room->prize_amount ? (float) $room->prize_amount : null,
                 'prizeCurrencyId' => $room->prize_currency_id,
                 'prizeType' => $room->prize_type,
+                'scheduledAt' => $room->scheduled_at?->toISOString(),
                 'createdAt' => $room->created_at->toISOString(),
                 'updatedAt' => $room->updated_at->toISOString(),
             ],
@@ -703,5 +715,16 @@ final class TriviaGameController extends Controller
             'currentUserId' => (string) $user->id,
             'userWallet' => $userWallet,
         ]);
+    }
+
+    /** Partida en curso de la sala, si la hay. */
+    private function activeGameId(string $roomId) : ?string
+    {
+        $gameId = \App\Domains\Games\Trivia\Models\TriviaGame::where('room_id', $roomId)
+            ->whereIn('status', ['playing', 'paused'])
+            ->latest('started_at')
+            ->value('id');
+
+        return $gameId !== null ? (string) $gameId : null;
     }
 }
