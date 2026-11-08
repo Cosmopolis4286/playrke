@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Games\Bingo\Payment;
 use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Domains\Games\Bingo\Services\Payment\BingoCardPaymentReviewService;
+use App\Domains\Games\Bingo\Services\Winner\BingoPrizeReviewService;
 use App\Http\Controllers\Controller;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Seller;
@@ -167,10 +168,29 @@ final class BingoCardPaymentReviewController extends Controller
             ])
             ->values();
 
+        // Premios que el pago automático no resuelve solo: solo admin (las
+        // acciones van por bingo/prize-review, con games.manage).
+        $prizeReviews = $allowed === null && Auth::user()?->checkPermissionTo('games.manage')
+            ? app(BingoPrizeReviewService::class)->pending()->map(fn (array $item) => [
+                'id' => (string) $item['prize']->id,
+                'room_uuid_code' => $item['prize']->room?->uuid_code,
+                'winner' => $item['prize']->externalPlayer
+                    ? trim($item['prize']->externalPlayer->first_name . ' ' . $item['prize']->externalPlayer->last_name) . ' (externo)'
+                    : (trim(($item['prize']->creatorUser?->first_name ?? '') . ' ' . ($item['prize']->creatorUser?->last_name ?? '')) ?: ($item['prize']->creatorUser?->username ?? '—')),
+                'amount_label' => $network->formatAmount((string) $item['prize']->currency_id, (float) $item['prize']->local_amount),
+                'prize_status' => $item['prize']->prize_status,
+                'reason' => $item['reason'],
+                'attempts' => $item['attempts'],
+                'last_error' => $item['last_error'],
+                'created_at' => $item['prize']->created_at?->toIso8601String(),
+            ])->values()
+            : collect();
+
         return Inertia::render('Roles/Admin/BingoCardPayments/Index', [
             'title' => 'Pagos de Bingo pendientes de revisión',
             'payments' => $payments,
             'refundFailures' => $refundFailures,
+            'prizeReviews' => $prizeReviews,
             // Regla editable solo por la comercializadora (la suya); admin ve la de cada fila.
             'policy' => $this->ownCommerce()?->pending_payment_policy,
             'summary' => [

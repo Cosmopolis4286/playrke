@@ -29,6 +29,7 @@ class BingoRoomResource extends JsonResource
         BingoRoomAuditLogger::EVENT_PRIZE_PAYMENT_COMPLETED => 'Premio pagado',
         BingoRoomAuditLogger::EVENT_PRIZE_PAYMENT_FAILED => 'Pago de premio fallido',
         BingoRoomAuditLogger::EVENT_PRIZE_PAYMENT_SUSPENDED => 'Pago de premio suspendido',
+        BingoRoomAuditLogger::EVENT_PRIZE_CANCELLED => 'Premio anulado',
     ];
 
     private const TIMELINE_LIMIT = 30;

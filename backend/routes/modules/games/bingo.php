@@ -292,6 +292,16 @@ route_group('bingo/card-payments', 'bingo-card-payments.', ['auth', 'multiPermis
     'reject' => ['method' => 'post', 'uri' => '{payment}/reject',  'action' => 'reject'],
 ]);
 
+/*
+ * Premios en revisión (suspendidos o con reintentos agotados): solo admin
+ * (games.manage). La cola se muestra en la página de bingo/card-payments.
+ */
+route_group('bingo/prize-review', 'bingo-prize-review.', ['auth', 'multiPermission:games.manage'], \App\Http\Controllers\Games\Bingo\Payment\BingoPrizeReviewController::class, [
+    'retry' => ['method' => 'post', 'uri' => '{prize}/retry',   'action' => 'retry'],
+    'deliver' => ['method' => 'post', 'uri' => '{prize}/deliver', 'action' => 'deliver'],
+    'cancel' => ['method' => 'post', 'uri' => '{prize}/cancel',  'action' => 'cancel'],
+]);
+
 // 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
 // 'encrypted-info'     => ['method' => 'get', 'uri' => 'info-encrypted/{id}/{creatorUser}/{currency}'],
 // 'public-room-info'   => ['method' => 'get', 'uri' => 'public-room-info'],

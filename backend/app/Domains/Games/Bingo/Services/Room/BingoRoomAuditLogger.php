@@ -24,6 +24,7 @@ final class BingoRoomAuditLogger
     public const EVENT_MANUALLY_ACTIVATED = 'manually_activated';
 
     // --- Prize payout events ---
+    public const EVENT_PRIZE_CANCELLED = 'prize_cancelled';
     public const EVENT_PRIZE_CREATED = 'prize_created';
     public const EVENT_PRIZE_PAYMENT_COMPLETED = 'prize_payment_completed';
     public const EVENT_PRIZE_PAYMENT_FAILED = 'prize_payment_failed';
