@@ -1550,7 +1550,7 @@ final class BingoDrawService
             // Los clientes deben tratar GameStarted como idempotente por draw_id.
             $firstDraw = $alreadyDrawn->first();
             broadcast(new BingoGameStarted((int) $roomId, (int) $firstDraw->id));
-            broadcast(new BingoNumberCalled((int) $lastDraw->chip, $roomId));
+            broadcast(new BingoNumberCalled((int) $lastDraw->chip, $roomId, count($drawnChips)));
 
             // Verificar si ya hay ganadores antes de llamar detectWinnerAndEnd en resume,
             // para evitar re-declarar un ganador ya procesado y re-emitir BingoWinnerDeclared.
@@ -1590,7 +1590,7 @@ final class BingoDrawService
 
             try {
                 broadcast(new BingoGameStarted((int) $roomId, (int) $firstDraw->id));
-                broadcast(new BingoNumberCalled((int) $sequence[0], $roomId));
+                broadcast(new BingoNumberCalled((int) $sequence[0], $roomId, 1));
             } catch (Throwable $e) {
                 Log::error('[BingoDrawService] Falló la emisión inicial — se detiene para reintentar desde la ficha persistida', [
                     'room_id' => $roomId,
@@ -1632,7 +1632,7 @@ final class BingoDrawService
             $draw = $this->createDrawRecord($roomId, $roundId, $chip, $i * max($interval, 1), $variant, [...$drawnSoFar, $chip]);
 
             try {
-                broadcast(new BingoNumberCalled((int) $chip, $roomId));
+                broadcast(new BingoNumberCalled((int) $chip, $roomId, $i + 1));
             } catch (Throwable $e) {
                 Log::error('[BingoDrawService] Falló la emisión de una ficha — se detiene para reintentar desde la ficha persistida', [
                     'room_id' => $roomId,

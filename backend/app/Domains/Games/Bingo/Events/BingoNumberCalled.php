@@ -13,6 +13,12 @@ class BingoNumberCalled implements ShouldBroadcastNow
     public function __construct(
         public readonly int $number,
         public readonly int $roomId,
+        /**
+         * Posición de la ficha en la ronda (1 = primera). Con ella el cliente
+         * detecta si se perdió una ficha sin haberse desconectado y se
+         * resincroniza por HTTP (draw-state).
+         */
+        public readonly ?int $index = null,
     ) {
     }
 
@@ -28,6 +34,8 @@ class BingoNumberCalled implements ShouldBroadcastNow
 
     public function broadcastWith() : array
     {
-        return ['number' => $this->number];
+        return $this->index === null
+            ? ['number' => $this->number]
+            : ['number' => $this->number, 'index' => $this->index];
     }
 }

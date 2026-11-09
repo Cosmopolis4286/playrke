@@ -33,7 +33,7 @@ const toast = useToast()
 
 useAntiDebug()
 
-// eslint-disable-next-line no-undef
+
 const _reload = () => window.location.reload()
 
 const { muted, toggleMute, playNext, playWinner, playTick, preload } = useBingoSound()
@@ -80,25 +80,25 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  userId:       null,
-  cartons:      () => [],
+  userId: null,
+  cartons: () => [],
   customerLogo: null,
-  currencySym:  '$',
-  prizePool:    0,
+  currencySym: '$',
+  prizePool: 0,
   exchangeRate: 1,
   totalPlayers: 0,
-  prizePoolType:'PREMIO',
-  round:        1,
+  prizePoolType: 'PREMIO',
+  round: 1,
   bingoPattern: '',
-  draw:         () => [],
-  startTime:    0,
-  isLocal:      false,
-  roomId:       '',
+  draw: () => [],
+  startTime: 0,
+  isLocal: false,
+  roomId: '',
   roomRouteKey: '',
-  gameVariant:  'BINGO_75',
-  roomFinished:  false,
-  hotThreshold:  10,
-  externalPlayer: null,
+  gameVariant: 'BINGO_75',
+  roomFinished: false,
+  hotThreshold: 10,
+  externalPlayer: null
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -163,7 +163,7 @@ const { flash, scheduleRetry, clearAll: clearAllTimers } = useTimerRegistry()
 const {
   liveDrawn, liveCartons, livePrize, livePlayers, playersProgress, currentUnixDate,
   roomFinishedLocal, gameEndData, isMyWin, showWinnerModal, isFinished,
-  bindEchoHelpers, handleGameEnded, refreshUserCards, resyncDrawState, closeWinnerModal: _closeWinnerModal,
+  bindEchoHelpers, handleGameEnded, refreshUserCards, resyncDrawState, closeWinnerModal: _closeWinnerModal
 } = useGameEndFlow({
   apiBase,
   userId: props.userId,
@@ -178,7 +178,7 @@ const {
   userClosedModal,
   resetModal,
   scheduleRetry,
-  isUnmounted: () => _unmounted,
+  isUnmounted: () => _unmounted
 })
 
 function closeWinnerModal() {
@@ -244,8 +244,8 @@ const activeCardHitNumbers = computed<number[]>(() => {
 // múltiples salas). Aquí solo hay una sala, así que se adapta con un objeto
 // "sala" mínimo que satisface esa forma.
 const countdownRoomShim = computed(() => ({
-  id:     roomId.value || '0',
-  config: { unix_date: currentUnixDate.value },
+  id: roomId.value || '0',
+  config: { unix_date: currentUnixDate.value }
 }))
 
 const { init: initCountdown, getCountdown, stop: stopCountdown, syncTime, updateRoomTime } =
@@ -293,7 +293,7 @@ const { handleBingoDetected, claimingBingo } = useBingoDetection({
   },
   onBingoError: () => {
     toast.warning('No se pudo conectar con el servidor. Tu BINGO puede haberse registrado de todas formas — espera el resultado.', { timeout: 5000 })
-  },
+  }
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -316,25 +316,30 @@ const { subscribe, unsubscribe, resetCalledNumbers, markNumbersAsSeen, isReconne
     if (e.prize_pool    !== undefined) { livePrize.value   = e.prize_pool;    flash(prizeFlash) }
     if (e.total_players !== undefined) { livePlayers.value = e.total_players; flash(playersFlash) }
   },
-  onPlayerJoined:    (e) => { livePlayers.value = e.current_players; flash(playersFlash) },
-  onNumberCalled:    (e) => {
+  onPlayerJoined: (e) => { livePlayers.value = e.current_players; flash(playersFlash) },
+  onNumberCalled: (e) => {
     // Reasignar (no .push() in-place): Cartons.vue observa esta prop con
     // watch(() => props.drawnNumbers, ...) sin deep — con push()+triggerRef()
     // el array sigue siendo la misma referencia entre renders, así que ese
     // watcher (comparación por referencia) nunca se dispara de nuevo tras el
     // primer número, y la detección de BINGO/hits/racha se congela en vivo.
+    // Ficha con posición mayor a la siguiente esperada: se perdió al menos
+    // una sin que el socket se desconectara. Resincronizar por HTTP en vez de
+    // seguir con un tablero incompleto (que además marca mal los cartones).
+    const missedSome = typeof e.index === 'number' && e.index > liveDrawn.value.length + 1
     liveDrawn.value = [...liveDrawn.value, e.number]
     flash(ballFlash, 600) // alineado con la duración de hero-enter (550ms) en DrawnBoard
+    if (missedSome) resyncDrawState()
   },
   onPlayersProgress: (e) => { if (Array.isArray(e.players)) playersProgress.value = e.players },
-  onGameStarted:     ()  => { gameStarted.value = true },
-  onWinnerDeclared:  ()  => {
+  onGameStarted: ()  => { gameStarted.value = true },
+  onWinnerDeclared: ()  => {
     // El evento público ya no identifica al ganador. Reconsultar el estado
     // mediante la ruta autorizada y dejar que el backend determine el resultado.
     scheduleRetry(() => { resyncDrawState() }, 750)
   },
-  onGameEnded:       (e) => handleGameEnded(e, bingoConfirmed),
-  onReconnected:     ()  => { resyncDrawState() },
+  onGameEnded: (e) => handleGameEnded(e, bingoConfirmed),
+  onReconnected: ()  => { resyncDrawState() }
 })
 
 bindEchoHelpers({ markNumbersAsSeen, resetCalledNumbers })
@@ -362,7 +367,12 @@ watch(liveDrawn, (drawn) => {
   if (_stallTimer !== null) { clearTimeout(_stallTimer); _stallTimer = null }
   drawStalling.value = false
   if (drawn.length > 0 && !isFinished.value) {
-    _stallTimer = setTimeout(() => { drawStalling.value = true }, 90_000)
+    // Sin fichas por 90 s: avisar y resincronizar solo (antes había que tocar
+    // el botón) — puede haber terminado o retomado sin que llegara el evento.
+    _stallTimer = setTimeout(() => {
+      drawStalling.value = true
+      resyncDrawState()
+    }, 90_000)
   }
 }, { flush: 'post' })
 
@@ -397,12 +407,12 @@ async function devResetTime() {
     title: hasDrawInProgress ? '¿Regenerar sorteo?' : '¿Iniciar sorteo de prueba?',
     text,
     icon: 'warning',
-    showCancelButton:    true,
-    confirmButtonText:   hasDrawInProgress ? 'Sí, regenerar' : 'Sí, iniciar',
-    cancelButtonText:    'Cancelar',
-    confirmButtonColor:  '#7b4fff',
-    cancelButtonColor:   '#6c757d',
-    ...SWAL_DARK,
+    showCancelButton: true,
+    confirmButtonText: hasDrawInProgress ? 'Sí, regenerar' : 'Sí, iniciar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#7b4fff',
+    cancelButtonColor: '#6c757d',
+    ...SWAL_DARK
   })
   if (!result.isConfirmed) return
 
@@ -460,11 +470,11 @@ onMounted(() => {
 
   if (props.initialWinners && props.initialWinners.length > 0) {
     gameEndData.value = {
-      hasWinner:  true,
+      hasWinner: true,
       totalDrawn: liveDrawn.value.length,
-      winners:    props.initialWinners,
-      prize:      props.prizePool ?? 0,
-      endTime:    '',
+      winners: props.initialWinners,
+      prize: props.prizePool ?? 0,
+      endTime: ''
     }
     if (props.userId && props.initialWinners.some(w => String(w.user_id) === String(props.userId))) {
       isMyWin.value = true
@@ -472,11 +482,11 @@ onMounted(() => {
     if (!userClosedModal.value) showWinnerModal.value = true
   } else if (props.roomFinished) {
     gameEndData.value = {
-      hasWinner:  false,
+      hasWinner: false,
       totalDrawn: liveDrawn.value.length,
-      winners:    [],
-      prize:      0,
-      endTime:    '',
+      winners: [],
+      prize: 0,
+      endTime: ''
     }
     if (!userClosedModal.value) showWinnerModal.value = true
   }
@@ -498,9 +508,8 @@ onUnmounted(() => {
   <div class="ig-page" :class="{ 'ig-page--revealed': revealed }">
     <GameStarfield />
     <div class="ig-inner">
-
       <div v-if="externalPlayer" class="ig-external-player-banner">
-        <i class="fas fa-user-check" aria-hidden="true"></i>
+        <i class="fas fa-user-check" aria-hidden="true" />
         <span>Hola{{ externalPlayer.first_name ? `, ${externalPlayer.first_name}` : '' }} — estás viendo tus cartones como invitado.</span>
         <a
           :href="`/register?phone=${encodeURIComponent(externalPlayer.phone ?? '')}&country=${encodeURIComponent(externalPlayer.country_id ?? '')}`"
@@ -513,42 +522,42 @@ onUnmounted(() => {
       <ExternalPlayerStatusNotices v-if="externalPlayer?.status" :status="externalPlayer.status" />
 
       <GameHeader
-        :prizePoolType="prizePoolType"
-        :currencySym="currencySym"
-        :prizeFormatted="prizeFormatted"
-        :prizeFlash="prizeFlash"
-        :hasTime="hasTime"
+        :prize-pool-type="prizePoolType"
+        :currency-sym="currencySym"
+        :prize-formatted="prizeFormatted"
+        :prize-flash="prizeFlash"
+        :has-time="hasTime"
         :cd="cd"
-        :isFinished="isFinished"
-        :livePlayers="livePlayers"
-        :totalWinners="totalWinners"
-        :playersFlash="playersFlash"
-        :cardCount="cardCount"
+        :is-finished="isFinished"
+        :live-players="livePlayers"
+        :total-winners="totalWinners"
+        :players-flash="playersFlash"
+        :card-count="cardCount"
         :rounds="rounds"
         :round="round"
-        :bingoPattern="bingoPattern"
+        :bingo-pattern="bingoPattern"
         :muted="muted"
-        :isLocal="isLocal"
-        :devResetting="devResetting"
-        :topCards="topCards"
-        @toggleMute="toggleMute"
-        @openPlayers="showPlayersModal = true"
-        @devReset="devResetTime"
-        @focusCard="focusCard"
+        :is-local="isLocal"
+        :dev-resetting="devResetting"
+        :top-cards="topCards"
+        @toggle-mute="toggleMute"
+        @open-players="showPlayersModal = true"
+        @dev-reset="devResetTime"
+        @focus-card="focusCard"
       />
 
       <DrawnBoard
         ref="drawnBoardRef"
-        :drawnNumbers="liveDrawn"
-        :totalChips="totalChips"
-        :chipLetter="chipLetter"
-        :newBallFlash="ballFlash"
-        :highlightNumbers="activeCardHitNumbers"
+        :drawn-numbers="liveDrawn"
+        :total-chips="totalChips"
+        :chip-letter="chipLetter"
+        :new-ball-flash="ballFlash"
+        :highlight-numbers="activeCardHitNumbers"
       />
 
       <NearWinBanner
         :players="showPlayersProgress ? lastKnownProgress : []"
-        :remainingChips="remainingChips"
+        :remaining-chips="remainingChips"
       />
 
       <GameStatusBanners
@@ -566,52 +575,50 @@ onUnmounted(() => {
         <BingoCartons
           ref="cartonsRef"
           :cartons="liveCartons"
-          :customerLogo="customerLogo ?? null"
-          :roomId="roomId"
-          :drawnNumbers="liveDrawn"
-          :totalDrawn="liveDrawn.length"
-          :remainingChips="remainingChips"
-          :gameVariant="gameVariant"
-          :hotThreshold="hotThreshold"
-          :bingoPattern="bingoPattern"
+          :customer-logo="customerLogo ?? null"
+          :room-id="roomId"
+          :drawn-numbers="liveDrawn"
+          :total-drawn="liveDrawn.length"
+          :remaining-chips="remainingChips"
+          :game-variant="gameVariant"
+          :hot-threshold="hotThreshold"
+          :bingo-pattern="bingoPattern"
           @bingo-detected="handleBingoDetected"
           @card-selected="id => activeCardId = id"
         />
       </div>
-
     </div>
 
     <PlayersModal
       :show="showPlayersModal"
-      :livePlayers="livePlayers"
-      :totalWinners="totalWinners"
-      :gameEndData="gameEndData"
-      :userId="userId"
-      :currencySym="currencySym"
-      :customerLogo="customerLogo"
-      :drawnNumbers="liveDrawn"
-      :roomRouteKey="roomRouteKey"
-      :roomId="roomId"
+      :live-players="livePlayers"
+      :total-winners="totalWinners"
+      :game-end-data="gameEndData"
+      :user-id="userId"
+      :currency-sym="currencySym"
+      :customer-logo="customerLogo"
+      :drawn-numbers="liveDrawn"
+      :room-route-key="roomRouteKey"
+      :room-id="roomId"
       @close="showPlayersModal = false"
     />
 
     <PreDrawModal
       :show="drawStarting"
-      :secondsLeft="drawStartingSecs"
+      :seconds-left="drawStartingSecs"
     />
 
     <GameEndModal
       :show="showWinnerModal"
-      :gameEndData="gameEndData"
-      :isMyWin="isMyWin"
-      :userId="userId"
-      :currencySym="currencySym"
-      :totalChips="totalChips"
-      :drawnNumbers="liveDrawn"
-      :chipLetter="chipLetter"
+      :game-end-data="gameEndData"
+      :is-my-win="isMyWin"
+      :user-id="userId"
+      :currency-sym="currencySym"
+      :total-chips="totalChips"
+      :drawn-numbers="liveDrawn"
+      :chip-letter="chipLetter"
       @close="closeWinnerModal"
     />
-
   </div>
 </template>
 
