@@ -27,6 +27,14 @@ return [
     |
     */
 
+    /*
+     * Reintentos (segundos de espera entre intentos) al emitir una ficha del
+     * sorteo de Bingo si el servidor de tiempo real no responde. Sin esto, con
+     * Reverb caído el job fallaba en cada ficha y el sorteo avanzaba "a ciegas"
+     * una ficha por reintento. Ver BingoDrawService::broadcastReliably().
+     */
+    'bingo_retry_delays' => [1, 2, 4, 8, 15],
+
     'connections' => [
         'reverb' => [
             'driver' => 'reverb',
