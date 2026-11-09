@@ -111,6 +111,31 @@ class BingoDrawIntegrityTest extends TestCase
     }
 
     /**
+     * Una sala ya iniciada se retoma aunque haya quedado por debajo de los
+     * mínimos (p. ej. se rechazaron pagos pendientes al inicio): los mínimos
+     * solo deciden si arranca.
+     */
+    #[Test]
+    public function el_chequeo_de_salud_no_bloquea_retomar_por_los_minimos() : void
+    {
+        ['room' => $room, 'round' => $round] = $this->makeRoom('N3');
+        $room->config->update(['min_players' => 5, 'min_cards_to_start' => 10]);
+        $this->makeCard($room, 'APPROVED');
+        $health = app(\App\Domains\Games\Bingo\Services\Game\BingoRoomHealthCheckService::class);
+
+        // Sala IN_PROGRESS con la ronda en curso: se retoma.
+        $round->update(['status' => 'IN_PROGRESS']);
+        $this->assertSame([], $health->collectErrors($room->fresh()));
+
+        // Sala que todavía no arrancó: los mínimos sí aplican.
+        $round->update(['status' => 'ACTIVE']);
+        $room->update(['status_id' => GameStatus::codeToId('ACTIVE')]);
+        $errors = $health->collectErrors($room->fresh());
+        $this->assertNotEmpty($errors);
+        $this->assertStringContainsString('mínimo', implode(' ', $errors));
+    }
+
+    /**
      * Reclamo manual ("¡BINGO!"): también reparte con los demás cartones que
      * completaron el patrón con las mismas fichas. Si solo premiara al que
      * reclama, el sorteo cerraría la ronda al ver ese premio y los demás
@@ -179,6 +204,41 @@ class BingoDrawIntegrityTest extends TestCase
         $this->assertEqualsWithDelta(50.0, (float) $prizes[0]->usd_amount, 0.0001);
         $this->assertEqualsWithDelta(50.0, (float) $prizes[1]->usd_amount, 0.0001);
         $this->assertStringContainsString('compartido entre 2', (string) $prizes[0]->prize_notes);
+    }
+
+    #[Test]
+    public function lock_con_latido_reciente_o_sin_latido_se_respeta() : void
+    {
+        ['room' => $room] = $this->makeRoom('N3');
+        $this->makeCard($room, 'APPROVED');
+        Cache::lock("bingo:draw-lock:{$room->id}", 5400)->get();
+
+        // Sin latido (lock de una versión anterior): se respeta.
+        $this->assertSame('lock_held', app(BingoDrawService::class)->startDraw($room->fresh())['reason'] ?? null);
+
+        // Latido reciente: el dueño sigue sorteando.
+        Cache::put("bingo:draw-heartbeat:{$room->id}", now()->timestamp, now()->addDay());
+        $this->assertSame('lock_held', app(BingoDrawService::class)->startDraw($room->fresh())['reason'] ?? null);
+        $this->assertSame(0, BingoCardPrize::where('room_id', $room->id)->count());
+    }
+
+    /**
+     * El worker que tenía el lock murió (sin latido reciente): el sorteo se
+     * retoma en vez de esperar a que venza el lock (mínimo 90 min).
+     */
+    #[Test]
+    public function lock_sin_latido_se_libera_y_el_sorteo_se_retoma() : void
+    {
+        ['room' => $room] = $this->makeRoom('N3');
+        $this->makeCard($room, 'APPROVED');
+
+        Cache::lock("bingo:draw-lock:{$room->id}", 5400)->get();
+        Cache::put("bingo:draw-heartbeat:{$room->id}", now()->subMinutes(10)->timestamp, now()->addDay());
+
+        $result = app(BingoDrawService::class)->startDraw($room->fresh());
+
+        $this->assertTrue($result['success']);
+        $this->assertNotEmpty($result['winners'] ?? []);
     }
 
     /**

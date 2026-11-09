@@ -47,6 +47,8 @@ final class BingoDrawService
     private const CHIP_INTERVAL_SECONDS = 5; // fallback si time_chip no está configurado
     private const DRAW_LOCK_MIN_TTL_SECONDS = 5400;
     private const DRAW_LOCK_SAFETY_MARGIN_SECONDS = 1800;
+    /** Margen extra antes de dar por muerto al worker dueño del lock (ver heartbeatIsStale). */
+    private const HEARTBEAT_GRACE_SECONDS = 60;
 
     /**
      * Cartones elegibles de la sala, cacheados en memoria durante la corrida del sorteo.
@@ -75,6 +77,11 @@ final class BingoDrawService
 
     /** Cache de tasas de cambio activas resuelta por moneda durante la corrida actual. */
     private array $rateCache = [];
+
+    private static function heartbeatKey(string $roomId) : string
+    {
+        return "bingo:draw-heartbeat:{$roomId}";
+    }
 
     /** Parte igual de $amount entre $shares, truncada a $decimals (nunca hacia arriba). */
     private static function shareDown(float $amount, int $shares, int $decimals) : float
@@ -564,16 +571,35 @@ final class BingoDrawService
         $drawLock = Cache::lock("bingo:draw-lock:{$roomId}", $lockTtl);
 
         if (! $drawLock->get()) {
-            Log::warning('[BingoDrawService] Otro worker ya tiene el lock del sorteo — abortando duplicado', [
-                'room_id' => $roomId,
-            ]);
+            // El lock dura todo el sorteo (mínimo 90 min). Si el worker que lo
+            // tenía murió (deploy, OOM), sin esto la sala quedaba congelada
+            // hasta que venciera. El latido lo renueva cada ficha: si está
+            // vencido, el dueño anterior ya no sortea y se puede retomar.
+            if (! $this->heartbeatIsStale($roomId, $this->resolveChipInterval($room))) {
+                Log::warning('[BingoDrawService] Otro worker ya tiene el lock del sorteo — abortando duplicado', [
+                    'room_id' => $roomId,
+                ]);
 
-            return ['success' => false, 'room_id' => $roomId, 'reason' => 'lock_held'];
+                return ['success' => false, 'room_id' => $roomId, 'reason' => 'lock_held'];
+            }
+
+            Log::warning('[BingoDrawService] Lock del sorteo sin latido — el worker anterior murió, se retoma', [
+                'room_id' => $roomId,
+                'last_heartbeat' => Cache::get(self::heartbeatKey($roomId)),
+            ]);
+            $drawLock->forceRelease();
+
+            if (! $drawLock->get()) {
+                return ['success' => false, 'room_id' => $roomId, 'reason' => 'lock_held'];
+            }
         }
 
         try {
+            $this->beatHeartbeat($roomId);
+
             return $this->runDraw($room);
         } finally {
+            Cache::forget(self::heartbeatKey($roomId));
             $drawLock->release();
         }
     }
@@ -624,6 +650,12 @@ final class BingoDrawService
         }
 
         return $this->activeCardsCache[$withKey];
+    }
+
+    /** Marca de "sigo sorteando" del worker que tiene el lock (se renueva cada ficha). */
+    private function beatHeartbeat(string $roomId) : void
+    {
+        Cache::put(self::heartbeatKey($roomId), now()->timestamp, now()->addDay());
     }
 
     private function broadcastPlayersProgress(BingoRoom $room, array $patternPositions, array $drawnNumbers) : void
@@ -1027,6 +1059,22 @@ final class BingoDrawService
 
             return $this->rateCache[$currencyId] = null;
         }
+    }
+
+    /**
+     * Sin latido reciente: el worker dueño del lock dejó de sortear. Margen de
+     * tres intervalos más 60 s, para no robar el lock a un sorteo vivo que tarde
+     * en emitir una ficha. Sin latido registrado (lock de una versión anterior)
+     * no se considera vencido: se respeta el TTL del lock.
+     */
+    private function heartbeatIsStale(string $roomId, int $interval) : bool
+    {
+        $last = Cache::get(self::heartbeatKey($roomId));
+        if ($last === null) {
+            return false;
+        }
+
+        return now()->timestamp - (int) $last > max($interval, 1) * 3 + self::HEARTBEAT_GRACE_SECONDS;
     }
 
     /** Invalida el cache de cartones activos — usar tras cambiar el status de un cartón. */
@@ -1598,6 +1646,7 @@ final class BingoDrawService
             // Append después del broadcast: detectWinnerAndEnd no verá el chip
             // hasta aquí, garantizando que los clientes ya lo recibieron.
             $drawnSoFar[] = $chip;
+            $this->beatHeartbeat((string) $roomId);
 
             if (($totalChips - count($drawnSoFar)) <= 10) {
                 try {
