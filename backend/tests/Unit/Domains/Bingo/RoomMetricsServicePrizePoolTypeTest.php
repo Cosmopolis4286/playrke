@@ -8,6 +8,9 @@ use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\Metrics\BingoLotSaleReversalService;
 use App\Domains\Games\Bingo\Services\Room\Metrics\RoomMetricsService;
 use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator;
+use App\Contracts\JackpotMovementRepositoryInterface;
+use App\Contracts\JackpotRepositoryInterface;
+use App\Models\Jackpot;
 use App\Services\Jackpot\JackpotLedgerService;
 use App\Services\Platform\PlatformWalletService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -223,6 +226,38 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
             'creator' => ['id' => '1'],
             'saleChannel' => 'offline',
         ]);
+    }
+
+    #[Test]
+    public function un_fallo_al_guardar_el_movimiento_revierte_el_saldo_del_jackpot() : void
+    {
+        $room = $this->makeRoom('ACCUMULATIVE', jackpotPct: 5);
+        $jackpotTypeId = '930000000000000999';
+        $jackpot = app(JackpotRepositoryInterface::class)->firstOrCreateByType($jackpotTypeId);
+        $balanceBefore = (float) $jackpot->amount;
+
+        $movementRepository = \Mockery::mock(JackpotMovementRepositoryInterface::class);
+        $movementRepository->shouldReceive('record')
+            ->once()
+            ->andThrow(new \RuntimeException('movement insert failed'));
+        app()->instance(JackpotMovementRepositoryInterface::class, $movementRepository);
+
+        try {
+            app(JackpotLedgerService::class)->contribute(
+                jackpotTypeId: $jackpotTypeId,
+                amount: 5.0,
+                roomId: (string) $room->id,
+            );
+            $this->fail('El aporte debe fallar si no puede guardar su movimiento.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('movement insert failed', $e->getMessage());
+        }
+
+        $this->assertEqualsWithDelta(
+            $balanceBefore,
+            (float) Jackpot::query()->whereKey($jackpot->id)->value('amount'),
+            0.001,
+        );
     }
 
     private function assertSaleFailureRollsBack(BingoRoom $room, array $saleData) : void
