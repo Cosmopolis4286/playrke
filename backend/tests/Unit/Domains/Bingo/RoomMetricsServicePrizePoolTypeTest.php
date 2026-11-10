@@ -8,6 +8,8 @@ use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\Metrics\BingoLotSaleReversalService;
 use App\Domains\Games\Bingo\Services\Room\Metrics\RoomMetricsService;
 use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator;
+use App\Services\Jackpot\JackpotLedgerService;
+use App\Services\Platform\PlatformWalletService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
@@ -176,6 +178,81 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
         // Idempotente: una segunda reversa del mismo lote no vuelve a tocar el jackpot.
         app(\App\Services\Jackpot\JackpotLedgerService::class)->reverseContribution($jackpotTypeId, 5.0, 'bingo-lot-jackpot-reversal-' . $lot->id);
         $this->assertEqualsWithDelta($jackpotAfter, (float) DB::table('jackpots')->where('jackpot_type_id', $jackpotTypeId)->value('amount'), 0.01);
+    }
+
+    #[Test]
+    public function un_fallo_al_acreditar_rke_impide_confirmar_la_venta() : void
+    {
+        $room = $this->makeRoom('ACCUMULATIVE');
+
+        app()->instance(PlatformWalletService::class, new class {
+            public function creditRke(string $currencyId, float $amount, string $description) : void
+            {
+                throw new \RuntimeException('wallet platform unavailable');
+            }
+        });
+
+        $this->assertSaleFailureRollsBack($room, [
+            'cardCount' => 1,
+            'currency' => $this->currencyId,
+            'creator' => ['id' => '1'],
+            'saleChannel' => 'wallet',
+        ]);
+    }
+
+    #[Test]
+    public function un_fallo_al_registrar_el_jackpot_impide_confirmar_la_venta() : void
+    {
+        $room = $this->makeRoom('ACCUMULATIVE', jackpotPct: 5);
+
+        app()->instance(JackpotLedgerService::class, new class {
+            public function contribute(
+                string $jackpotTypeId,
+                float $amount,
+                ?string $roomId = null,
+                ?string $description = null,
+                ?array $metadata = null,
+            ) : void {
+                throw new \RuntimeException('jackpot ledger unavailable');
+            }
+        });
+
+        $this->assertSaleFailureRollsBack($room, [
+            'cardCount' => 1,
+            'currency' => $this->currencyId,
+            'creator' => ['id' => '1'],
+            'saleChannel' => 'offline',
+        ]);
+    }
+
+    private function assertSaleFailureRollsBack(BingoRoom $room, array $saleData) : void
+    {
+        try {
+            DB::transaction(function() use ($room, $saleData) : void {
+                $breakdown = null;
+                $ok = app(RoomMetricsService::class)->updateRoomMetricsWithCommissions(
+                    $room,
+                    $saleData,
+                    100.0,
+                    0.0,
+                    $breakdown,
+                );
+
+                if (! $ok) {
+                    throw new \RuntimeException('La venta debe revertirse si falla un asiento financiero.');
+                }
+            });
+
+            $this->fail('Se confirmó una venta sin registrar todos sus asientos financieros.');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('revertirse', $e->getMessage());
+        }
+
+        $fresh = $room->fresh();
+        $this->assertEqualsWithDelta(0.0, (float) $fresh->total_sales, 0.001);
+        $this->assertEqualsWithDelta(0.0, (float) $fresh->rke_commission, 0.001);
+        $this->assertEqualsWithDelta(0.0, (float) $fresh->room_commission, 0.001);
+        $this->assertDatabaseMissing('bingo_creator_sales', ['room_id' => $room->id]);
     }
 
     /** @param string[] $roundTypes tipos canónicos de bingo_rounds.prize_type (PCT/FIXED/OTHER) */

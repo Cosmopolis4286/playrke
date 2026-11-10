@@ -342,14 +342,10 @@ final class PlatformWalletService
         // RoomMetricsService) — antes ambos casos volvían en silencio sin
         // distinción, perdiendo la señal de que algo calculó mal.
         if ($amount < 0) {
-            \Illuminate\Support\Facades\Log::warning('[PlatformWalletService] creditRke() recibió un monto negativo — se ignora sin acreditar', [
-                'currency_id' => $currencyId,
-                'amount' => $amount,
-                'description' => $description,
-            ]);
+            throw new InvalidArgumentException('No se puede acreditar un monto negativo a la wallet de plataforma.');
         }
 
-        if ($amount <= 0) {
+        if ($amount === 0.0) {
             return;
         }
 
@@ -364,7 +360,7 @@ final class PlatformWalletService
         $wallet = $this->ensureWallet($currencyId);
 
         if (! $wallet) {
-            return;
+            throw new RuntimeException("No se pudo resolver la wallet de plataforma para la moneda {$currencyId}.");
         }
 
         \Illuminate\Support\Facades\DB::transaction(function() use ($wallet, $amount, $description, $type) {
