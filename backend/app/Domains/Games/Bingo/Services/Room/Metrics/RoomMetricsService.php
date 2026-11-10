@@ -468,7 +468,7 @@ class RoomMetricsService implements RoomMetricsInterface
                     'jackpot_contribution' => round($jackpotContributionLocal, 3),
                     'prize_pool_amount' => $finalPrizeLocal,
                 ];
-
+            }
 
             // Desglose exacto de lo que ESTA venta sumó en cada lugar — se guarda en
             // el lote para revertirlo tal cual si se reembolsa (sala cancelada o pago
