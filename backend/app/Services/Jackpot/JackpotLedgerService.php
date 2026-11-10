@@ -12,9 +12,8 @@ use Illuminate\Support\Facades\Log;
 /**
  * Acumulación del jackpot — SOLO aporta al pozo, no paga ni entrega premios
  * (fuera de alcance de esta iteración). Mismo patrón que
- * PlatformWalletService::creditRke(): UPDATE atómico a nivel SQL vía
- * JackpotRepository::incrementAmount(), sin DB::transaction()/lockForUpdate()
- * explícito.
+ * PlatformWalletService::creditRke(): transacción y lockForUpdate para mantener
+ * el saldo y su movimiento inseparables incluso ante escrituras concurrentes.
  */
 final class JackpotLedgerService
 {

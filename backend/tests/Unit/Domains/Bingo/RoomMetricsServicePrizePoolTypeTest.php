@@ -36,8 +36,8 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
         $this->previousSqlMode = (string) DB::selectOne('SELECT @@SESSION.sql_mode AS m')->m;
         DB::statement("SET SESSION sql_mode = ''");
-        // PlatformWalletService/JackpotLedgerService son final (no mockeables); el
-        // servicio ya los envuelve en try/catch y DatabaseTransactions revierte lo que escriban.
+        // Los servicios de ledger se sustituyen por dobles en pruebas de fallo; las
+        // pruebas de venta exitosa usan los servicios reales y DatabaseTransactions.
     }
 
     protected function tearDown() : void
