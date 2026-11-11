@@ -319,6 +319,48 @@ class BingoDrawIntegrityTest extends TestCase
         $this->assertSame('FINISHED', $room->fresh()->load('status')->status->code);
     }
 
+    /**
+     * Corte breve del servidor de tiempo real: la emisión se reintenta y el
+     * sorteo sigue en vez de fallar el job en cada ficha.
+     */
+    #[Test]
+    public function un_corte_breve_del_tiempo_real_no_corta_el_sorteo() : void
+    {
+        config(['broadcasting.bingo_retry_delays' => [0, 0, 0]]);
+        $flaky = new class implements \Illuminate\Contracts\Broadcasting\Broadcaster
+        {
+            public int $calls = 0;
+
+            public function auth($request)
+            {
+                return true;
+            }
+
+            public function broadcast(array $channels, $event, array $payload = [])
+            {
+                if (++$this->calls <= 2) {
+                    throw new \Illuminate\Broadcasting\BroadcastException('Reverb no responde');
+                }
+            }
+
+            public function validAuthenticationResponse($request, $result)
+            {
+                return $result;
+            }
+        };
+        app(\Illuminate\Broadcasting\BroadcastManager::class)->extend('flaky', fn () => $flaky);
+        config(['broadcasting.default' => 'flaky', 'broadcasting.connections.flaky' => ['driver' => 'flaky']]);
+
+        ['room' => $room] = $this->makeRoom('N3');
+        $this->makeCard($room, 'APPROVED');
+
+        $result = app(BingoDrawService::class)->startDraw($room->fresh());
+
+        $this->assertTrue($result['success']);
+        $this->assertNotEmpty($result['winners'] ?? []);
+        $this->assertGreaterThan(2, $flaky->calls);
+    }
+
     /** Cartón ACTIVE de un jugador propio, en su propio lote, con el pago indicado (null = sin fila de pago). */
     private function makeCard(BingoRoom $room, ?string $paymentStatus) : BingoCard
     {

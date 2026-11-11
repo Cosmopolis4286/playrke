@@ -672,6 +672,44 @@ final class BingoDrawService
     }
 
     /**
+     * Emite un evento del sorteo reintentando si el servidor de tiempo real
+     * falla (config('broadcasting.bingo_retry_delays')). Con un corte breve de
+     * Reverb la ficha llega con unos segundos de demora en vez de cortar el
+     * job; si sigue caído tras todos los intentos, relanza la excepción y el
+     * job se reintenta desde la última ficha persistida. Mientras espera,
+     * renueva el latido para que no se tome al worker por muerto.
+     */
+    private function broadcastReliably(object $event) : void
+    {
+        $delays = array_values((array) config('broadcasting.bingo_retry_delays', [1, 2, 4, 8, 15]));
+
+        for ($attempt = 0;; $attempt++) {
+            try {
+                broadcast($event);
+
+                return;
+            } catch (Throwable $e) {
+                if ($attempt >= count($delays)) {
+                    throw $e;
+                }
+
+                Log::warning('[BingoDrawService] Falló la emisión en tiempo real — reintentando', [
+                    'event' => $event::class,
+                    'attempt' => $attempt + 1,
+                    'error' => $e->getMessage(),
+                ]);
+
+                if (property_exists($event, 'roomId')) {
+                    $this->beatHeartbeat((string) $event->roomId);
+                }
+                if ((int) $delays[$attempt] > 0) {
+                    sleep((int) $delays[$attempt]);
+                }
+            }
+        }
+    }
+
+    /**
      * Si la ronda que acaba de terminar es la última configurada para la sala,
      * cambia el status de la sala a FINISHED y registra finished_at.
      */
@@ -1562,8 +1600,8 @@ final class BingoDrawService
             // persistido la primera bola y fallado antes de entregar este evento.
             // Los clientes deben tratar GameStarted como idempotente por draw_id.
             $firstDraw = $alreadyDrawn->first();
-            broadcast(new BingoGameStarted((int) $roomId, (int) $firstDraw->id));
-            broadcast(new BingoNumberCalled((int) $lastDraw->chip, $roomId, count($drawnChips)));
+            $this->broadcastReliably(new BingoGameStarted((int) $roomId, (int) $firstDraw->id));
+            $this->broadcastReliably(new BingoNumberCalled((int) $lastDraw->chip, $roomId, count($drawnChips)));
 
             // Verificar si ya hay ganadores antes de llamar detectWinnerAndEnd en resume,
             // para evitar re-declarar un ganador ya procesado y re-emitir BingoWinnerDeclared.
@@ -1602,8 +1640,8 @@ final class BingoDrawService
             $firstDraw = $this->createDrawRecord($roomId, $roundId, $sequence[0], 0, $variant, [$sequence[0]]);
 
             try {
-                broadcast(new BingoGameStarted((int) $roomId, (int) $firstDraw->id));
-                broadcast(new BingoNumberCalled((int) $sequence[0], $roomId, 1));
+                $this->broadcastReliably(new BingoGameStarted((int) $roomId, (int) $firstDraw->id));
+                $this->broadcastReliably(new BingoNumberCalled((int) $sequence[0], $roomId, 1));
             } catch (Throwable $e) {
                 Log::error('[BingoDrawService] Falló la emisión inicial — se detiene para reintentar desde la ficha persistida', [
                     'room_id' => $roomId,
@@ -1656,7 +1694,7 @@ final class BingoDrawService
             $draw = $this->createDrawRecord($roomId, $roundId, $chip, $i * max($interval, 1), $variant, [...$drawnSoFar, $chip]);
 
             try {
-                broadcast(new BingoNumberCalled((int) $chip, $roomId, $i + 1));
+                $this->broadcastReliably(new BingoNumberCalled((int) $chip, $roomId, $i + 1));
             } catch (Throwable $e) {
                 Log::error('[BingoDrawService] Falló la emisión de una ficha — se detiene para reintentar desde la ficha persistida', [
                     'room_id' => $roomId,

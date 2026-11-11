@@ -50,16 +50,17 @@ return [
         ],
 
         // Cola dedicada para el sorteo de bingo. retry_after debe ser mayor que
-        // la duración máxima de un sorteo completo: 75 fichas × max(time_chip)
-        // en producción = 75 × 30 = 2250 s → usamos 3600 (1 hora) como margen.
-        // Con retry_after < duración del job, Laravel reencola el job mientras
+        // la duración máxima del sorteo más los reintentos de broadcast:
+        // 75 × 30 s de fichas + hasta 77 × 30 s de backoff = 4560 s.
+        // Usamos 5400 s para evitar que otro worker reclame el job activo.
+        // Con retry_after < duración real del job, Laravel reencola el job mientras
         // el worker sigue vivo, generando dos instancias paralelas del sorteo.
         'bingo-draw' => [
             'driver' => 'database',
             'connection' => env('DB_QUEUE_CONNECTION'),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => 'bingo-draw',
-            'retry_after' => (int) env('BINGO_DRAW_QUEUE_RETRY_AFTER', 3600),
+            'retry_after' => (int) env('BINGO_DRAW_QUEUE_RETRY_AFTER', 5400),
             'after_commit' => false,
         ],
 
