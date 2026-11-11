@@ -69,6 +69,32 @@ class BingoDrawIntegrityTest extends TestCase
         parent::tearDown();
     }
 
+    /** Auditoría punto 6: un sorteo iniciado y trabado se puede anular y reembolsar. */
+    #[Test]
+    public function anular_un_sorteo_iniciado_cancela_la_sala_y_reembolsa() : void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        GameStatus::firstOrCreate(['code' => 'CANCELLED'], ['label' => 'CANCELLED']);
+        GameStatus::forgetCache();
+        ['room' => $room, 'round' => $round] = $this->makeRoom('N3');
+        $round->update(['status' => 'IN_PROGRESS']);
+        $card = $this->makeCard($room, 'APPROVED');
+
+        $this->assertTrue(app(\App\Domains\Games\Bingo\Services\Room\BingoRoomCrudService::class)
+            ->voidStartedDraw($room->fresh(), 'Sorteo trabado tras caída del servidor'));
+
+        $this->assertSame('CANCELLED', $room->fresh()->load('status')->status->code);
+        \Illuminate\Support\Facades\Queue::assertPushed(
+            \App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob::class,
+            fn ($job) => true,
+        );
+
+        // Con la sala anulada, un reclamo tardío no registra ganadores.
+        $pattern = BingoPattern::find($round->bingo_pattern_id);
+        $this->assertNull(app(BingoDrawService::class)->claimCardWin($room->fresh(), $round, $pattern, (string) $card->id, 0));
+        $this->assertSame(0, BingoCardPrize::where('room_id', $room->id)->count());
+    }
+
     #[Test]
     public function cartones_con_pago_pendiente_o_rechazado_no_cuentan_como_activos() : void
     {
@@ -239,6 +265,29 @@ class BingoDrawIntegrityTest extends TestCase
 
         $this->assertTrue($result['success']);
         $this->assertNotEmpty($result['winners'] ?? []);
+    }
+
+    #[Test]
+    public function no_se_anula_un_sorteo_con_premios_ni_uno_sin_iniciar() : void
+    {
+        $crud = app(\App\Domains\Games\Bingo\Services\Room\BingoRoomCrudService::class);
+
+        ['room' => $withPrize, 'round' => $round, 'pattern' => $pattern] = $this->makeRoom('N3');
+        $round->update(['status' => 'IN_PROGRESS']);
+        $card = $this->makeCard($withPrize, 'APPROVED');
+        app(BingoDrawService::class)->claimCardWin($withPrize->fresh(), $round, $pattern, (string) $card->id, 0);
+
+        try {
+            $crud->voidStartedDraw($withPrize->fresh(), 'Intento con premio registrado');
+            $this->fail('Debió rechazar: la sala ya tiene premios');
+        } catch (\App\Domains\Games\Bingo\Exceptions\Room\BingoRoomException $e) {
+            $this->assertSame('BINGO_ROOM_VOID_DRAW_HAS_PRIZES', $e->getMessage());
+        }
+
+        ['room' => $notStarted] = $this->makeRoom('N3');
+        $notStarted->update(['status_id' => GameStatus::codeToId('ACTIVE')]);
+        $this->expectExceptionMessage('BINGO_ROOM_VOID_DRAW_NOT_STARTED');
+        $crud->voidStartedDraw($notStarted->fresh(), 'Intento sin sorteo iniciado');
     }
 
     /**

@@ -14,6 +14,7 @@ import RoomRoundsSection        from './Details/RoomRoundsSection.vue'
 import RoomSerialsSection       from './Details/RoomSerialsSection.vue'
 import RoomWinnersList          from './Details/RoomWinnersList.vue'
 import WinnerCardViewerModal    from './Details/WinnerCardViewerModal.vue'
+import RoomVoidDrawPanel        from './Details/RoomVoidDrawPanel.vue'
 
 interface Props {
   room: BingoRoom
@@ -34,13 +35,13 @@ const prizePoolTypeOptions = computed(() => props.prizePoolTypeOptions)
 const {
   startModeLabel, scheduleInfo, cardPricesList, metricsByCurrencyList,
   currencyIso, isAccumulative,
-  roundsConfig, roundPrizeLabel, totalPct,
+  roundsConfig, roundPrizeLabel, totalPct
 } = useBingoRoomFinancials(room, allowedCurrenciesOptions, prizePoolTypeOptions)
 
 const {
   loadingCard, cardViewerOpen, cardViewerError, cardViewerData, cardViewerWinner,
   cardViewerCols, cardViewerRows,
-  isFreeViewerCell, viewerNum, openCardViewer, closeCardViewer, winnerUsername,
+  isFreeViewerCell, viewerNum, openCardViewer, closeCardViewer, winnerUsername
 } = useWinnerCardViewer(room)
 
 /** Pestañas: el modal mostraba todo en una sola columna con scroll largo. */
@@ -50,14 +51,15 @@ const tabs = computed(() => [
   { key: 'summary' as Tab, label: 'Resumen', icon: 'fa-gauge', count: null },
   { key: 'finance' as Tab, label: 'Finanzas', icon: 'fa-coins', count: null },
   { key: 'prizes' as Tab, label: 'Premios', icon: 'fa-trophy', count: room.value.winners?.length || null },
-  { key: 'history' as Tab, label: 'Historial', icon: 'fa-clock-rotate-left', count: room.value.timeline?.length || null },
+  { key: 'history' as Tab, label: 'Historial', icon: 'fa-clock-rotate-left', count: room.value.timeline?.length || null }
 ])
 </script>
 
 <template>
   <div class="room-details">
-
     <RoomDetailsHeader :room="room" :schedule-info="scheduleInfo" />
+
+    <RoomVoidDrawPanel :room="room" />
 
     <nav class="rd-tabs" role="tablist">
       <button
@@ -70,7 +72,7 @@ const tabs = computed(() => [
         :aria-selected="tab === t.key"
         @click="tab = t.key"
       >
-        <i class="fas" :class="t.icon"></i>{{ t.label }}<span v-if="t.count" class="rd-tab__count">{{ t.count }}</span>
+        <i class="fas" :class="t.icon" />{{ t.label }}<span v-if="t.count" class="rd-tab__count">{{ t.count }}</span>
       </button>
     </nav>
 
@@ -131,7 +133,6 @@ const tabs = computed(() => [
       @close="closeCardViewer"
       @retry="openCardViewer"
     />
-
   </div>
 </template>
 
