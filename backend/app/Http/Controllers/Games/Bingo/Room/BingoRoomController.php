@@ -460,6 +460,20 @@ final class BingoRoomController extends Controller
     }
 
     /**
+     * Anular un sorteo ya iniciado (trabado o corrupto) y reembolsar los
+     * cartones. Solo superadmin; ver BingoRoomCrudService::voidStartedDraw().
+     */
+    public function voidDraw(\Illuminate\Http\Request $request, BingoRoom $room) : JsonResponse
+    {
+        abort_unless($request->user()?->hasRole('superadmin'), 403, 'Solo un superadmin puede anular un sorteo.');
+        $validated = $request->validate(['reason' => ['required', 'string', 'min:10', 'max:255']]);
+
+        return $this->handleServiceJson(
+            fn () => ['data' => $this->service->voidStartedDraw($room, trim($validated['reason']))],
+        );
+    }
+
+    /**
      * Última activación y última desactivación manual (toggleStatus) de cada
      * sala en $roomIds, resuelto en una sola query agrupada — evita N+1 por
      * fila del chunk del export. Mismo evento/origen que BingoRoomResource::

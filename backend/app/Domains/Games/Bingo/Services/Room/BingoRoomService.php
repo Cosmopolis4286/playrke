@@ -239,4 +239,10 @@ final class BingoRoomService
     {
         return $this->crudService->verifyRoomAccess($room, $accessCode, $password);
     }
+
+    /** Anula un sorteo ya iniciado y reembolsa (ver BingoRoomCrudService::voidStartedDraw()). */
+    public function voidStartedDraw(BingoRoom $room, string $reason) : bool
+    {
+        return $this->crudService->voidStartedDraw($room, $reason);
+    }
 }
