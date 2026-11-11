@@ -17,15 +17,17 @@ class FinancialReconciliationItem extends Model
 
     public const STATUS_OPEN = 'OPEN';
     public const STATUS_RESOLVED = 'RESOLVED';
+    /** Ronda de Bingo cerrada sin ganador con bote en dinero: decidir a mano su destino. */
+    public const TYPE_BINGO_ROUND_NO_WINNER = 'BINGO_ROUND_NO_WINNER';
     /** No se pudo acreditar al creador su comisión al cerrar la sala. */
     public const TYPE_CREATOR_PAYOUT_FAILED = 'CREATOR_PAYOUT_FAILED';
+
+    /** Venta offline de jugador externo revertida contablemente; el vendedor debe confirmar la entrega del dinero al comprador. */
+    public const TYPE_EXTERNAL_PLAYER_REFUND_PENDING = 'EXTERNAL_PLAYER_REFUND_PENDING';
     /** El pozo del jackpot no alcanzaba para devolver el aporte de una venta reembolsada. */
     public const TYPE_JACKPOT_REVERSAL_SHORTFALL = 'JACKPOT_REVERSAL_SHORTFALL';
     /** Lote reembolsado vendido antes del desglose financiero: no se pudo revertir su venta. */
     public const TYPE_LEGACY_LOT_NOT_REVERSED = 'LEGACY_LOT_NOT_REVERSED';
-
-    /** Venta offline de jugador externo revertida contablemente; el vendedor debe confirmar la entrega del dinero al comprador. */
-    public const TYPE_EXTERNAL_PLAYER_REFUND_PENDING = 'EXTERNAL_PLAYER_REFUND_PENDING';
 
     /** La wallet de plataforma no tenía saldo para devolver el RKE de una venta reembolsada. */
     public const TYPE_RKE_REVERSAL_FAILED = 'RKE_REVERSAL_FAILED';
