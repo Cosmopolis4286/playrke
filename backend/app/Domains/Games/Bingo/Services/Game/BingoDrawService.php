@@ -176,6 +176,11 @@ final class BingoDrawService
                 return null;
             }
 
+            // Sala anulada (voidStartedDraw) entre la ficha y el reclamo: sin ganadores.
+            if ($this->roomWasCancelled((string) $room->id)) {
+                return null;
+            }
+
             // Última barrera de seguridad: no confiar solo en el filtro del caller
             // ni en el cache del sorteo. Revalidar lote y pago bajo los locks tomados.
             if (
@@ -1340,6 +1345,14 @@ final class BingoDrawService
         ];
     }
 
+    private function roomWasCancelled(string $roomId) : bool
+    {
+        $cancelledId = GameStatus::codeToId('CANCELLED');
+
+        return $cancelledId !== null
+            && (string) BingoRoom::whereKey($roomId)->value('status_id') === (string) $cancelledId;
+    }
+
     private function runDraw(BingoRoom $room) : array
     {
         // Limpiar caches de instancia al inicio de cada sorteo para que los datos
@@ -1691,6 +1704,17 @@ final class BingoDrawService
             }
 
             $this->currentChipIndex = $i;
+
+            // Sorteo anulado por un superadmin mientras corría (voidStartedDraw):
+            // no cantar más fichas ni declarar ganadores.
+            if ($this->roomWasCancelled((string) $roomId)) {
+                Log::warning('[BingoDrawService] Sala cancelada durante el sorteo — se detiene', [
+                    'room_id' => $roomId,
+                    'drawn' => count($drawnSoFar),
+                ]);
+
+                return ['success' => true, 'room_id' => $roomId, 'total_chips' => count($drawnSoFar), 'winner' => null, 'cancelled' => true];
+            }
 
             $chip = $sequence[$i];
             // time = segundos transcurridos desde la primera ficha (índice * intervalo).

@@ -251,4 +251,16 @@ final class BingoRoomException extends DomainException
     {
         return new self('BINGO_ROOM_UPDATE_FAILED', 422);
     }
+
+    /** Anular sorteo: ya hay premios registrados; se resuelven uno a uno en "Premios por resolver". */
+    public static function voidDrawHasPrizes() : self
+    {
+        return new self('BINGO_ROOM_VOID_DRAW_HAS_PRIZES', 409);
+    }
+
+    /** Anular sorteo: la sala no tiene un sorteo iniciado (para eso está "cancelar"). */
+    public static function voidDrawNotStarted() : self
+    {
+        return new self('BINGO_ROOM_VOID_DRAW_NOT_STARTED', 409);
+    }
 }

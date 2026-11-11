@@ -568,6 +568,27 @@ class BingoTest extends TestCase
         $this->assertStringContainsString('card count', $response->json('message') ?? '');
     }
 
+    public function test_only_superadmin_can_void_a_started_draw() : void
+    {
+        $room = $this->makeRoom();
+
+        // Usuario con permiso de gestión de salas pero sin rol superadmin.
+        $manager = User::factory()->create(['country_id' => $this->country->id]);
+        $manager->givePermissionTo('games.manage');
+        $this->actingAs($manager)
+            ->postJson("/bingo-rooms/{$room->hashed_id}/void-draw", ['reason' => 'Sorteo trabado tras una caída'])
+            ->assertForbidden();
+
+        // Superadmin: llega al servicio, que rechaza porque la sala no inició.
+        $this->actingAs($this->makeAdmin())
+            ->postJson("/bingo-rooms/{$room->hashed_id}/void-draw", ['reason' => 'Sorteo trabado tras una caída'])
+            ->assertStatus(409);
+
+        $this->actingAs($this->makeAdmin())
+            ->postJson("/bingo-rooms/{$room->hashed_id}/void-draw", ['reason' => 'corto'])
+            ->assertUnprocessable();
+    }
+
     private function makeAdmin() : User
     {
         $admin = User::factory()->create(['country_id' => $this->country->id]);

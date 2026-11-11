@@ -14,9 +14,9 @@ use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
 use App\Domains\Games\Bingo\Models\Creator\BingoCreator;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
-use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomMetricsSynchronizer;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Domains\Games\Bingo\Models\Round\BingoRoundPrize;
+use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomMetricsSynchronizer;
 use App\Domains\Games\Bingo\ValueObjects\BingoRoomPrizeRules;
 use App\Domains\Wallet\Services\WalletService;
 use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
@@ -160,14 +160,6 @@ class BingoRoomCrudService
         throw BingoRoomException::roomNotAccessible();
     }
 
-    /**
-     * Cancelar una sala de bingo (cambiar estado a CANCELLED).
-     * Solo se puede cancelar si la sala está ACTIVE y tiene jugadores.
-     *
-     * @return bool True si la cancelación fue exitosa
-     *
-     * @throws BingoRoomException Si la sala no cumple las condiciones para cancelación
-     */
     public function cancel(BingoRoom $room) : bool
     {
         // Todas las validaciones y el UPDATE dentro de una transacción con lockForUpdate
@@ -779,6 +771,68 @@ class BingoRoomCrudService
     }
 
     /**
+     * Cancelar una sala de bingo (cambiar estado a CANCELLED).
+     * Solo se puede cancelar si la sala está ACTIVE y tiene jugadores.
+     *
+     * @return bool True si la cancelación fue exitosa
+     *
+     * @throws BingoRoomException Si la sala no cumple las condiciones para cancelación
+     */
+    /**
+     * Anula un sorteo ya iniciado que quedó trabado o corrupto: la sala pasa a
+     * CANCELLED y se reembolsan todos los lotes, igual que una cancelación.
+     * Solo sin premios registrados (si los hay, se resuelven uno a uno en
+     * "Premios por resolver"). Si el sorteo sigue corriendo, el bucle de
+     * BingoDrawService ve la sala CANCELLED antes de la próxima ficha y se
+     * detiene, y claimCardWin() no registra ganadores en una sala cancelada.
+     * Lo decide el controller: solo superadmin.
+     */
+    public function voidStartedDraw(BingoRoom $room, string $reason) : bool
+    {
+        DB::transaction(function() use ($room) {
+            $locked = BingoRoom::where('id', $room->id)
+                ->with(['status', 'config', 'rounds'])
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($locked->status?->code !== 'IN_PROGRESS' && ! $this->hasStartedDraw($locked)) {
+                throw BingoRoomException::voidDrawNotStarted();
+            }
+            if (in_array($locked->status?->code, ['FINISHED', 'CANCELLED', 'DELETED'], true)) {
+                throw BingoRoomException::voidDrawNotStarted();
+            }
+
+            if (\App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize::where('room_id', (string) $locked->id)->exists()) {
+                throw BingoRoomException::voidDrawHasPrizes();
+            }
+
+            $this->bingoRooms->changeGameStatus((string) $locked->id, 'CANCELLED');
+        });
+
+        $room->refresh();
+        $this->broadcastLobbyStatusChange($room, false, true);
+
+        $this->auditLogger->log(
+            $room,
+            BingoRoomAuditLogger::EVENT_CANCELLED,
+            'superadmin',
+            'Sorteo anulado: ' . $reason,
+            ['cancelled_by' => Auth::id(), 'reason' => $reason, 'voided_started_draw' => true],
+        );
+        $this->auditLogger->log(
+            $room,
+            BingoRoomAuditLogger::EVENT_REFUND_INITIATED,
+            'system',
+            'Reembolso de cartones iniciado (sorteo anulado)',
+            [],
+        );
+
+        $this->refundCardLotsForRoom($room);
+
+        return true;
+    }
+
+    /**
      * Crear sala base para create
      * - Crea registro en BingoRoom con estado ACTIVE y prize_pool 0
      * - Crea registro en BingoCreator para asociar creador con sala
@@ -1301,14 +1355,6 @@ class BingoRoomCrudService
     }
 
     /**
-     * Determina si el usuario tiene rol admin o superadmin vigente.
-     */
-    private function isUserAdmin(int $userId) : bool
-    {
-        return $this->resolveAdminRole($userId) !== null;
-    }
-
-    /**
      * Regla única del ciclo de vida: una sala queda protegida desde IN_PROGRESS,
      * incluso si el status global quedó desincronizado con las rondas.
      * Los callers deben tomar primero lockForUpdate sobre la sala.
@@ -1328,6 +1374,14 @@ class BingoRoomCrudService
         return BingoRound::where('room_id', (string) $room->id)
             ->whereIn('status', ['IN_PROGRESS', 'FINISHED'])
             ->exists();
+    }
+
+    /**
+     * Determina si el usuario tiene rol admin o superadmin vigente.
+     */
+    private function isUserAdmin(int $userId) : bool
+    {
+        return $this->resolveAdminRole($userId) !== null;
     }
 
     /**
