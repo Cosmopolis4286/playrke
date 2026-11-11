@@ -8,6 +8,11 @@ use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\Metrics\BingoLotSaleReversalService;
 use App\Domains\Games\Bingo\Services\Room\Metrics\RoomMetricsService;
 use App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomStateCoordinator;
+use App\Contracts\JackpotMovementRepositoryInterface;
+use App\Contracts\JackpotRepositoryInterface;
+use App\Models\Jackpot;
+use App\Services\Jackpot\JackpotLedgerService;
+use App\Services\Platform\PlatformWalletService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
@@ -34,8 +39,8 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
         $this->previousSqlMode = (string) DB::selectOne('SELECT @@SESSION.sql_mode AS m')->m;
         DB::statement("SET SESSION sql_mode = ''");
-        // PlatformWalletService/JackpotLedgerService son final (no mockeables); el
-        // servicio ya los envuelve en try/catch y DatabaseTransactions revierte lo que escriban.
+        // Los servicios de ledger se sustituyen por dobles en pruebas de fallo; las
+        // pruebas de venta exitosa usan los servicios reales y DatabaseTransactions.
     }
 
     protected function tearDown() : void
@@ -176,6 +181,113 @@ class RoomMetricsServicePrizePoolTypeTest extends TestCase
         // Idempotente: una segunda reversa del mismo lote no vuelve a tocar el jackpot.
         app(\App\Services\Jackpot\JackpotLedgerService::class)->reverseContribution($jackpotTypeId, 5.0, 'bingo-lot-jackpot-reversal-' . $lot->id);
         $this->assertEqualsWithDelta($jackpotAfter, (float) DB::table('jackpots')->where('jackpot_type_id', $jackpotTypeId)->value('amount'), 0.01);
+    }
+
+    #[Test]
+    public function un_fallo_al_acreditar_rke_impide_confirmar_la_venta() : void
+    {
+        $room = $this->makeRoom('ACCUMULATIVE');
+
+        app()->instance(PlatformWalletService::class, new class {
+            public function creditRke(string $currencyId, float $amount, string $description) : void
+            {
+                throw new \RuntimeException('wallet platform unavailable');
+            }
+        });
+
+        $this->assertSaleFailureRollsBack($room, [
+            'cardCount' => 1,
+            'currency' => $this->currencyId,
+            'creator' => ['id' => '1'],
+            'saleChannel' => 'wallet',
+        ]);
+    }
+
+    #[Test]
+    public function un_fallo_al_registrar_el_jackpot_impide_confirmar_la_venta() : void
+    {
+        $room = $this->makeRoom('ACCUMULATIVE', jackpotPct: 5);
+
+        app()->instance(JackpotLedgerService::class, new class {
+            public function contribute(
+                string $jackpotTypeId,
+                float $amount,
+                ?string $roomId = null,
+                ?string $description = null,
+                ?array $metadata = null,
+            ) : void {
+                throw new \RuntimeException('jackpot ledger unavailable');
+            }
+        });
+
+        $this->assertSaleFailureRollsBack($room, [
+            'cardCount' => 1,
+            'currency' => $this->currencyId,
+            'creator' => ['id' => '1'],
+            'saleChannel' => 'offline',
+        ]);
+    }
+
+    #[Test]
+    public function un_fallo_al_guardar_el_movimiento_revierte_el_saldo_del_jackpot() : void
+    {
+        $room = $this->makeRoom('ACCUMULATIVE', jackpotPct: 5);
+        $jackpotTypeId = '930000000000000999';
+        $jackpot = app(JackpotRepositoryInterface::class)->firstOrCreateByType($jackpotTypeId);
+        $balanceBefore = (float) $jackpot->amount;
+
+        $movementRepository = \Mockery::mock(JackpotMovementRepositoryInterface::class);
+        $movementRepository->shouldReceive('record')
+            ->once()
+            ->andThrow(new \RuntimeException('movement insert failed'));
+        app()->instance(JackpotMovementRepositoryInterface::class, $movementRepository);
+
+        try {
+            app(JackpotLedgerService::class)->contribute(
+                jackpotTypeId: $jackpotTypeId,
+                amount: 5.0,
+                roomId: (string) $room->id,
+            );
+            $this->fail('El aporte debe fallar si no puede guardar su movimiento.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('movement insert failed', $e->getMessage());
+        }
+
+        $this->assertEqualsWithDelta(
+            $balanceBefore,
+            (float) Jackpot::query()->whereKey($jackpot->id)->value('amount'),
+            0.001,
+        );
+    }
+
+    private function assertSaleFailureRollsBack(BingoRoom $room, array $saleData) : void
+    {
+        try {
+            DB::transaction(function() use ($room, $saleData) : void {
+                $breakdown = null;
+                $ok = app(RoomMetricsService::class)->updateRoomMetricsWithCommissions(
+                    $room,
+                    $saleData,
+                    100.0,
+                    0.0,
+                    $breakdown,
+                );
+
+                if (! $ok) {
+                    throw new \RuntimeException('La venta debe revertirse si falla un asiento financiero.');
+                }
+            });
+
+            $this->fail('Se confirmó una venta sin registrar todos sus asientos financieros.');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('revertirse', $e->getMessage());
+        }
+
+        $fresh = $room->fresh();
+        $this->assertEqualsWithDelta(0.0, (float) $fresh->total_sales, 0.001);
+        $this->assertEqualsWithDelta(0.0, (float) $fresh->rke_commission, 0.001);
+        $this->assertEqualsWithDelta(0.0, (float) $fresh->room_commission, 0.001);
+        $this->assertDatabaseMissing('bingo_creator_sales', ['room_id' => $room->id]);
     }
 
     /** @param string[] $roundTypes tipos canónicos de bingo_rounds.prize_type (PCT/FIXED/OTHER) */

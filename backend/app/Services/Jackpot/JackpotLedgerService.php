@@ -12,9 +12,8 @@ use Illuminate\Support\Facades\Log;
 /**
  * Acumulación del jackpot — SOLO aporta al pozo, no paga ni entrega premios
  * (fuera de alcance de esta iteración). Mismo patrón que
- * PlatformWalletService::creditRke(): UPDATE atómico a nivel SQL vía
- * JackpotRepository::incrementAmount(), sin DB::transaction()/lockForUpdate()
- * explícito.
+ * PlatformWalletService::creditRke(): transacción y lockForUpdate para mantener
+ * el saldo y su movimiento inseparables incluso ante escrituras concurrentes.
  */
 final class JackpotLedgerService
 {
@@ -35,22 +34,25 @@ final class JackpotLedgerService
             return;
         }
 
-        $jackpot = $this->jackpots->firstOrCreateByType($jackpotTypeId);
-        $balanceBefore = (float) $jackpot->amount;
+        DB::transaction(function() use ($jackpotTypeId, $amount, $roomId, $description, $metadata) {
+            $jackpot = $this->jackpots->firstOrCreateByType($jackpotTypeId);
+            $locked = Jackpot::query()->whereKey($jackpot->id)->lockForUpdate()->firstOrFail();
+            $balanceBefore = (float) $locked->amount;
 
-        $this->jackpots->incrementAmount((string) $jackpot->id, $amount);
-        $jackpot->refresh();
+            $this->jackpots->incrementAmount((string) $locked->id, $amount);
+            $locked->refresh();
 
-        $this->movements->record([
-            'jackpot_id' => (string) $jackpot->id,
-            'room_id' => $roomId,
-            'type' => JackpotMovement::TYPE_CONTRIBUTION,
-            'amount' => $amount,
-            'balance_before' => $balanceBefore,
-            'balance_after' => (float) $jackpot->amount,
-            'description' => $description ?? 'Aporte por venta de cartón',
-            'metadata' => $metadata,
-        ]);
+            $this->movements->record([
+                'jackpot_id' => (string) $locked->id,
+                'room_id' => $roomId,
+                'type' => JackpotMovement::TYPE_CONTRIBUTION,
+                'amount' => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after' => (float) $locked->amount,
+                'description' => $description ?? 'Aporte por venta de cartón',
+                'metadata' => $metadata,
+            ]);
+        });
     }
 
     /**
