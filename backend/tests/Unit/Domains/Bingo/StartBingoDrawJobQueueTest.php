@@ -20,6 +20,6 @@ class StartBingoDrawJobQueueTest extends TestCase
 
         $this->assertSame('bingo-draw', $job->connection);
         $this->assertSame('bingo-draw', $job->queue);
-        $this->assertSame(3600, (int) config('queue.connections.bingo-draw.retry_after'));
+        $this->assertSame(5400, (int) config('queue.connections.bingo-draw.retry_after'));
     }
 }
