@@ -94,11 +94,18 @@ class PlatformWalletServiceTest extends TestCase
         $this->assertSame(15.0, (float) $movement->amount);
     }
 
-    public function test_credit_rke_with_negative_amount_does_not_credit() : void
+    public function test_credit_rke_with_negative_amount_throws_and_does_not_credit() : void
     {
         $currency = $this->usd();
 
-        $this->service->creditRke((string) $currency->id, -10.0);
+        // Un monto negativo es un error de cálculo aguas arriba: falla para que
+        // la venta que lo originó se revierta entera, en vez de ignorarse.
+        try {
+            $this->service->creditRke((string) $currency->id, -10.0);
+            $this->fail('Debió rechazar el monto negativo');
+        } catch (InvalidArgumentException) {
+            // esperado
+        }
 
         $wallet = $this->service->resolveWallet((string) $currency->id);
         $this->assertNull($wallet);
