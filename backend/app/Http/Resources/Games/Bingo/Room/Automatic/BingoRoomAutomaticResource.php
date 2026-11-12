@@ -47,6 +47,7 @@ class BingoRoomAutomaticResource extends JsonResource
                 'jackpot_pct' => $this->jackpot_pct,
                 'jackpot_type_id' => $this->jackpot_type_id,
                 'time_chip' => $this->time_chip,
+                'round_pause_seconds' => $this->round_pause_seconds,
                 'rounds' => $this->rounds,
                 'rounds_pct' => $this->rounds_pct,
                 'use_serials' => (bool) $this->use_serials,

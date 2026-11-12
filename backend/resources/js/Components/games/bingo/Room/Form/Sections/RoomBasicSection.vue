@@ -1,144 +1,144 @@
 <script setup lang="ts">
-  import { computed } from 'vue'
+import { computed } from 'vue'
 
-  import FormInput from '@/js/Components/Common/Form/FormInput.vue'
-  import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
-  import AsyncSelect from '@/js/Components/Common/Form/AsyncSelect.vue'
-  import RoomCapacitySection from './RoomCapacitySection.vue'
-  import { searchUsers } from '@/js/composables/users/useUserSearch'
-  import { showToast } from '@/js/utils/toastNotify'
-  import { generateAccessCode, generateRoomPassword } from '../Composables/useRoomPrivateAccess'
-  import {
-    BINGO_ROOM_INT_LIMITS,
-    BINGO_ROOM_TEXT_LIMITS,
-    minPlayersFloor
-  } from '@/js/composables/games/bingo/room/shared/bingoRoomFormSchema'
+import FormInput from '@/js/Components/Common/Form/FormInput.vue'
+import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
+import AsyncSelect from '@/js/Components/Common/Form/AsyncSelect.vue'
+import RoomCapacitySection from './RoomCapacitySection.vue'
+import { searchUsers } from '@/js/composables/users/useUserSearch'
+import { showToast } from '@/js/utils/toastNotify'
+import { generateAccessCode, generateRoomPassword } from '../Composables/useRoomPrivateAccess'
+import {
+  BINGO_ROOM_INT_LIMITS,
+  BINGO_ROOM_TEXT_LIMITS,
+  minPlayersFloor
+} from '@/js/composables/games/bingo/room/shared/bingoRoomFormSchema'
 
-  import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
-  import type {
-    BingoRoomAutomaticFormData,
-    DayOfWeek
-  } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
+import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
+import type {
+  BingoRoomAutomaticFormData,
+  DayOfWeek
+} from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
 import { SelectOption } from '@/js/types/common/form/form'
 
-  const props = defineProps<{
-    modelValue: BingoRoomFormData | BingoRoomAutomaticFormData
-    errors: Record<string, any>
-    automaticRoom?: boolean
-    roomTypeOptions: SelectOption[]
-    connectionTypeOptions: SelectOption[]
-    gameModeOptions: SelectOption[]
-    prizePoolTypeOptions: SelectOption[]
-    jackpotTypeOptions?: SelectOption[]
-    roomCommn: string | number
-    jackpotPct: string | number
-    percentageLimits: {
-      roomCommn: { min: number; max: number }
-      jackpotPct: { min: number; max: number }
-    }
-    /** Etiqueta del anfitrión ya asignado (para precargar el AsyncSelect al editar sin re-buscarlo). */
-    hostUserLabel?: string | null
-    /** Sala con ventas: tipo de bote y variante no se pueden cambiar (el backend lo rechaza). */
-    lockedBySales?: boolean
-  }>()
+const props = defineProps<{
+  modelValue: BingoRoomFormData | BingoRoomAutomaticFormData
+  errors: Record<string, any>
+  automaticRoom?: boolean
+  roomTypeOptions: SelectOption[]
+  connectionTypeOptions: SelectOption[]
+  gameModeOptions: SelectOption[]
+  prizePoolTypeOptions: SelectOption[]
+  jackpotTypeOptions?: SelectOption[]
+  roomCommn: string | number
+  jackpotPct: string | number
+  percentageLimits: {
+    roomCommn: { min: number; max: number }
+    jackpotPct: { min: number; max: number }
+  }
+  /** Etiqueta del anfitrión ya asignado (para precargar el AsyncSelect al editar sin re-buscarlo). */
+  hostUserLabel?: string | null
+  /** Sala con ventas: tipo de bote y variante no se pueden cambiar (el backend lo rechaza). */
+  lockedBySales?: boolean
+}>()
 
-  const emit = defineEmits<{
-    (e: 'update:modelValue', value: BingoRoomFormData | BingoRoomAutomaticFormData): void
-    (e: 'update:roomCommn', value: string | number): void
-    (e: 'update:jackpotPct', value: string | number): void
-  }>()
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: BingoRoomFormData | BingoRoomAutomaticFormData): void
+  (e: 'update:roomCommn', value: string | number): void
+  (e: 'update:jackpotPct', value: string | number): void
+}>()
 
-  const GAME_VARIANT_OPTIONS: SelectOption[] = [
-    { value: 'BINGO_75', label: 'Bingo 75 bolas (5×5, B·I·N·G·O)' },
-    { value: 'BINGO_90', label: 'Bingo 90 bolas (3×9, líneas)' },
-    { value: 'BINGO_80', label: 'Bingo 80 bolas (4×4)' },
-    { value: 'BINGO_30', label: 'Speed Bingo 30 bolas (3×3)' },
-  ]
+const GAME_VARIANT_OPTIONS: SelectOption[] = [
+  { value: 'BINGO_75', label: 'Bingo 75 bolas (5×5, B·I·N·G·O)' },
+  { value: 'BINGO_90', label: 'Bingo 90 bolas (3×9, líneas)' },
+  { value: 'BINGO_80', label: 'Bingo 80 bolas (4×4)' },
+  { value: 'BINGO_30', label: 'Speed Bingo 30 bolas (3×3)' }
+]
 
-  const START_MODE_OPTIONS: SelectOption[] = [
-    { value: 'SCHEDULED', label: 'Programado' },
-    { value: 'MANUAL', label: 'Manual (sin horario fijo)' }
-  ]
+const START_MODE_OPTIONS: SelectOption[] = [
+  { value: 'SCHEDULED', label: 'Programado' },
+  { value: 'MANUAL', label: 'Manual (sin horario fijo)' }
+]
 
-  const DAYS_OPTIONS: { value: DayOfWeek; label: string }[] = [
-    { value: 'monday', label: 'Lunes' },
-    { value: 'tuesday', label: 'Martes' },
-    { value: 'wednesday', label: 'Miércoles' },
-    { value: 'thursday', label: 'Jueves' },
-    { value: 'friday', label: 'Viernes' },
-    { value: 'saturday', label: 'Sábado' },
-    { value: 'sunday', label: 'Domingo' }
-  ]
+const DAYS_OPTIONS: { value: DayOfWeek; label: string }[] = [
+  { value: 'monday', label: 'Lunes' },
+  { value: 'tuesday', label: 'Martes' },
+  { value: 'wednesday', label: 'Miércoles' },
+  { value: 'thursday', label: 'Jueves' },
+  { value: 'friday', label: 'Viernes' },
+  { value: 'saturday', label: 'Sábado' },
+  { value: 'sunday', label: 'Domingo' }
+]
 
-  /* ==========================================================================
+/* ==========================================================================
    * Computed
    * ========================================================================== */
 
-  const minDate = computed(() => {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  })
+const minDate = computed(() => {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+})
 
-  const minTime = computed(() => {
-    if (props.automaticRoom) return undefined
-    const todayStr = minDate.value
-    if (props.modelValue.date !== todayStr) return undefined
-    const min15 = new Date(Date.now() + 15 * 60 * 1000)
-    return `${String(min15.getHours()).padStart(2, '0')}:${String(min15.getMinutes()).padStart(2, '0')}`
-  })
+const minTime = computed(() => {
+  if (props.automaticRoom) return undefined
+  const todayStr = minDate.value
+  if (props.modelValue.date !== todayStr) return undefined
+  const min15 = new Date(Date.now() + 15 * 60 * 1000)
+  return `${String(min15.getHours()).padStart(2, '0')}:${String(min15.getMinutes()).padStart(2, '0')}`
+})
 
-  const isManualStart = computed(
-    () => !props.automaticRoom && (props.modelValue as BingoRoomFormData).startMode === 'MANUAL'
-  )
+const isManualStart = computed(
+  () => !props.automaticRoom && (props.modelValue as BingoRoomFormData).startMode === 'MANUAL'
+)
 
-  /** true si el "Tipo de Sala" seleccionado tiene código PRIVATE (busca el código en roomTypeOptions, ya que roomType viaja como id). */
-  const isPrivateRoom = computed(() => {
-    const selected = props.roomTypeOptions.find(o => String(o.value) === String(props.modelValue.roomType))
-    return selected?.code === 'PRIVATE'
-  })
+/** true si el "Tipo de Sala" seleccionado tiene código PRIVATE (busca el código en roomTypeOptions, ya que roomType viaja como id). */
+const isPrivateRoom = computed(() => {
+  const selected = props.roomTypeOptions.find(o => String(o.value) === String(props.modelValue.roomType))
+  return selected?.code === 'PRIVATE'
+})
 
-  /** true si el tipo elegido es PUBLIC: solo ahí aplica el interruptor de venta cruzada. */
-  const isPublicRoom = computed(() => {
-    const selected = props.roomTypeOptions.find(o => String(o.value) === String(props.modelValue.roomType))
-    return selected?.code === 'PUBLIC'
-  })
+/** true si el tipo elegido es PUBLIC: solo ahí aplica el interruptor de venta cruzada. */
+const isPublicRoom = computed(() => {
+  const selected = props.roomTypeOptions.find(o => String(o.value) === String(props.modelValue.roomType))
+  return selected?.code === 'PUBLIC'
+})
 
-  /** Piso de jugadores según el modo de juego elegido (Solitario permite 1). */
-  const playersFloor = computed(() => {
-    const code = props.gameModeOptions.find(o => String(o.value) === String((props.modelValue as any).gameMode))?.code
-    return minPlayersFloor(code)
-  })
+/** Piso de jugadores según el modo de juego elegido (Solitario permite 1). */
+const playersFloor = computed(() => {
+  const code = props.gameModeOptions.find(o => String(o.value) === String((props.modelValue as any).gameMode))?.code
+  return minPlayersFloor(code)
+})
 
-  const hostUserInitialOption = computed(() => {
-    if (!props.modelValue.hostUserId) return null
-    return { value: props.modelValue.hostUserId, label: props.hostUserLabel ?? String(props.modelValue.hostUserId) }
-  })
+const hostUserInitialOption = computed(() => {
+  if (!props.modelValue.hostUserId) return null
+  return { value: props.modelValue.hostUserId, label: props.hostUserLabel ?? String(props.modelValue.hostUserId) }
+})
 
-  /* ==========================================================================
+/* ==========================================================================
    * Handlers
    * ========================================================================== */
 
-  function onStartModeChange(value: string | number | (string | number)[] | null): void {
-    const startMode = value as 'SCHEDULED' | 'MANUAL'
+function onStartModeChange(value: string | number | (string | number)[] | null): void {
+  const startMode = value as 'SCHEDULED' | 'MANUAL'
 
-    emit('update:modelValue', {
-      ...props.modelValue,
-      startMode,
-      ...(startMode === 'MANUAL' ? { date: null, time: null } : {})
-    } as BingoRoomFormData)
-  }
+  emit('update:modelValue', {
+    ...props.modelValue,
+    startMode,
+    ...(startMode === 'MANUAL' ? { date: null, time: null } : {})
+  } as BingoRoomFormData)
+}
 
-  function onGenerateAccessCode(): void {
-    emit('update:modelValue', { ...props.modelValue, accessCode: generateAccessCode() } as any)
-  }
+function onGenerateAccessCode(): void {
+  emit('update:modelValue', { ...props.modelValue, accessCode: generateAccessCode() } as any)
+}
 
-  function onGenerateRoomPassword(): void {
-    emit('update:modelValue', { ...props.modelValue, roomPassword: generateRoomPassword() } as any)
-  }
+function onGenerateRoomPassword(): void {
+  emit('update:modelValue', { ...props.modelValue, roomPassword: generateRoomPassword() } as any)
+}
 
-  function onHostUserNoResults(query: string): void {
-    showToast(`No se encontraron usuarios para "${query}".`, 'info')
-  }
+function onHostUserNoResults(query: string): void {
+  showToast(`No se encontraron usuarios para "${query}".`, 'info')
+}
 </script>
 
 <template>
@@ -146,7 +146,7 @@ import { SelectOption } from '@/js/types/common/form/form'
     <!-- Horario -->
     <div class="col-12">
       <p class="mb-2" style="font-weight: 600; font-size: 0.85rem">
-        <i class="fa-solid fa-calendar-days mr-1" style="opacity: 0.7"></i>
+        <i class="fa-solid fa-calendar-days mr-1" style="opacity: 0.7" />
         Horario
       </p>
       <p class="text-muted mb-2" style="font-size: 0.78rem">
@@ -163,11 +163,11 @@ import { SelectOption } from '@/js/types/common/form/form'
       required
       placeholder="Selecciona modo de inicio"
       :options="START_MODE_OPTIONS"
-      optionValue="value"
-      optionLabel="label"
+      option-value="value"
+      option-label="label"
       col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="(modelValue as BingoRoomFormData).startMode ?? 'SCHEDULED'"
-      @update:modelValue="onStartModeChange"
+      :model-value="(modelValue as BingoRoomFormData).startMode ?? 'SCHEDULED'"
+      @update:model-value="onStartModeChange"
     />
 
     <!-- Fecha (solo salas normales programadas) -->
@@ -180,8 +180,8 @@ import { SelectOption } from '@/js/types/common/form/form'
       required
       :min="minDate"
       col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="modelValue.date"
-      @update:modelValue="emit('update:modelValue', { ...modelValue, date: $event })"
+      :model-value="modelValue.date"
+      @update:model-value="emit('update:modelValue', { ...modelValue, date: $event })"
     />
 
     <!-- Días de publicación (solo salas automáticas) -->
@@ -194,11 +194,11 @@ import { SelectOption } from '@/js/types/common/form/form'
       multiple
       placeholder="Seleccionar días"
       :options="DAYS_OPTIONS"
-      optionValue="value"
-      optionLabel="label"
+      option-value="value"
+      option-label="label"
       col="col-sm-6"
-      :modelValue="(modelValue as BingoRoomAutomaticFormData).days ?? []"
-      @update:modelValue="
+      :model-value="(modelValue as BingoRoomAutomaticFormData).days ?? []"
+      @update:model-value="
         emit('update:modelValue', { ...modelValue, days: $event } as BingoRoomAutomaticFormData)
       "
     />
@@ -213,15 +213,15 @@ import { SelectOption } from '@/js/types/common/form/form'
       required
       :min="minTime"
       col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="modelValue.time"
-      @update:modelValue="emit('update:modelValue', { ...modelValue, time: $event })"
+      :model-value="modelValue.time"
+      @update:model-value="emit('update:modelValue', { ...modelValue, time: $event })"
     />
 
     <!-- Tipo y acceso -->
     <div class="col-12">
-      <hr style="margin: 0.25rem 0 0.75rem" />
+      <hr style="margin: 0.25rem 0 0.75rem">
       <p class="mb-2" style="font-weight: 600; font-size: 0.85rem">
-        <i class="fa-solid fa-door-open mr-1" style="opacity: 0.7"></i>
+        <i class="fa-solid fa-door-open mr-1" style="opacity: 0.7" />
         Tipo y acceso
       </p>
       <p class="text-muted mb-2" style="font-size: 0.78rem">
@@ -237,11 +237,11 @@ import { SelectOption } from '@/js/types/common/form/form'
       required
       placeholder="Selecciona tipo"
       :options="roomTypeOptions"
-      optionValue="value"
-      optionLabel="label"
+      option-value="value"
+      option-label="label"
       col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="modelValue.roomType"
-      @update:modelValue="emit('update:modelValue', { ...modelValue, roomType: $event })"
+      :model-value="modelValue.roomType"
+      @update:model-value="emit('update:modelValue', { ...modelValue, roomType: $event })"
     />
 
     <!-- Sala pública: ¿otras redes de venta pueden venderla? (no aplica a salas automáticas) -->
@@ -254,7 +254,7 @@ import { SelectOption } from '@/js/types/common/form/form'
           class="custom-control-input"
           :checked="(modelValue as any).allowNetworkSales ?? true"
           @change="emit('update:modelValue', { ...modelValue, allowNetworkSales: ($event.target as HTMLInputElement).checked } as any)"
-        />
+        >
         <label class="custom-control-label" for="allow_network_sales" style="font-weight: 500">
           Otras redes de venta pueden vender esta sala
         </label>
@@ -278,9 +278,9 @@ import { SelectOption } from '@/js/types/common/form/form'
         :maxlength="BINGO_ROOM_TEXT_LIMITS.accessCode.max"
         :hint="`Entre ${BINGO_ROOM_TEXT_LIMITS.accessCode.min} y ${BINGO_ROOM_TEXT_LIMITS.accessCode.max} caracteres.`"
         col="col-sm-6 col-md-4 col-lg-3"
-        inputGroup
-        :modelValue="(modelValue as any).accessCode ?? null"
-        @update:modelValue="emit('update:modelValue', { ...modelValue, accessCode: $event } as any)"
+        input-group
+        :model-value="(modelValue as any).accessCode ?? null"
+        @update:model-value="emit('update:modelValue', { ...modelValue, accessCode: $event } as any)"
       >
         <template #append>
           <button
@@ -289,7 +289,7 @@ import { SelectOption } from '@/js/types/common/form/form'
             title="Generar código automáticamente"
             @click="onGenerateAccessCode"
           >
-            <i class="fa-solid fa-dice"></i>
+            <i class="fa-solid fa-dice" />
           </button>
         </template>
       </FormInput>
@@ -305,9 +305,9 @@ import { SelectOption } from '@/js/types/common/form/form'
         :maxlength="BINGO_ROOM_TEXT_LIMITS.roomPassword.max"
         :hint="`Mínimo ${BINGO_ROOM_TEXT_LIMITS.roomPassword.min} caracteres.`"
         col="col-sm-6 col-md-4 col-lg-3"
-        inputGroup
-        :modelValue="(modelValue as any).roomPassword ?? null"
-        @update:modelValue="emit('update:modelValue', { ...modelValue, roomPassword: $event } as any)"
+        input-group
+        :model-value="(modelValue as any).roomPassword ?? null"
+        @update:model-value="emit('update:modelValue', { ...modelValue, roomPassword: $event } as any)"
       >
         <template #append>
           <button
@@ -316,7 +316,7 @@ import { SelectOption } from '@/js/types/common/form/form'
             title="Generar contraseña automáticamente"
             @click="onGenerateRoomPassword"
           >
-            <i class="fa-solid fa-key"></i>
+            <i class="fa-solid fa-key" />
           </button>
         </template>
       </FormInput>
@@ -330,17 +330,17 @@ import { SelectOption } from '@/js/types/common/form/form'
         col="col-sm-6 col-md-4 col-lg-3"
         :search="searchUsers"
         :initial-option="hostUserInitialOption"
-        :modelValue="(modelValue as any).hostUserId ?? null"
-        @update:modelValue="emit('update:modelValue', { ...modelValue, hostUserId: $event } as any)"
+        :model-value="(modelValue as any).hostUserId ?? null"
+        @update:model-value="emit('update:modelValue', { ...modelValue, hostUserId: $event } as any)"
         @no-results="onHostUserNoResults"
       />
     </template>
 
     <!-- Capacidad de la sala: min/máx cartones, min/máx jugadores -->
     <div class="col-12">
-      <hr style="margin: 0.25rem 0 0.75rem" />
+      <hr style="margin: 0.25rem 0 0.75rem">
       <p class="mb-2" style="font-weight: 600; font-size: 0.85rem">
-        <i class="fa-solid fa-gauge-high mr-1" style="opacity: 0.7"></i>
+        <i class="fa-solid fa-gauge-high mr-1" style="opacity: 0.7" />
         Capacidad de la sala
       </p>
       <p class="text-muted mb-2" style="font-size: 0.78rem">
@@ -348,17 +348,17 @@ import { SelectOption } from '@/js/types/common/form/form'
       </p>
     </div>
     <RoomCapacitySection
-      :modelValue="modelValue as BingoRoomFormData"
+      :model-value="modelValue as BingoRoomFormData"
       :errors="errors"
-      :playersFloor="playersFloor"
-      @update:modelValue="emit('update:modelValue', $event as any)"
+      :players-floor="playersFloor"
+      @update:model-value="emit('update:modelValue', $event as any)"
     />
 
     <!-- Configuración general -->
     <div class="col-12">
-      <hr style="margin: 0.25rem 0 0.75rem" />
+      <hr style="margin: 0.25rem 0 0.75rem">
       <p class="mb-2" style="font-weight: 600; font-size: 0.85rem">
-        <i class="fa-solid fa-sliders mr-1" style="opacity: 0.7"></i>
+        <i class="fa-solid fa-sliders mr-1" style="opacity: 0.7" />
         Configuración general
       </p>
       <p class="text-muted mb-2" style="font-size: 0.78rem">
@@ -368,18 +368,18 @@ import { SelectOption } from '@/js/types/common/form/form'
 
     <!-- Tipo de Conexión -->
     <FormSelect
+      id="connection-type"
       label="Tipo de Conexión"
       name="connection_type"
       :error="errors.connectionType"
-      id="connection-type"
       required
       placeholder="Selecciona tipo de conexión"
       :options="connectionTypeOptions"
-      optionValue="value"
-      optionLabel="label"
+      option-value="value"
+      option-label="label"
       col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="modelValue.connectionType"
-      @update:modelValue="emit('update:modelValue', { ...modelValue, connectionType: $event })"
+      :model-value="modelValue.connectionType"
+      @update:model-value="emit('update:modelValue', { ...modelValue, connectionType: $event })"
     />
 
     <!-- Modo de Juego (Solitario, Múltiple, Ranking...) -->
@@ -390,11 +390,11 @@ import { SelectOption } from '@/js/types/common/form/form'
       required
       placeholder="Selecciona modo de juego"
       :options="gameModeOptions"
-      optionValue="value"
-      optionLabel="label"
+      option-value="value"
+      option-label="label"
       col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="(modelValue as any).gameMode ?? null"
-      @update:modelValue="emit('update:modelValue', { ...modelValue, gameMode: $event } as any)"
+      :model-value="(modelValue as any).gameMode ?? null"
+      @update:model-value="emit('update:modelValue', { ...modelValue, gameMode: $event } as any)"
     />
 
     <!-- Variante de Bingo -->
@@ -406,11 +406,11 @@ import { SelectOption } from '@/js/types/common/form/form'
       required
       placeholder="Selecciona variante"
       :options="GAME_VARIANT_OPTIONS"
-      optionValue="value"
-      optionLabel="label"
+      option-value="value"
+      option-label="label"
       col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="(modelValue as any).gameVariant ?? 'BINGO_75'"
-      @update:modelValue="emit('update:modelValue', { ...modelValue, gameVariant: $event } as any)"
+      :model-value="(modelValue as any).gameVariant ?? 'BINGO_75'"
+      @update:model-value="emit('update:modelValue', { ...modelValue, gameVariant: $event } as any)"
     />
 
     <!-- Tipo Bote -->
@@ -422,18 +422,18 @@ import { SelectOption } from '@/js/types/common/form/form'
       required
       placeholder="Selecciona tipo bote"
       :options="prizePoolTypeOptions"
-      optionValue="value"
-      optionLabel="label"
+      option-value="value"
+      option-label="label"
       col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="modelValue.prizePoolType"
-      @update:modelValue="emit('update:modelValue', { ...modelValue, prizePoolType: $event })"
+      :model-value="modelValue.prizePoolType"
+      @update:model-value="emit('update:modelValue', { ...modelValue, prizePoolType: $event })"
     />
 
     <!-- %Sala -->
     <FormInput
+      id="room-commn"
       label="%Sala"
       name="room_commission"
-      id="room-commn"
       :error="errors.roomCommn"
       :hint="`% del bote que se queda la casa como comisión (${percentageLimits.roomCommn.min} a ${percentageLimits.roomCommn.max}).`"
       type="number"
@@ -442,8 +442,8 @@ import { SelectOption } from '@/js/types/common/form/form'
       :min="percentageLimits.roomCommn.min"
       :max="percentageLimits.roomCommn.max"
       col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="roomCommn"
-      @update:modelValue="emit('update:roomCommn', $event)"
+      :model-value="roomCommn"
+      @update:model-value="emit('update:roomCommn', $event)"
     />
 
     <!-- Tiempo Ficha -->
@@ -459,9 +459,30 @@ import { SelectOption } from '@/js/types/common/form/form'
       :min="BINGO_ROOM_INT_LIMITS.timeChip.min"
       :max="BINGO_ROOM_INT_LIMITS.timeChip.max"
       col="col-sm-6 col-md-4 col-lg-3"
-      inputGroup
-      :modelValue="modelValue.timeChip"
-      @update:modelValue="emit('update:modelValue', { ...modelValue, timeChip: $event })"
+      input-group
+      :model-value="modelValue.timeChip"
+      @update:model-value="emit('update:modelValue', { ...modelValue, timeChip: $event })"
+    >
+      <template #append>
+        <span class="input-group-text">SEG</span>
+      </template>
+    </FormInput>
+
+    <!-- Pausa entre rondas (opcional): vacío = valor global de la plataforma -->
+    <FormInput
+      label="Pausa entre rondas"
+      name="round_pause_seconds"
+      :error="(errors as any).roundPauseSeconds"
+      :hint="`Segundos de espera antes de la siguiente ronda (${BINGO_ROOM_INT_LIMITS.roundPauseSeconds.min} a ${BINGO_ROOM_INT_LIMITS.roundPauseSeconds.max}). Vacío = valor por defecto.`"
+      type="number"
+      integer
+      :step="1"
+      :min="BINGO_ROOM_INT_LIMITS.roundPauseSeconds.min"
+      :max="BINGO_ROOM_INT_LIMITS.roundPauseSeconds.max"
+      col="col-sm-6 col-md-4 col-lg-3"
+      input-group
+      :model-value="modelValue.roundPauseSeconds"
+      @update:model-value="emit('update:modelValue', { ...modelValue, roundPauseSeconds: $event === '' ? null : $event })"
     >
       <template #append>
         <span class="input-group-text">SEG</span>
@@ -476,11 +497,11 @@ import { SelectOption } from '@/js/types/common/form/form'
       :error="(errors as any).jackpotType"
       placeholder="Sin jackpot (opcional)"
       :options="jackpotTypeOptions ?? []"
-      optionValue="value"
-      optionLabel="label"
+      option-value="value"
+      option-label="label"
       col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="(modelValue as any).jackpotType ?? null"
-      @update:modelValue="
+      :model-value="(modelValue as any).jackpotType ?? null"
+      @update:model-value="
         emit('update:modelValue', { ...modelValue, jackpotType: $event } as any);
         if (!$event) emit('update:jackpotPct', '')
       "
@@ -489,9 +510,9 @@ import { SelectOption } from '@/js/types/common/form/form'
     <!-- %Jackpot: deshabilitado hasta elegir un tipo de jackpot arriba, ya que
          el % no tiene sentido sin saber a qué pozo se destina. -->
     <FormInput
+      id="jackpot-pct"
       label="%Jackpot"
       name="jackpot_pct"
-      id="jackpot-pct"
       :error="(errors as any).jackpotPct"
       :hint="(modelValue as any).jackpotType ? `% del bote destinado al jackpot (${percentageLimits.jackpotPct.min} a ${percentageLimits.jackpotPct.max}).` : 'Elige primero un tipo de Jackpot para poder configurar el %.'"
       :required="!!(modelValue as any).jackpotType"
@@ -502,8 +523,8 @@ import { SelectOption } from '@/js/types/common/form/form'
       :max="percentageLimits.jackpotPct.max"
       :placeholder="(modelValue as any).jackpotType ? `Ej: ${percentageLimits.jackpotPct.min}` : 'Sin jackpot'"
       col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="jackpotPct"
-      @update:modelValue="emit('update:jackpotPct', $event)"
+      :model-value="jackpotPct"
+      @update:model-value="emit('update:jackpotPct', $event)"
     />
 
     <!-- Días de Anticipación de Ventas (solo salas automáticas) -->
@@ -520,9 +541,9 @@ import { SelectOption } from '@/js/types/common/form/form'
       :min="BINGO_ROOM_INT_LIMITS.salesStartOffsetDays.min"
       :max="BINGO_ROOM_INT_LIMITS.salesStartOffsetDays.max"
       col="col-sm-6 col-md-4 col-lg-3"
-      inputGroup
-      :modelValue="(modelValue as BingoRoomAutomaticFormData).salesStartOffsetDays ?? null"
-      @update:modelValue="
+      input-group
+      :model-value="(modelValue as BingoRoomAutomaticFormData).salesStartOffsetDays ?? null"
+      @update:model-value="
         emit('update:modelValue', {
           ...modelValue,
           salesStartOffsetDays: $event === '' || $event === null ? null : Number($event)
@@ -533,6 +554,5 @@ import { SelectOption } from '@/js/types/common/form/form'
         <span class="input-group-text" title="La sala se publica este número de días antes de que inicie el juego">DÍAS</span>
       </template>
     </FormInput>
-
   </div>
 </template>

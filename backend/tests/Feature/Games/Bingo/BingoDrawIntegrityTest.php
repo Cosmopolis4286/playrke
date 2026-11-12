@@ -232,6 +232,27 @@ class BingoDrawIntegrityTest extends TestCase
         $this->assertStringContainsString('compartido entre 2', (string) $prizes[0]->prize_notes);
     }
 
+    #[Test]
+    public function la_pausa_entre_rondas_de_la_sala_prevalece_sobre_la_global() : void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        \Illuminate\Support\Facades\Event::fake([\App\Domains\Games\Bingo\Events\BingoRoundStarting::class]);
+        config(['bingo.round_pause_seconds' => 30]);
+
+        ['room' => $room, 'pattern' => $pattern] = $this->makeRoom('N3');
+        $room->update(['prize_pool' => 100]);
+        $room->config->update(['rounds' => '2', 'round_pause_seconds' => 120]);
+        $round2 = BingoRound::create([
+            'room_id' => $room->id, 'room_config_id' => $room->config->id, 'round' => 2,
+            'prize_type' => 'PCT', 'bingo_pattern_id' => $pattern->id, 'status' => 'ACTIVE',
+        ]);
+        $this->makeCard($room, 'APPROVED');
+
+        app(BingoDrawService::class)->startDraw($room->fresh());
+
+        $this->assertEqualsWithDelta(120, now()->diffInSeconds($round2->fresh()->start_time), 5);
+    }
+
     /**
      * Auditoría punto 10: al cerrar una ronda que no es la última, la siguiente
      * queda programada tras la pausa, se avisa a los clientes y no arranca antes.

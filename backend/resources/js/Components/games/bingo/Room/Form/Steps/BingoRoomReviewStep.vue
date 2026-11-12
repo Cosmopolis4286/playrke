@@ -56,7 +56,7 @@ const expanded = reactive<Record<StepKey, boolean>>({
   basic: stepHasErrors('basic'),
   currencies: stepHasErrors('currencies'),
   rounds: stepHasErrors('rounds'),
-  options: stepHasErrors('options'),
+  options: stepHasErrors('options')
 })
 
 function toggleSection(step: StepKey): void {
@@ -127,9 +127,9 @@ const roomModeLabel = computed(() => {
 })
 
 const CUSTOM_CARD_MODE_LABELS: Record<string, string> = {
-  paid:     'Con costo adicional',
-  every_x:  'Cada X cartones',
-  free:     'Uso libre',
+  paid: 'Con costo adicional',
+  every_x: 'Cada X cartones',
+  free: 'Uso libre'
 }
 
 const customCardModeLabel = computed(() => {
@@ -160,7 +160,7 @@ function formatRelativeTime(iso: string | null | undefined): string | null {
   if (diffSec < 60) return 'hace instantes'
 
   const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
-    ['year', 31536000], ['month', 2592000], ['day', 86400], ['hour', 3600], ['minute', 60],
+    ['year', 31536000], ['month', 2592000], ['day', 86400], ['hour', 3600], ['minute', 60]
   ]
   const rtf = new Intl.RelativeTimeFormat('es', { numeric: 'auto' })
   for (const [unit, secondsInUnit] of UNITS) {
@@ -217,7 +217,7 @@ const GAME_VARIANT_LABELS: Record<string, string> = {
   BINGO_75: 'Bingo 75 bolas',
   BINGO_90: 'Bingo 90 bolas',
   BINGO_80: 'Bingo 80 bolas',
-  BINGO_30: 'Speed Bingo 30 bolas',
+  BINGO_30: 'Speed Bingo 30 bolas'
 }
 const gameVariantLabel = computed(() => {
   const v = props.form.gameVariant
@@ -265,7 +265,7 @@ const scheduleLabel = computed(() => {
             class="bingo-review-step__alert-chip"
             @click="goToStep(step)"
           >
-            {{ STEP_LABELS[step] }} <i class="fa-solid fa-arrow-right"></i>
+            {{ STEP_LABELS[step] }} <i class="fa-solid fa-arrow-right" />
           </button>
         </div>
       </div>
@@ -280,31 +280,31 @@ const scheduleLabel = computed(() => {
       <!-- Metadatos (solo edición) -->
       <section v-if="roomMeta" class="bingo-review-step__section bingo-review-step__section--meta">
         <h4 class="bingo-review-step__section-title">
-          <i class="fa-solid fa-clock-rotate-left bingo-review-step__section-icon"></i>
+          <i class="fa-solid fa-clock-rotate-left bingo-review-step__section-icon" />
           Metadatos
           <span class="bingo-review-step__meta-count">{{ editCountLabel }}</span>
         </h4>
         <dl class="bingo-review-step__dl bingo-review-step__dl--meta">
           <template v-if="createdAtLabel">
-            <dt><i class="fa-solid fa-plus bingo-review-step__meta-icon"></i> Creada el</dt>
+            <dt><i class="fa-solid fa-plus bingo-review-step__meta-icon" /> Creada el</dt>
             <dd>
               {{ createdAtLabel }}
               <span v-if="createdAtRelative" class="bingo-review-step__meta-relative">({{ createdAtRelative }})</span>
             </dd>
           </template>
           <template v-if="creator">
-            <dt><i class="fa-solid fa-user bingo-review-step__meta-icon"></i> Creada por</dt>
+            <dt><i class="fa-solid fa-user bingo-review-step__meta-icon" /> Creada por</dt>
             <dd>{{ creatorLabel }}</dd>
           </template>
-          <dt><i class="fa-solid fa-pen-to-square bingo-review-step__meta-icon"></i> Última actualización</dt>
+          <dt><i class="fa-solid fa-pen-to-square bingo-review-step__meta-icon" /> Última actualización</dt>
           <dd>
             {{ updatedAtLabel ?? '—' }}
             <span v-if="updatedAtRelative" class="bingo-review-step__meta-relative">({{ updatedAtRelative }})</span>
           </dd>
-          <dt><i class="fa-solid fa-user-pen bingo-review-step__meta-icon"></i> Editado por</dt>
+          <dt><i class="fa-solid fa-user-pen bingo-review-step__meta-icon" /> Editado por</dt>
           <dd>{{ lastEditorLabel }}</dd>
           <template v-if="lastActivated">
-            <dt><i class="fa-solid fa-toggle-on bingo-review-step__meta-icon"></i> Última activación</dt>
+            <dt><i class="fa-solid fa-toggle-on bingo-review-step__meta-icon" /> Última activación</dt>
             <dd>
               {{ lastActivatedLabel ?? '—' }}
               <span v-if="lastActivatedRelative" class="bingo-review-step__meta-relative">({{ lastActivatedRelative }})</span>
@@ -312,7 +312,7 @@ const scheduleLabel = computed(() => {
             </dd>
           </template>
           <template v-if="lastDeactivated">
-            <dt><i class="fa-solid fa-toggle-off bingo-review-step__meta-icon"></i> Última desactivación</dt>
+            <dt><i class="fa-solid fa-toggle-off bingo-review-step__meta-icon" /> Última desactivación</dt>
             <dd>
               {{ lastDeactivatedLabel ?? '—' }}
               <span v-if="lastDeactivatedRelative" class="bingo-review-step__meta-relative">({{ lastDeactivatedRelative }})</span>
@@ -325,65 +325,95 @@ const scheduleLabel = computed(() => {
       <!-- Datos básicos -->
       <section class="bingo-review-step__section" :class="{ 'bingo-review-step__section--collapsed': !expanded.basic }">
         <h4 class="bingo-review-step__section-title" @click="toggleSection('basic')">
-          <i class="fa-solid fa-chevron-right bingo-review-step__chevron" :class="{ 'bingo-review-step__chevron--open': expanded.basic }"></i>
-          <i class="fa-solid fa-sliders bingo-review-step__section-icon"></i>
+          <i class="fa-solid fa-chevron-right bingo-review-step__chevron" :class="{ 'bingo-review-step__chevron--open': expanded.basic }" />
+          <i class="fa-solid fa-sliders bingo-review-step__section-icon" />
           Datos básicos
           <span v-if="stepHasErrors('basic')" class="bingo-review-step__badge bingo-review-step__badge--error">Con errores</span>
-          <span v-else class="bingo-review-step__badge bingo-review-step__badge--ok"><i class="fa-solid fa-check"></i></span>
+          <span v-else class="bingo-review-step__badge bingo-review-step__badge--ok"><i class="fa-solid fa-check" /></span>
           <button type="button" class="bingo-review-step__edit-btn" @click.stop="goToStep('basic')">
-            <i class="fa-solid fa-pen"></i> Editar
+            <i class="fa-solid fa-pen" /> Editar
           </button>
         </h4>
         <div v-show="expanded.basic">
           <dl class="bingo-review-step__dl">
             <dt>Tipo de sala</dt>
-            <dd :class="{ 'bingo-review-step__dd--error': fieldError('roomType') }">{{ roomTypeLabel ?? (fieldError('roomType') ?? '—') }}</dd>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('roomType') }">
+              {{ roomTypeLabel ?? (fieldError('roomType') ?? '—') }}
+            </dd>
             <dt>Tipo de conexión</dt>
-            <dd :class="{ 'bingo-review-step__dd--error': fieldError('connectionType') }">{{ connectionTypeLabel ?? (fieldError('connectionType') ?? '—') }}</dd>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('connectionType') }">
+              {{ connectionTypeLabel ?? (fieldError('connectionType') ?? '—') }}
+            </dd>
             <dt>Modo de juego</dt>
-            <dd :class="{ 'bingo-review-step__dd--error': fieldError('gameMode') }">{{ gameModeLabel ?? (fieldError('gameMode') ?? '—') }}</dd>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('gameMode') }">
+              {{ gameModeLabel ?? (fieldError('gameMode') ?? '—') }}
+            </dd>
             <dt>Variante</dt>
             <dd>{{ gameVariantLabel ?? '—' }}</dd>
             <dt>Tipo de bote</dt>
-            <dd :class="{ 'bingo-review-step__dd--error': fieldError('prizePoolType') }">{{ prizePoolTypeLabel ?? (fieldError('prizePoolType') ?? '—') }}</dd>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('prizePoolType') }">
+              {{ prizePoolTypeLabel ?? (fieldError('prizePoolType') ?? '—') }}
+            </dd>
             <template v-if="form.amountAddedPrizePool != null">
               <dt>Valor fijo/extra al bote</dt>
               <dd>${{ form.amountAddedPrizePool }}</dd>
             </template>
             <dt>Horario</dt>
-            <dd :class="{ 'bingo-review-step__dd--error': fieldError('date') || fieldError('time') }">{{ scheduleLabel }}</dd>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('date') || fieldError('time') }">
+              {{ scheduleLabel }}
+            </dd>
             <dt>Rondas</dt>
-            <dd :class="{ 'bingo-review-step__dd--error': fieldError('rounds') }">{{ form.rounds ?? (fieldError('rounds') ?? '—') }}</dd>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('rounds') }">
+              {{ form.rounds ?? (fieldError('rounds') ?? '—') }}
+            </dd>
             <dt>Comisión de sala</dt>
-            <dd :class="{ 'bingo-review-step__dd--error': fieldError('roomCommn') }">{{ form.roomCommn != null ? form.roomCommn + '%' : (fieldError('roomCommn') ?? '—') }}</dd>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('roomCommn') }">
+              {{ form.roomCommn != null ? form.roomCommn + '%' : (fieldError('roomCommn') ?? '—') }}
+            </dd>
             <dt>Jackpot</dt>
-            <dd :class="{ 'bingo-review-step__dd--error': fieldError('jackpotPct') }">{{ form.jackpotPct != null ? form.jackpotPct + '%' : '—' }}</dd>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('jackpotPct') }">
+              {{ form.jackpotPct != null ? form.jackpotPct + '%' : '—' }}
+            </dd>
             <template v-if="form.jackpotType != null">
               <dt>Destino del jackpot</dt>
-              <dd :class="{ 'bingo-review-step__dd--error': fieldError('jackpotType') }">{{ jackpotTypeLabel ?? '—' }}</dd>
+              <dd :class="{ 'bingo-review-step__dd--error': fieldError('jackpotType') }">
+                {{ jackpotTypeLabel ?? '—' }}
+              </dd>
             </template>
             <dt>Tiempo por ficha</dt>
-            <dd :class="{ 'bingo-review-step__dd--error': fieldError('timeChip') }">{{ form.timeChip != null ? form.timeChip + 's' : (fieldError('timeChip') ?? '—') }}</dd>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('timeChip') }">
+              {{ form.timeChip != null ? form.timeChip + 's' : (fieldError('timeChip') ?? '—') }}
+            </dd>
+            <dt>Pausa entre rondas</dt>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('roundPauseSeconds') }">
+              {{ form.roundPauseSeconds != null ? form.roundPauseSeconds + 's' : 'Por defecto' }}
+            </dd>
           </dl>
 
           <template v-if="isPrivateRoom">
-            <hr style="margin: 0.6rem 0" />
+            <hr style="margin: 0.6rem 0">
             <p class="bingo-review-step__subtitle">
-              <i class="fa-solid fa-lock" style="opacity: 0.7"></i> Sala privada
+              <i class="fa-solid fa-lock" style="opacity: 0.7" /> Sala privada
             </p>
             <dl class="bingo-review-step__dl">
               <dt>Código de acceso</dt>
-              <dd :class="{ 'bingo-review-step__dd--error': fieldError('accessCode') }">{{ form.accessCode ?? (fieldError('accessCode') ?? '—') }}</dd>
+              <dd :class="{ 'bingo-review-step__dd--error': fieldError('accessCode') }">
+                {{ form.accessCode ?? (fieldError('accessCode') ?? '—') }}
+              </dd>
               <dt>Contraseña</dt>
-              <dd :class="{ 'bingo-review-step__dd--error': fieldError('roomPassword') }">{{ form.roomPassword ? 'Se actualizará al guardar' : (fieldError('roomPassword') ?? 'Sin cambios') }}</dd>
+              <dd :class="{ 'bingo-review-step__dd--error': fieldError('roomPassword') }">
+                {{ form.roomPassword ? 'Se actualizará al guardar' : (fieldError('roomPassword') ?? 'Sin cambios') }}
+              </dd>
               <dt>Anfitrión</dt>
-              <dd :class="{ 'bingo-review-step__dd--error': fieldError('hostUserId') }">{{ (form.hostUserId ? (hostUserLabel ?? String(form.hostUserId)) : null) ?? (fieldError('hostUserId') ?? '—') }}</dd>
+              <dd :class="{ 'bingo-review-step__dd--error': fieldError('hostUserId') }">
+                {{ (form.hostUserId ? (hostUserLabel ?? String(form.hostUserId)) : null) ?? (fieldError('hostUserId') ?? '—') }}
+              </dd>
             </dl>
           </template>
 
-          <hr style="margin: 0.6rem 0" />
+          <hr style="margin: 0.6rem 0">
           <p class="bingo-review-step__subtitle">
-            <i class="fa-solid fa-gauge-high" style="opacity: 0.7"></i> Capacidad
+            <i class="fa-solid fa-gauge-high" style="opacity: 0.7" /> Capacidad
           </p>
           <dl
             v-if="form.minCardsToStart != null || form.maxCardsToStart != null || form.minPlayers != null || form.maxPlayers != null"
@@ -406,28 +436,34 @@ const scheduleLabel = computed(() => {
               <dd>{{ form.maxPlayers }}</dd>
             </template>
           </dl>
-          <p v-else class="bingo-review-step__empty">Sin límites configurados — cartones y jugadores ilimitados.</p>
+          <p v-else class="bingo-review-step__empty">
+            Sin límites configurados — cartones y jugadores ilimitados.
+          </p>
         </div>
       </section>
 
       <!-- Monedas -->
       <section class="bingo-review-step__section" :class="{ 'bingo-review-step__section--collapsed': !expanded.currencies }">
         <h4 class="bingo-review-step__section-title" @click="toggleSection('currencies')">
-          <i class="fa-solid fa-chevron-right bingo-review-step__chevron" :class="{ 'bingo-review-step__chevron--open': expanded.currencies }"></i>
-          <i class="fa-solid fa-coins bingo-review-step__section-icon"></i>
+          <i class="fa-solid fa-chevron-right bingo-review-step__chevron" :class="{ 'bingo-review-step__chevron--open': expanded.currencies }" />
+          <i class="fa-solid fa-coins bingo-review-step__section-icon" />
           Monedas y precios
           <span v-if="stepHasErrors('currencies')" class="bingo-review-step__badge bingo-review-step__badge--error">Con errores</span>
-          <span v-else class="bingo-review-step__badge bingo-review-step__badge--ok"><i class="fa-solid fa-check"></i></span>
+          <span v-else class="bingo-review-step__badge bingo-review-step__badge--ok"><i class="fa-solid fa-check" /></span>
           <button type="button" class="bingo-review-step__edit-btn" @click.stop="goToStep('currencies')">
-            <i class="fa-solid fa-pen"></i> Editar
+            <i class="fa-solid fa-pen" /> Editar
           </button>
         </h4>
         <dl v-show="expanded.currencies" class="bingo-review-step__dl">
           <dt>Monedas permitidas</dt>
-          <dd :class="{ 'bingo-review-step__dd--error': fieldError('allowedCurrencies') }">{{ currencyPriceRows.map(r => r.iso).join(', ') || (fieldError('allowedCurrencies') ?? '—') }}</dd>
+          <dd :class="{ 'bingo-review-step__dd--error': fieldError('allowedCurrencies') }">
+            {{ currencyPriceRows.map(r => r.iso).join(', ') || (fieldError('allowedCurrencies') ?? '—') }}
+          </dd>
           <template v-if="form.useBaseUsd">
             <dt>Precio base (USD)</dt>
-            <dd :class="{ 'bingo-review-step__dd--error': fieldError('cardPriceUsd') }">{{ form.cardPriceUsd != null ? '$' + form.cardPriceUsd : (fieldError('cardPriceUsd') ?? '—') }}</dd>
+            <dd :class="{ 'bingo-review-step__dd--error': fieldError('cardPriceUsd') }">
+              {{ form.cardPriceUsd != null ? '$' + form.cardPriceUsd : (fieldError('cardPriceUsd') ?? '—') }}
+            </dd>
           </template>
           <template v-else>
             <dt>Precio del cartón</dt>
@@ -450,18 +486,20 @@ const scheduleLabel = computed(() => {
       <!-- Rondas -->
       <section class="bingo-review-step__section" :class="{ 'bingo-review-step__section--collapsed': !expanded.rounds }">
         <h4 class="bingo-review-step__section-title" @click="toggleSection('rounds')">
-          <i class="fa-solid fa-chevron-right bingo-review-step__chevron" :class="{ 'bingo-review-step__chevron--open': expanded.rounds }"></i>
-          <i class="fa-solid fa-list-ol bingo-review-step__section-icon"></i>
+          <i class="fa-solid fa-chevron-right bingo-review-step__chevron" :class="{ 'bingo-review-step__chevron--open': expanded.rounds }" />
+          <i class="fa-solid fa-list-ol bingo-review-step__section-icon" />
           Rondas
           <span v-if="stepHasErrors('rounds')" class="bingo-review-step__badge bingo-review-step__badge--error">Con errores</span>
-          <span v-else class="bingo-review-step__badge bingo-review-step__badge--ok"><i class="fa-solid fa-check"></i></span>
+          <span v-else class="bingo-review-step__badge bingo-review-step__badge--ok"><i class="fa-solid fa-check" /></span>
           <button type="button" class="bingo-review-step__edit-btn" @click.stop="goToStep('rounds')">
-            <i class="fa-solid fa-pen"></i> Editar
+            <i class="fa-solid fa-pen" /> Editar
           </button>
         </h4>
         <dl v-show="expanded.rounds" class="bingo-review-step__dl">
           <dt>% rondas</dt>
-          <dd :class="{ 'bingo-review-step__dd--error': fieldError('roundsPct') }">{{ form.roundsPct != null ? form.roundsPct + '%' : (fieldError('roundsPct') ?? '—') }}</dd>
+          <dd :class="{ 'bingo-review-step__dd--error': fieldError('roundsPct') }">
+            {{ form.roundsPct != null ? form.roundsPct + '%' : (fieldError('roundsPct') ?? '—') }}
+          </dd>
           <dt>% seriales</dt>
           <dd>{{ form.serialsPct != null ? form.serialsPct + '%' : '—' }}</dd>
         </dl>
@@ -470,13 +508,13 @@ const scheduleLabel = computed(() => {
       <!-- Más / Opcional -->
       <section class="bingo-review-step__section" :class="{ 'bingo-review-step__section--collapsed': !expanded.options }">
         <h4 class="bingo-review-step__section-title" @click="toggleSection('options')">
-          <i class="fa-solid fa-chevron-right bingo-review-step__chevron" :class="{ 'bingo-review-step__chevron--open': expanded.options }"></i>
-          <i class="fa-solid fa-star bingo-review-step__section-icon"></i>
+          <i class="fa-solid fa-chevron-right bingo-review-step__chevron" :class="{ 'bingo-review-step__chevron--open': expanded.options }" />
+          <i class="fa-solid fa-star bingo-review-step__section-icon" />
           Más / Opcional
           <span v-if="stepHasErrors('options')" class="bingo-review-step__badge bingo-review-step__badge--error">Con errores</span>
-          <span v-else class="bingo-review-step__badge bingo-review-step__badge--ok"><i class="fa-solid fa-check"></i></span>
+          <span v-else class="bingo-review-step__badge bingo-review-step__badge--ok"><i class="fa-solid fa-check" /></span>
           <button type="button" class="bingo-review-step__edit-btn" @click.stop="goToStep('options')">
-            <i class="fa-solid fa-pen"></i> Editar
+            <i class="fa-solid fa-pen" /> Editar
           </button>
         </h4>
         <div v-show="expanded.options">
@@ -485,7 +523,9 @@ const scheduleLabel = computed(() => {
               <dt>Seriales</dt>
               <dd>
                 Sí — {{ form.numSerials ?? '—' }} seriales
-                <template v-if="form.serialsPct != null"> ({{ form.serialsPct }}% bote)</template>
+                <template v-if="form.serialsPct != null">
+                  ({{ form.serialsPct }}% bote)
+                </template>
               </dd>
             </template>
             <template v-if="form.allowCustomCard">
@@ -505,33 +545,35 @@ const scheduleLabel = computed(() => {
               <dd>Sí — máx. {{ form.maxSpecialCards ?? '—' }}</dd>
             </template>
           </dl>
-          <p v-else class="bingo-review-step__empty">Sin opciones adicionales configuradas.</p>
+          <p v-else class="bingo-review-step__empty">
+            Sin opciones adicionales configuradas.
+          </p>
         </div>
       </section>
 
       <!-- Activación -->
       <section class="bingo-review-step__section">
         <h4 class="bingo-review-step__section-title">
-          <i class="fa-solid fa-power-off bingo-review-step__section-icon"></i>
+          <i class="fa-solid fa-power-off bingo-review-step__section-icon" />
           Activación
         </h4>
         <div class="custom-control custom-switch">
           <input
+            id="activateRoom"
             type="checkbox"
             class="custom-control-input"
-            id="activateRoom"
             :disabled="isScheduledDateInPast || lockActivateRoom"
             :checked="form.activateRoom ?? false"
             @change="onActivateRoomChange(($event.target as HTMLInputElement).checked)"
-          />
+          >
           <label class="custom-control-label" for="activateRoom">¿Activar sala?</label>
         </div>
         <small v-if="lockActivateRoom" class="text-muted d-block mt-1">
-          <i class="fas fa-lock mr-1"></i>
+          <i class="fas fa-lock mr-1" />
           La sala tiene jugadores registrados: usa "Alternar Estado" en la tabla para cambiar el estado.
         </small>
         <small v-else-if="isScheduledDateInPast" class="text-danger d-block mt-1">
-          <i class="fas fa-exclamation-triangle mr-1"></i>
+          <i class="fas fa-exclamation-triangle mr-1" />
           La fecha/hora programada ya pasó. Actualízala antes de activar la sala.
         </small>
       </section>

@@ -1798,8 +1798,9 @@ final class BingoDrawService
     }
 
     /**
-     * Terminó una ronda y quedan más: la siguiente empieza tras la pausa
-     * config('bingo.round_pause_seconds'). Se fija su start_time (runDraw no
+     * Terminó una ronda y quedan más: la siguiente empieza tras la pausa de
+     * la sala (bingo_rooms_config.round_pause_seconds) o, si no la tiene, la
+     * global config('bingo.round_pause_seconds'). Se fija su start_time (runDraw no
      * la arranca antes), se despacha el sorteo para ese momento y se avisa a
      * los clientes para la cuenta regresiva. Antes la ronda siguiente empezaba
      * en el próximo minuto del cron, sin aviso ni pausa.
@@ -1815,7 +1816,8 @@ final class BingoDrawService
             return;
         }
 
-        $startsAt = now()->addSeconds(max(0, (int) config('bingo.round_pause_seconds', 30)));
+        $pause = $room->config?->round_pause_seconds ?? config('bingo.round_pause_seconds', 30);
+        $startsAt = now()->addSeconds(max(0, (int) $pause));
         $next->forceFill(['start_time' => $startsAt])->save();
 
         // El job corre recién al terminar la pausa (el cierre ya está
