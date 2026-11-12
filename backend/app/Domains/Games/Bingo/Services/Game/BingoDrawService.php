@@ -1021,6 +1021,22 @@ final class BingoDrawService
     }
 
     /**
+     * Elige la próxima ficha al momento de cantarla, uniformemente entre las
+     * que faltan, con random_int() (CSPRNG — shuffle()/mt_rand usan Mersenne
+     * Twister, reconstruible a partir de salidas observadas). Antes se
+     * pre-generaba y persistía la secuencia completa al iniciar, lo que
+     * permitía a cualquiera con lectura de la BD conocer las fichas futuras.
+     *
+     * @param int[] $drawn
+     */
+    private function drawNextChip(int $totalChips, array $drawn) : int
+    {
+        $remaining = array_values(array_diff(range(1, $totalChips), $drawn));
+
+        return $remaining[random_int(0, count($remaining) - 1)];
+    }
+
+    /**
      * Cierra ronda/sala cuando el ganador ya fue declarado por otro proceso
      * (reclamo manual vía check-bingo). No crea ni re-paga premios: solo cierra
      * y emite el fin de juego con los premios ya registrados en la ronda.
@@ -1085,26 +1101,6 @@ final class BingoDrawService
             'winners' => $winners,
             'alreadyFinished' => true,
         ];
-    }
-
-    /**
-     * Genera el orden de las fichas del sorteo con Fisher-Yates usando
-     * random_int() (CSPRNG) en vez de shuffle() — shuffle() usa Mersenne
-     * Twister, cuyo estado interno es reconstruible a partir de suficientes
-     * salidas observadas. Para un sorteo que paga dinero real, el orden de
-     * las fichas debe ser impredecible incluso en teoría.
-     */
-    private function generateSequence(int $totalChips) : array
-    {
-        $numbers = range(1, $totalChips);
-        for ($i = $totalChips - 1; $i > 0; $i--) {
-            $j = random_int(0, $i);
-            if ($i !== $j) {
-                [$numbers[$i], $numbers[$j]] = [$numbers[$j], $numbers[$i]];
-            }
-        }
-
-        return $numbers;
     }
 
     /**
@@ -1175,27 +1171,6 @@ final class BingoDrawService
 
         return $visible . str_repeat('*', max(0, mb_strlen($first) - 4))
             . (isset($parts[1]) ? ' ' . mb_substr($parts[1], 0, 1) . '.' : '');
-    }
-
-    private function persistDrawCodes(string $roomId, string $roundId, array $sequence) : void
-    {
-        $now = now();
-
-        $rows = array_map(
-            fn ($index, $number) => [
-                'id' => BingoDrawCode::generateSnowflakeId(),
-                'room_id' => $roomId,
-                'round_id' => $roundId,
-                'num' => $index + 1,
-                'sym' => (string) $number,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-            array_keys($sequence),
-            $sequence,
-        );
-
-        BingoDrawCode::insert($rows);
     }
 
     /**
@@ -1498,72 +1473,40 @@ final class BingoDrawService
         ]);
 
         // 2. ¿Hay un sorteo previo interrumpido para esta sala/ronda? (p.ej. el worker
-        // se reinició a mitad del sorteo). Si la secuencia ya fue persistida y quedan
-        // fichas por cantar, retomamos desde ahí en vez de reiniciar desde cero.
-        // Filtrado por room_id + round_id: bingo_draws_code.round_id (agregado en
-        // 2026_07_13_01) evita que códigos huérfanos de una ronda anterior se
-        // confundan con la secuencia de la ronda actual.
-        $existingSequence = BingoDrawCode::where('room_id', (string) $roomId)
-            ->where('round_id', $roundId)
-            ->orderBy('num')
-            ->pluck('sym')
-            ->map(fn ($sym) => (int) $sym)
-            ->all();
-
+        // se reinició a mitad del sorteo). La fuente de verdad son las fichas ya
+        // cantadas (bingo_draws): no existe una secuencia pre-generada — cada
+        // ficha se elige al momento de cantarla (ver drawNextChip), así nadie con
+        // acceso a la BD puede conocer las fichas futuras.
         $alreadyDrawn = BingoDraw::where('room_id', (string) $roomId)
             ->where('round_id', $roundId)
             ->orderBy('time')
             ->orderBy('created_at')
             ->get();
 
-        // Defensa en profundidad además del filtro por round_id: la secuencia debe
-        // ser una permutación íntegra de 1..totalChips (sin duplicados/huecos) antes
-        // de confiar en ella para resumir — cubre corrupción manual de la tabla o
-        // filas legacy previas a la migración que agregó round_id.
-        $sequenceIsValid = count($existingSequence) === $totalChips
-            && count(array_unique($existingSequence)) === $totalChips
-            && ! array_diff($existingSequence, range(1, $totalChips));
+        $drawnChips = $alreadyDrawn->pluck('chip')->map(fn ($c) => (int) $c)->all();
 
-        if (! empty($existingSequence) && ! $sequenceIsValid) {
-            Log::error('[BingoDrawService] Secuencia persistida inválida — se descarta y regenera', [
+        // Defensa en profundidad: lo cantado debe ser un subconjunto sin repetidos
+        // de 1..totalChips antes de confiar en ello para retomar — cubre
+        // corrupción manual de la tabla o un cambio de variante a mitad de sala.
+        $drawnIsValid = count($drawnChips) <= $totalChips
+            && count(array_unique($drawnChips)) === count($drawnChips)
+            && ! array_diff($drawnChips, range(1, $totalChips));
+
+        if ($drawnChips !== [] && ! $drawnIsValid) {
+            Log::error('[BingoDrawService] Fichas cantadas inválidas — se descartan y se reinicia el sorteo', [
                 'room_id' => $roomId,
                 'round_id' => $roundId,
-                'found' => count($existingSequence),
-                'expected' => $totalChips,
+                'found' => count($drawnChips),
+                'expected_max' => $totalChips,
             ]);
         }
-
-        // Además de que la secuencia sea válida, verificar que las fichas ya cantadas
-        // coincidan exactamente con el prefijo de esa secuencia — protege contra el
-        // caso donde la secuencia fue regenerada pero los draws viejos no se borraron,
-        // lo que causaría fichas fantasma o fichas saltadas en el resume.
-        $drawnChips = $alreadyDrawn->pluck('chip')->map(fn ($c) => (int) $c)->all();
-        $sequencePrefix = array_slice($existingSequence, 0, count($drawnChips));
-        $prefixMatches = $drawnChips === $sequencePrefix;
 
         // Caso especial: todos los chips ya fueron cantados pero closeRound() no se ejecutó
         // (p.ej. el worker murió justo después de crear el último BingoDraw).
-        // Con la condición anterior ($alreadyDrawn->count() < count($existingSequence)),
-        // este caso caía al else y borraba todo el historial — error crítico que obligaba
-        // a re-sortear una sala que ya había terminado. Ahora lo detectamos y cerramos directamente.
-        $allDone = $sequenceIsValid
-            && $alreadyDrawn->count() === count($existingSequence)
-            && $alreadyDrawn->isNotEmpty();
+        // Se cierra directamente en vez de borrar el historial y re-sortear.
+        $allDone = $drawnIsValid && count($drawnChips) === $totalChips;
 
-        $resuming = $sequenceIsValid
-            && $alreadyDrawn->isNotEmpty()
-            && $alreadyDrawn->count() < count($existingSequence)
-            && $prefixMatches;
-
-        if ($sequenceIsValid && $alreadyDrawn->isNotEmpty() && ! $prefixMatches) {
-            Log::warning('[BingoDrawService] Fichas cantadas no coinciden con el prefijo de la secuencia — reiniciando sorteo', [
-                'room_id' => $roomId,
-                'round_id' => $roundId,
-                'drawn_count' => count($drawnChips),
-                'prefix_expected' => array_slice($sequencePrefix, 0, 5),
-                'drawn_actual' => array_slice($drawnChips, 0, 5),
-            ]);
-        }
+        $resuming = $drawnIsValid && $drawnChips !== [] && count($drawnChips) < $totalChips;
 
         // Resolver el intervalo aquí — antes del bloque if($resuming) — para que
         // el TTL del cache de resume y el lock distribuido usen el mismo valor.
@@ -1618,7 +1561,6 @@ final class BingoDrawService
             return ['success' => true, 'room_id' => $roomId, 'total_chips' => count($drawnSoFar), 'winner' => null];
         }
         if ($resuming) {
-            $sequence = $existingSequence;
             $drawnSoFar = $drawnChips;
             $lastDraw = $alreadyDrawn->last();
             $startIndex = count($drawnSoFar);
@@ -1627,7 +1569,7 @@ final class BingoDrawService
                 'room_id' => $roomId,
                 'round_id' => $roundId,
                 'ya_cantadas' => $startIndex,
-                'total' => count($sequence),
+                'total' => $totalChips,
             ]);
 
             // Refrescar cache antes del broadcast: clientes que hagan resync HTTP
@@ -1669,19 +1611,17 @@ final class BingoDrawService
             // en juegos multi-ronda.
             DB::transaction(function() use ($roomId, $roundId) {
                 BingoDraw::where('room_id', $roomId)->where('round_id', $roundId)->delete();
+                // Filas legadas: antes se pre-generaba la secuencia completa aquí.
                 BingoDrawCode::where('room_id', $roomId)->where('round_id', $roundId)->delete();
             });
 
-            // 4. Generar y persistir secuencia
-            $sequence = $this->generateSequence($totalChips);
-            $this->persistDrawCodes($roomId, $roundId, $sequence);
-
-            // 5. Primera ficha + GameStarted
-            $firstDraw = $this->createDrawRecord($roomId, $roundId, $sequence[0], 0, $variant, [$sequence[0]]);
+            // 4. Primera ficha (elegida ahora, no pre-generada) + GameStarted
+            $firstChip = $this->drawNextChip($totalChips, []);
+            $firstDraw = $this->createDrawRecord($roomId, $roundId, $firstChip, 0, $variant, [$firstChip]);
 
             try {
                 $this->broadcastReliably(new BingoGameStarted((int) $roomId, (int) $firstDraw->id));
-                $this->broadcastReliably(new BingoNumberCalled((int) $sequence[0], $roomId, 1));
+                $this->broadcastReliably(new BingoNumberCalled($firstChip, $roomId, 1));
             } catch (Throwable $e) {
                 Log::error('[BingoDrawService] Falló la emisión inicial — se detiene para reintentar desde la ficha persistida', [
                     'room_id' => $roomId,
@@ -1693,7 +1633,7 @@ final class BingoDrawService
             }
             $this->auditLogger->log($room, BingoRoomAuditLogger::EVENT_DRAW_STARTED, 'system', 'Sorteo iniciado', ['round_id' => (string) $roundId, 'variant' => $variant]);
 
-            $drawnSoFar = [$sequence[0]];
+            $drawnSoFar = [$firstChip];
             $startIndex = 1;
 
             if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, $firstDraw->id)) {
@@ -1705,7 +1645,7 @@ final class BingoDrawService
         // $this->currentInterval ya fue resuelto antes del bloque resume (arriba).
         $interval = $this->currentInterval;
 
-        for ($i = $startIndex, $total = count($sequence); $i < $total; $i++) {
+        for ($i = $startIndex; $i < $totalChips; $i++) {
             // sleep() intencional — este método siempre corre en el worker dedicado
             // 'bingo-draw' (StartBingoDrawJob, $timeout=0), nunca en el servidor web.
             if ($interval > 0) {
@@ -1725,7 +1665,8 @@ final class BingoDrawService
                 return ['success' => true, 'room_id' => $roomId, 'total_chips' => count($drawnSoFar), 'winner' => null, 'cancelled' => true];
             }
 
-            $chip = $sequence[$i];
+            // La ficha se elige recién ahora, entre las que faltan.
+            $chip = $this->drawNextChip($totalChips, $drawnSoFar);
             // time = segundos transcurridos desde la primera ficha (índice * intervalo).
             // Nunca 0 para que el ORDER BY time preserve el orden de inserción.
             // ORDEN CRÍTICO: persist → broadcast → append a $drawnSoFar → detectWinner.
