@@ -209,7 +209,7 @@ final class TriviaPowerUpController extends Controller
                 $this->powerUps->consume($roomId, $userId, TriviaPowerUpType::SKIP);
 
                 $pgsql->table('trivia_answers')->insert([
-                    'id' => (string) \Illuminate\Support\Str::ulid(),
+                    'id' => \App\Models\BaseModel::generateSnowflakeId(), // varchar(20): un ULID no cabe
                     'game_id' => $gameId,
                     'player_id' => $userId,
                     'question_id' => $questionId,

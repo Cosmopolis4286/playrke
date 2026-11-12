@@ -255,16 +255,16 @@ class UserLevelService
 
     private function logXpTransaction(User $user, UserLevel $userLevel, int $amount, string $reason, bool $leveledUp) : void
     {
-        activity()
-            ->performedOn($user)
-            ->causedBy(Auth::user())
-            ->withProperties([
-                'xp_amount' => $amount,
-                'reason' => $reason,
-                'leveled_up' => $leveledUp,
-                'new_level' => $userLevel->current_level,
-                'total_xp' => $userLevel->total_xp,
-            ])
-            ->log('XP transaction: ' . $reason);
+        // spatie/laravel-activitylog no está instalado: activity() no existe y
+        // lanzaba \Error (no Exception), que escapaba del catch y dejaba la
+        // transacción abierta — ningún XP con motivo se otorgaba.
+        Log::info('XP transaction: ' . $reason, [
+            'user_id' => $user->id,
+            'causer_id' => Auth::id(),
+            'xp_amount' => $amount,
+            'leveled_up' => $leveledUp,
+            'new_level' => $userLevel->current_level,
+            'total_xp' => $userLevel->total_xp,
+        ]);
     }
 }
