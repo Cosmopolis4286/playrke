@@ -146,6 +146,17 @@ const devResetting     = ref(false)
 const drawnBoardRef    = ref<{ resetView: () => void } | null>(null)
 const reconnectingTooLong = ref(false)
 const drawStalling        = ref(false)
+
+// ── Pausa entre rondas (evento RoundStarting) ──────────────────────────────────
+const nextRound = ref<{ round: number; startsAt: number } | null>(null)
+const nowTick   = ref(Date.now())
+const nextRoundTimer = setInterval(() => { nowTick.value = Date.now() }, 1000)
+onUnmounted(() => clearInterval(nextRoundTimer))
+const nextRoundCountdown = computed(() => {
+  if (!nextRound.value) return null
+  const seconds = Math.max(0, Math.ceil((nextRound.value.startsAt - nowTick.value) / 1000))
+  return seconds > 0 ? `${seconds} s` : 'empezando…'
+})
 let _stallTimer: ReturnType<typeof setTimeout> | null = null
 
 const modalDismissKey = computed(() => roomId.value ? `bingo-modal-closed-${roomId.value}` : '')
@@ -332,7 +343,15 @@ const { subscribe, unsubscribe, resetCalledNumbers, markNumbersAsSeen, isReconne
     if (missedSome) resyncDrawState()
   },
   onPlayersProgress: (e) => { if (Array.isArray(e.players)) playersProgress.value = e.players },
-  onGameStarted: ()  => { gameStarted.value = true },
+  onGameStarted: ()  => {
+    gameStarted.value = true
+    // Empezó la ronda siguiente tras la pausa: traer su estado (fichas en cero).
+    if (nextRound.value) {
+      nextRound.value = null
+      resyncDrawState()
+    }
+  },
+  onRoundStarting: (e) => { nextRound.value = { round: e.round, startsAt: new Date(e.starts_at).getTime() } },
   onWinnerDeclared: ()  => {
     // El evento público ya no identifica al ganador. Reconsultar el estado
     // mediante la ruta autorizada y dejar que el backend determine el resultado.
@@ -559,6 +578,11 @@ onUnmounted(() => {
         :players="showPlayersProgress ? lastKnownProgress : []"
         :remaining-chips="remainingChips"
       />
+
+      <div v-if="nextRound" class="alert alert-info text-center my-2" role="status">
+        <i class="fas fa-hourglass-half mr-1" />
+        La ronda {{ nextRound.round }} empieza en <strong>{{ nextRoundCountdown }}</strong>
+      </div>
 
       <GameStatusBanners
         :draw-stalling="drawStalling"

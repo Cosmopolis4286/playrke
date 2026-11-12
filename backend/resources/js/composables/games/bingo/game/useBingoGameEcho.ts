@@ -35,11 +35,13 @@ export interface UseBingoGameEchoOptions {
    * mientras el socket estuvo caído, ya que Reverb/Pusher no reenvía
    * eventos pasados. */
   onReconnected?:    () => void
+  /** Terminó una ronda y la siguiente empieza en starts_at (pausa entre rondas). */
+  onRoundStarting?:  (e: { round: number; starts_at: string }) => void
 }
 
 const ROOM_EVENTS = [
   '.RoomUpdated', '.PlayerJoined', '.BingoNumberCalled', '.PlayersProgress',
-  '.GameStarted', '.WinnerDeclared', '.GameEnded', '.RoomTimeSync'
+  '.GameStarted', '.WinnerDeclared', '.GameEnded', '.RoomTimeSync', '.RoundStarting'
 ] as const
 
 export function useBingoGameEcho(options: UseBingoGameEchoOptions) {
@@ -106,6 +108,10 @@ export function useBingoGameEcho(options: UseBingoGameEchoOptions) {
 
     channel.listen('.PlayersProgress', (e: { players: PlayerProgress[] }) => {
       onPlayersProgress(e)
+    })
+
+    channel.listen('.RoundStarting', (e: { round: number; starts_at: string }) => {
+      options.onRoundStarting?.(e)
     })
 
     channel.listen('.GameStarted', () => {
