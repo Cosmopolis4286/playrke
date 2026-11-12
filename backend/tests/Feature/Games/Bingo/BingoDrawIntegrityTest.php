@@ -232,6 +232,44 @@ class BingoDrawIntegrityTest extends TestCase
         $this->assertStringContainsString('compartido entre 2', (string) $prizes[0]->prize_notes);
     }
 
+    /**
+     * Auditoría punto 10: al cerrar una ronda que no es la última, la siguiente
+     * queda programada tras la pausa, se avisa a los clientes y no arranca antes.
+     */
+    #[Test]
+    public function la_ronda_siguiente_espera_la_pausa_y_se_avisa() : void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        \Illuminate\Support\Facades\Event::fake([\App\Domains\Games\Bingo\Events\BingoRoundStarting::class]);
+        config(['bingo.round_pause_seconds' => 30]);
+
+        ['room' => $room, 'round' => $round1, 'pattern' => $pattern] = $this->makeRoom('N3');
+        $room->update(['prize_pool' => 100]);
+        $room->config->update(['rounds' => '2']);
+        $round2 = BingoRound::create([
+            'room_id' => $room->id, 'room_config_id' => $room->config->id, 'round' => 2,
+            'prize_type' => 'PCT', 'bingo_pattern_id' => $pattern->id, 'status' => 'ACTIVE',
+        ]);
+        $this->makeCard($room, 'APPROVED');
+
+        $service = app(BingoDrawService::class);
+        $service->startDraw($room->fresh());
+
+        $this->assertSame('FINISHED', $round1->fresh()->status);
+        $this->assertTrue($round2->fresh()->start_time->isFuture());
+        \Illuminate\Support\Facades\Queue::assertPushed(\App\Domains\Games\Bingo\Jobs\StartBingoDrawJob::class);
+        \Illuminate\Support\Facades\Event::assertDispatched(
+            \App\Domains\Games\Bingo\Events\BingoRoundStarting::class,
+            fn ($e) => $e->round === 2,
+        );
+
+        // El cron la despacha antes de tiempo: no arranca.
+        $result = $service->startDraw($room->fresh());
+        $this->assertTrue($result['waiting_next_round'] ?? false);
+        $this->assertSame('ACTIVE', $round2->fresh()->status);
+        $this->assertSame(0, \App\Domains\Games\Bingo\Models\Draw\BingoDraw::where('round_id', $round2->id)->count());
+    }
+
     #[Test]
     public function lock_con_latido_reciente_o_sin_latido_se_respeta() : void
     {

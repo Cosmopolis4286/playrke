@@ -782,7 +782,9 @@ final class BingoDrawService
         ]);
 
         if ($finishedRounds < $totalRounds) {
-            // Quedan rondas pendientes — no cerrar la sala todavía
+            // Quedan rondas pendientes — no cerrar la sala todavía.
+            $this->scheduleNextRound($room);
+
             return;
         }
 
@@ -1389,6 +1391,13 @@ final class BingoDrawService
             return ['success' => true, 'room_id' => $roomId, 'total_chips' => 0, 'winner' => null, 'alreadyFinished' => true];
         }
 
+        // Pausa entre rondas (scheduleNextRound): la ronda siguiente no arranca
+        // antes de su start_time aunque el cron despache el sorteo antes.
+        if ($round && $round->status === 'ACTIVE' && (int) $round->round > 1
+            && $round->start_time && $round->start_time->isFuture()) {
+            return ['success' => true, 'room_id' => $roomId, 'total_chips' => 0, 'winner' => null, 'waiting_next_round' => true];
+        }
+
         if (! $round) {
             $round = BingoRound::where('room_id', (string) $roomId)
                 ->orderBy('round')
@@ -1786,5 +1795,41 @@ final class BingoDrawService
         ]);
 
         return ['success' => true, 'room_id' => $roomId, 'total_chips' => count($drawnSoFar), 'winner' => null];
+    }
+
+    /**
+     * Terminó una ronda y quedan más: la siguiente empieza tras la pausa
+     * config('bingo.round_pause_seconds'). Se fija su start_time (runDraw no
+     * la arranca antes), se despacha el sorteo para ese momento y se avisa a
+     * los clientes para la cuenta regresiva. Antes la ronda siguiente empezaba
+     * en el próximo minuto del cron, sin aviso ni pausa.
+     */
+    private function scheduleNextRound(BingoRoom $room) : void
+    {
+        $next = BingoRound::where('room_id', (string) $room->id)
+            ->where('status', 'ACTIVE')
+            ->orderBy('round')
+            ->first();
+
+        if (! $next) {
+            return;
+        }
+
+        $startsAt = now()->addSeconds(max(0, (int) config('bingo.round_pause_seconds', 30)));
+        $next->forceFill(['start_time' => $startsAt])->save();
+
+        // El job corre recién al terminar la pausa (el cierre ya está
+        // confirmado); si este cierre se revirtiera, la ronda seguiría ACTIVE y
+        // runDraw la tomaría igual. El aviso a los clientes es informativo.
+        \App\Domains\Games\Bingo\Jobs\StartBingoDrawJob::dispatch((string) $room->id)->delay($startsAt);
+
+        try {
+            broadcast(new \App\Domains\Games\Bingo\Events\BingoRoundStarting((int) $room->id, (int) $next->round, $startsAt->toIso8601String()));
+        } catch (Throwable $e) {
+            Log::warning('[BingoDrawService] No se pudo avisar el inicio de la próxima ronda', [
+                'room_id' => $room->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
