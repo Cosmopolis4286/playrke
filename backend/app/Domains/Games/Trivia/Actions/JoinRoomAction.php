@@ -292,7 +292,10 @@ class JoinRoomAction
             if (isset($wallets[$cid])) {
                 $chargeWallet = $wallets[$cid];
                 $chargeAmount = $amount;
-                $chargeCurrencyId = $cid;
+                // PHP convierte las claves numéricas de $feeMap (ids snowflake) a
+                // int: sin el cast, registerParticipantInDatabase(?string) lanzaba
+                // TypeError (strict_types) y nadie podía entrar a una sala paga.
+                $chargeCurrencyId = (string) $cid;
 
                 break;
             }

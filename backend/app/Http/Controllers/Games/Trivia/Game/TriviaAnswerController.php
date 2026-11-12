@@ -12,6 +12,7 @@ use App\Enums\Games\Common\AntiCheatSignalType;
 use App\Enums\Games\Common\GameSlug;
 use App\Events\Games\Trivia\TriviaAnswerResult;
 use App\Http\Controllers\Controller;
+use App\Models\BaseModel;
 use App\Services\Games\AntiCheatService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -19,7 +20,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Throwable;
 
@@ -225,7 +225,7 @@ final class TriviaAnswerController extends Controller
                     ->first();
 
                 $pgsql->table('trivia_answers')->insert([
-                    'id' => (string) Str::ulid(),
+                    'id' => BaseModel::generateSnowflakeId(), // trivia_*.id es varchar(20): un ULID (26) no cabe
                     'game_id' => $gameId,
                     'player_id' => $userId,
                     'question_id' => $questionId,
@@ -387,7 +387,7 @@ final class TriviaAnswerController extends Controller
                 ]);
         } else {
             $pgsql->table('trivia_scores')->insert([
-                'id' => (string) Str::ulid(),
+                'id' => BaseModel::generateSnowflakeId(), // trivia_*.id es varchar(20): un ULID (26) no cabe
                 'game_id' => $gameId,
                 'player_id' => $userId,
                 'final_score' => $points,
