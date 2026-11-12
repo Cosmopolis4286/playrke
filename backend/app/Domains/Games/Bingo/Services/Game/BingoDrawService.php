@@ -657,6 +657,56 @@ final class BingoDrawService
         return $this->activeCardsCache[$withKey];
     }
 
+    /** Ver closeRoomIfFinalRound(): corre tras confirmar el cierre de la sala. */
+    private function afterRoomFinished(BingoRoom $room) : void
+    {
+        // Pagar al creador su comisión (+ fondos del premio en Premio/Servicio
+        // puras) de las ventas con billetera. Nunca lanza: un fallo queda como
+        // alerta de conciliación. Idempotente si el cierre se reintenta.
+        try {
+            app(\App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomCreatorPayoutService::class)->payoutOnClose($room);
+        } catch (Throwable $e) {
+            Log::error('[BingoDrawService] Error al pagar al creador de la sala', [
+                'room_id' => $room->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        try {
+            $room->refresh();
+            $this->statsAggregator->aggregate($room);
+        } catch (Throwable $e) {
+            Log::warning('[BingoDrawService] Error al calcular estadísticas de sala', [
+                'room_id' => $room->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        $this->reportGamesPlayed($room);
+    }
+
+    /**
+     * Ronda cerrada sin ganador (p. ej. ningún cartón elegible porque todos los
+     * pagos seguían en revisión) con bote en dinero: queda como alerta de
+     * conciliación para decidir su destino, en vez de quedar el bote olvidado.
+     */
+    private function alertRoundWithoutWinner(BingoRoom $room, BingoRound $round) : void
+    {
+        $pool = (float) ($room->fresh()?->prize_pool ?? 0);
+        if ($pool <= 0) {
+            return;
+        }
+
+        app(\App\Services\Platform\FinancialReconciliationService::class)->record(
+            type: \App\Models\Platform\FinancialReconciliationItem::TYPE_BINGO_ROUND_NO_WINNER,
+            message: "La ronda {$round->round} de la sala #{$room->uuid_code} terminó sin ganador con bote de {$pool} USD: decidir su destino.",
+            amount: $pool,
+            roomId: (string) $room->id,
+            idempotencyKey: "bingo-round-no-winner-{$round->id}",
+            details: ['round_id' => (string) $round->id, 'currency' => 'USD'],
+        );
+    }
+
     /** Marca de "sigo sorteando" del worker que tiene el lock (se renueva cada ficha). */
     private function beatHeartbeat(string $roomId) : void
     {
@@ -756,29 +806,11 @@ final class BingoDrawService
             'finished_at' => now()->toISOString(),
         ]);
 
-        // Pagar al creador su comisión (+ fondos del premio en Premio/Servicio
-        // puras) de las ventas con billetera. Nunca lanza: un fallo queda como
-        // alerta de conciliación. Idempotente si el cierre se reintenta.
-        try {
-            app(\App\Domains\Games\Bingo\Services\Room\Metrics\BingoRoomCreatorPayoutService::class)->payoutOnClose($room);
-        } catch (Throwable $e) {
-            Log::error('[BingoDrawService] Error al pagar al creador de la sala', [
-                'room_id' => $room->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        try {
-            $room->refresh();
-            $this->statsAggregator->aggregate($room);
-        } catch (Throwable $e) {
-            Log::warning('[BingoDrawService] Error al calcular estadísticas de sala', [
-                'room_id' => $room->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        $this->reportGamesPlayed($room);
+        // Efectos externos al cierre (pago al creador, estadísticas, partidas
+        // jugadas) DESPUÉS de confirmar la transacción de closeRoundAndRoom():
+        // dentro de ella alargaban los locks de ronda/sala, y si la transacción
+        // se revertía igual quedaban hechos.
+        DB::afterCommit(fn () => $this->afterRoomFinished($room));
     }
 
     /**
@@ -817,11 +849,9 @@ final class BingoDrawService
     }
 
     /**
-     * Convierte un monto USD a moneda local usando el exchange rate de la moneda del cartón.
-     * Si no hay tasa activa, devuelve el monto USD SIN convertir (mismo número,
-     * distinta moneda) — ya no es un fallback silencioso: getActiveRateOrNull()
-     * deja constancia en logs, y BingoRoomDetails.vue advierte al admin cuando
-     * detecta usd_amount === local_amount en una moneda distinta de USD.
+     * Convierte un monto USD a moneda local con la tasa activa de la moneda del
+     * cartón. Sin tasa activa lanza (requireActiveRate): nunca se paga el monto
+     * en USD como si fuera moneda local.
      */
     private function convertToLocal(float $usdAmount, string $currencyId) : float
     {
@@ -1564,6 +1594,7 @@ final class BingoDrawService
 
             // Sin ganador tras revisar todos los chips
             $this->closeRoundAndRoom($round, $room);
+            $this->alertRoundWithoutWinner($room, $round);
             broadcast(new BingoGameEnded(
                 roomId: (int) $roomId,
                 drawId: (int) ($lastDraw->id ?? 0),
@@ -1734,6 +1765,7 @@ final class BingoDrawService
             ->first();
 
         $this->closeRoundAndRoom($round, $room);
+        $this->alertRoundWithoutWinner($room, $round);
 
         broadcast(new BingoGameEnded(
             roomId: (int) $roomId,

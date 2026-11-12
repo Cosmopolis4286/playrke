@@ -291,6 +291,34 @@ class BingoDrawIntegrityTest extends TestCase
     }
 
     /**
+     * Auditoría punto 12: ronda cerrada sin ganador (ningún cartón elegible)
+     * con bote en dinero: queda una alerta de conciliación en vez de un bote
+     * olvidado. Se usa la ruta de recuperación "todas las fichas ya cantadas".
+     */
+    #[Test]
+    public function ronda_sin_ganador_con_bote_deja_alerta_de_conciliacion() : void
+    {
+        ['room' => $room, 'round' => $round] = $this->makeRoom('N3');
+        $room->update(['prize_pool' => 80]);
+        $round->update(['status' => 'IN_PROGRESS']);
+        $this->makeCard($room, 'PENDING'); // no elegible: no puede ganar
+
+        foreach (range(1, 75) as $n) {
+            \App\Domains\Games\Bingo\Models\Draw\BingoDrawCode::create(['room_id' => $room->id, 'round_id' => $round->id, 'num' => $n, 'sym' => (string) $n]);
+            \App\Domains\Games\Bingo\Models\Draw\BingoDraw::create(['room_id' => $room->id, 'round_id' => $round->id, 'chip' => (string) $n, 'code' => 'X' . $n, 'time' => $n, 'status' => 'FINISHED']);
+        }
+
+        $result = app(BingoDrawService::class)->startDraw($room->fresh());
+
+        $this->assertTrue($result['success']);
+        $this->assertNull($result['winner']);
+        $alert = \App\Models\Platform\FinancialReconciliationItem::where('room_id', $room->id)
+            ->where('type', \App\Models\Platform\FinancialReconciliationItem::TYPE_BINGO_ROUND_NO_WINNER)
+            ->sole();
+        $this->assertEqualsWithDelta(80.0, (float) $alert->amount, 0.001);
+    }
+
+    /**
      * Carrera: el reclamo manual (check-bingo → claimCardWin) paga primero.
      * Antes el sorteo seguía cantando fichas (claimCardWin devolvía null para el
      * premio ya pagado) y podía premiar a otro cartón; ahora cierra ronda y sala.
