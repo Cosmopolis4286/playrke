@@ -6,6 +6,7 @@ use App\Domains\Games\Bingo\DTOs\Room\Automatic\BingoRoomAutomaticCreateDTO;
 use App\Domains\Games\Bingo\DTOs\Room\BingoRoomCreateDTO;
 use App\Domains\Games\Bingo\DTOs\Room\BingoRoomUpdateDTO;
 use App\Http\Requests\Games\Bingo\Room\BingoRoomRequest;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Validator;
 use Tests\TestCase;
 
@@ -15,6 +16,9 @@ use Tests\TestCase;
  */
 class BingoRoundPauseConfigTest extends TestCase
 {
+    // BingoRoomRequest::rules() consulta room_types (y otras tablas de catálogo).
+    use RefreshDatabase;
+
     public function test_dtos_map_round_pause_seconds_and_default_to_null() : void
     {
         $base = ['connectionType' => '1', 'prizePoolType' => '1', 'allowedCurrencies' => ['1']];
