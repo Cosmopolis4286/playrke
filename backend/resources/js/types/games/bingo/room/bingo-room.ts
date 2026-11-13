@@ -320,6 +320,8 @@ export interface BingoRoomFormData {
     jackpotPct?: number | null
     jackpotType?: string | null
     timeChip?: number | null
+    /** Segundos de pausa entre rondas; null = valor global. */
+    roundPauseSeconds?: number | null
     rounds?: number | null
     roundsPct?: number | null
     roundsConfig?: RoundConfig[]

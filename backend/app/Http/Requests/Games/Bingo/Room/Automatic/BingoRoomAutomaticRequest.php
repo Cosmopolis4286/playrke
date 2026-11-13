@@ -97,6 +97,9 @@ class BingoRoomAutomaticRequest extends BaseRequest
             'roomCommn.max' => 'La comisión de sala no puede ser mayor a 50.',
 
             'timeChip.required' => 'El tiempo de ficha es obligatorio.',
+            'roundPauseSeconds.integer' => 'La pausa entre rondas debe ser un número entero de segundos.',
+            'roundPauseSeconds.min' => 'La pausa entre rondas no puede ser negativa.',
+            'roundPauseSeconds.max' => 'La pausa entre rondas no puede superar 600 segundos (10 minutos).',
 
             'rounds.required' => 'El número de rondas es obligatorio.',
 
@@ -196,6 +199,8 @@ class BingoRoomAutomaticRequest extends BaseRequest
 
             // Configuración general del juego
             'timeChip' => ['required', 'integer', 'min:3', 'max:10'],
+            // Vacío = pausa global entre rondas (config bingo.round_pause_seconds).
+            'roundPauseSeconds' => ['nullable', 'integer', 'min:0', 'max:600'],
             'rounds' => ['required', 'integer', 'min:1', 'max:15'],
             'roundsPct' => ['nullable', 'numeric', 'min:5', 'max:90'],
             'useSerials' => ['boolean'],

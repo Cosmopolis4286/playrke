@@ -7,7 +7,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 
 /**
  * Terminó una ronda y la siguiente empieza en `startsAt` (pausa entre rondas,
- * config('bingo.round_pause_seconds')): el cliente muestra la cuenta regresiva.
+ * de la sala, o config('bingo.round_pause_seconds') si no tiene): el cliente muestra la cuenta regresiva.
  */
 class BingoRoundStarting implements ShouldBroadcastNow
 {
