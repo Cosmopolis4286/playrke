@@ -363,7 +363,6 @@ class BingoDrawIntegrityTest extends TestCase
         $this->makeCard($room, 'PENDING'); // no elegible: no puede ganar
 
         foreach (range(1, 75) as $n) {
-            \App\Domains\Games\Bingo\Models\Draw\BingoDrawCode::create(['room_id' => $room->id, 'round_id' => $round->id, 'num' => $n, 'sym' => (string) $n]);
             \App\Domains\Games\Bingo\Models\Draw\BingoDraw::create(['room_id' => $room->id, 'round_id' => $round->id, 'chip' => (string) $n, 'code' => 'X' . $n, 'time' => $n, 'status' => 'FINISHED']);
         }
 
@@ -404,6 +403,34 @@ class BingoDrawIntegrityTest extends TestCase
         $this->assertSame(BingoCard::STATUS_ACTIVE, (int) $other->fresh()->status);
         $this->assertSame('FINISHED', $round->fresh()->status);
         $this->assertSame('FINISHED', $room->fresh()->load('status')->status->code);
+    }
+
+    /**
+     * Auditoría punto 11: no hay secuencia pre-generada. Un sorteo retomado
+     * continúa desde las fichas ya cantadas (bingo_draws), elige solo entre
+     * las que faltan y no deja ninguna secuencia futura en bingo_draws_code.
+     */
+    #[Test]
+    public function sorteo_retomado_elige_solo_fichas_faltantes_sin_secuencia_persistida() : void
+    {
+        ['room' => $room, 'round' => $round] = $this->makeRoom('N3');
+        $round->update(['status' => 'IN_PROGRESS']);
+        $this->makeCard($room, 'PENDING'); // no elegible: el sorteo llega al final
+
+        // 73 fichas ya cantadas (todas menos la 1 y la 2), sin bingo_draws_code.
+        foreach (range(3, 75) as $n) {
+            \App\Domains\Games\Bingo\Models\Draw\BingoDraw::create(['room_id' => $room->id, 'round_id' => $round->id, 'chip' => (string) $n, 'code' => 'X' . $n, 'time' => $n, 'status' => 'FINISHED']);
+        }
+
+        $result = app(BingoDrawService::class)->startDraw($room->fresh());
+
+        $this->assertTrue($result['success']);
+        $chips = \App\Domains\Games\Bingo\Models\Draw\BingoDraw::where('round_id', $round->id)
+            ->orderBy('time')->orderBy('created_at')->pluck('chip')->map(fn ($c) => (int) $c)->all();
+        $this->assertCount(75, $chips);
+        $this->assertSame(range(3, 75), array_slice($chips, 0, 73), 'Lo ya cantado se conserva en orden');
+        $this->assertEqualsCanonicalizing([1, 2], array_slice($chips, 73), 'Solo se cantan las que faltaban');
+        $this->assertSame(0, \App\Domains\Games\Bingo\Models\Draw\BingoDrawCode::where('round_id', $round->id)->count());
     }
 
     /**
