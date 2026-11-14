@@ -45,4 +45,30 @@ return [
     */
 
     'order_expiration_minutes' => (int) env('PAYMENTS_ORDER_EXPIRATION_MINUTES', 30),
+
+    /*
+    |--------------------------------------------------------------------
+    | Depósitos USDT-TRC20 a la billetera (una dirección + monto único)
+    |--------------------------------------------------------------------
+    |
+    | Sin intermediarios: todos los depósitos llegan a UNA dirección propia
+    | (custodia en hardware wallet; aquí solo va la dirección pública, nunca
+    | la seed). Cada orden recibe un monto único (monto pedido + un sufijo
+    | de 0.000001 a 0.009999 USDT) que identifica al jugador; el watcher
+    | (payments:watch-usdt-deposits) lee las transferencias TRC20 entrantes
+    | vía TronGrid y acredita la orden que coincide. Lo que no coincide va a
+    | revisión de tesorería. Ver UsdtDepositService / UsdtDepositWatcher.
+    |
+    */
+    'usdt_deposits' => [
+        'enabled' => (bool) env('USDT_DEPOSITS_ENABLED', false),
+        'receiving_address' => env('USDT_DEPOSIT_ADDRESS'),
+        'currency_iso' => env('USDT_DEPOSIT_CURRENCY_ISO', 'USDT'),
+        // Ventana para pagar el monto exacto. Un pago que llega después va
+        // a revisión manual (no se acredita solo: el monto pudo reasignarse).
+        'window_minutes' => (int) env('USDT_DEPOSIT_WINDOW_MINUTES', 30),
+        // Un monto expirado no se reasigna a otra orden durante este tiempo,
+        // para que un pago tardío siga identificando a su dueño.
+        'amount_reuse_cooldown_hours' => (int) env('USDT_DEPOSIT_AMOUNT_COOLDOWN_HOURS', 48),
+    ],
 ];
