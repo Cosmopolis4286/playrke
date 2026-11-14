@@ -19,6 +19,12 @@ use App\Exceptions\Domain\DomainException;
  */
 final class BingoRoomException extends DomainException
 {
+    /** No se pudo generar un código de acceso único (casi imposible). */
+    public static function accessCodeUnavailable() : self
+    {
+        return new self('BINGO_ROOM_ACCESS_CODE_UNAVAILABLE', 503);
+    }
+
     /**
      * El usuario no es el creador de la sala ni tiene rol admin/superadmin.
      */
@@ -196,6 +202,18 @@ final class BingoRoomException extends DomainException
     public static function notFound() : self
     {
         return new self('BINGO_ROOM_NOT_FOUND', 404);
+    }
+
+    /** Demasiados intentos fallidos de código/contraseña (por jugador o por sala). */
+    public static function privateAccessLocked() : self
+    {
+        return new self('BINGO_ROOM_PRIVATE_ACCESS_LOCKED', 429);
+    }
+
+    /** Sala privada sin código o sin contraseña: nadie podría entrar. */
+    public static function privateRoomMissingCredentials() : self
+    {
+        return new self('BINGO_ROOM_PRIVATE_MISSING_CREDENTIALS', 409);
     }
 
     /**

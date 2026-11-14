@@ -68,6 +68,21 @@ class GenerateBingoRoomsCommandTest extends TestCase
     }
 
     #[Test]
+    public function generated_private_room_gets_a_unique_code_while_the_previous_one_is_open() : void
+    {
+        $privateType = \App\Models\Games\Common\Room\RoomType::firstOrCreate(['code' => 'PRIVATE'], ['label' => 'Privada']);
+        $this->makeTemplate(['room_type_id' => (string) $privateType->id, 'access_code' => 'FIESTA', 'room_password' => 'x']);
+        $this->makeTemplate(['room_type_id' => (string) $privateType->id, 'access_code' => 'FIESTA', 'room_password' => 'x']);
+
+        app(AutoGenerateBingoRoomsService::class)->createBingoRooms();
+
+        $codes = BingoRoom::with('config')->get()->pluck('config.access_code');
+        $this->assertCount(2, $codes);
+        $this->assertCount(2, $codes->unique(), 'Dos salas privadas abiertas nunca comparten código');
+        $this->assertContains('FIESTA', $codes);
+    }
+
+    #[Test]
     public function service_config_has_template_relation() : void
     {
         $template = $this->makeTemplate();
@@ -80,6 +95,28 @@ class GenerateBingoRoomsCommandTest extends TestCase
         $this->assertNotNull($relatedTemplate);
         $this->assertInstanceOf(BingoRoomAutomatic::class, $relatedTemplate);
         $this->assertEquals($template->id, $relatedTemplate->id);
+    }
+
+    #[Test]
+    public function service_copies_private_access_to_the_generated_room() : void
+    {
+        $privateType = \App\Models\Games\Common\Room\RoomType::firstOrCreate(['code' => 'PRIVATE'], ['label' => 'Privada']);
+        $hash = \Illuminate\Support\Facades\Hash::make('secreta123');
+        $host = $this->nextId();
+        $template = $this->makeTemplate([
+            'room_type_id' => (string) $privateType->id,
+            'access_code' => 'FIESTA',
+            'room_password' => $hash,
+            'host_user_id' => $host,
+        ]);
+
+        app(AutoGenerateBingoRoomsService::class)->createBingoRooms();
+
+        $config = BingoRoom::sole()->config;
+        $this->assertSame('FIESTA', $config->access_code);
+        $this->assertSame($hash, $config->room_password);
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('secreta123', $config->room_password));
+        $this->assertSame($host, (string) $config->host_user_id);
     }
 
     // ─── Serials config ───────────────────────────────────────────────────────

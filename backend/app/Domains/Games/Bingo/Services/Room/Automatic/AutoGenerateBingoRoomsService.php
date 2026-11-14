@@ -8,11 +8,14 @@ use App\Domains\Games\Bingo\DTOs\Room\BingoRoomCreateDTO;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
+use App\Domains\Games\Bingo\Services\Room\BingoPrivateRoomAccess;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomCrudService;
 use App\Domains\Games\Bingo\ValueObjects\BingoRoomPrizeRules;
 use App\Domains\Wallet\Services\WalletService;
+use App\Models\Currency;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
+use App\Models\Games\Common\Room\RoomType;
 use App\Models\Games\Common\Utils\GameStatus;
 use App\Services\ExchangeRate\ExchangeRateDomainService;
 use App\Services\Utils\Snowflake\SnowflakeBatchService;
@@ -150,6 +153,12 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
             'move_free_space_price_pct' => $template->move_free_space_price_pct,
             'allow_special_card' => $template->allow_special_card,
             'max_special_cards' => $template->max_special_cards,
+            // Acceso de sala privada: antes no se copiaba y la sala generada
+            // quedaba sin código ni contraseña (ningún jugador podía entrar).
+            // room_password ya viene hasheada en la plantilla; el código se
+            // resuelve único entre las salas privadas abiertas.
+            ...$this->privateAccessFromTemplate($template, $currencyOverride),
+            'host_user_id' => $template->host_user_id,
         ]);
     }
 
@@ -291,6 +300,24 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
             ->setDateFrom($now);
 
         return $scheduledTime->betweenIncluded($windowStart, $now);
+    }
+
+    /** @return array{access_code?: string|null, room_password?: string|null} */
+    private function privateAccessFromTemplate(BingoRoomAutomatic $template, ?array $currencyOverride) : array
+    {
+        $isPrivate = RoomType::whereKey($template->room_type_id)->value('code') === 'PRIVATE';
+        if (! $isPrivate) {
+            return [];
+        }
+
+        $suffixHint = $currencyOverride !== null && count($currencyOverride) === 1
+            ? Currency::whereKey(reset($currencyOverride))->value('iso_code')
+            : null;
+
+        return [
+            'access_code' => app(BingoPrivateRoomAccess::class)->codeForGeneratedRoom($template->access_code, $suffixHint),
+            'room_password' => $template->room_password,
+        ];
     }
 
     /**

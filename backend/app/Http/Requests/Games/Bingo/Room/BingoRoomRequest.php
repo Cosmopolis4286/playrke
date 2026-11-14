@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Games\Bingo\Room;
 
+use App\Domains\Games\Bingo\Services\Room\BingoPrivateRoomAccess;
 use App\Domains\Games\Bingo\ValueObjects\BingoRoomCapacityRules;
 use App\Domains\Games\Bingo\ValueObjects\BingoRoomPrizeRules;
 use App\Http\Requests\BaseRequest;
@@ -264,6 +265,7 @@ class BingoRoomRequest extends BaseRequest
             $this->validateMoveFreeSpace($validator);
             $this->validateCapacityPairs($validator);
             $this->validateJackpotActive($validator);
+            $this->validatePrivateAccess($validator);
         });
     }
 
@@ -556,6 +558,31 @@ class BingoRoomRequest extends BaseRequest
                 'percentageSum',
                 "La suma de porcentajes ({$totalPct}%) no puede exceder el 100%.",
             );
+        }
+    }
+
+    /**
+     * Sala privada: el código no puede estar en uso por otra sala privada
+     * abierta, y no se activa sin contraseña (una copia llega sin ella).
+     */
+    private function validatePrivateAccess($validator) : void
+    {
+        $privateRoomTypeId = RoomType::where('code', 'PRIVATE')->value('id');
+        if (! $privateRoomTypeId || (string) $this->input('roomType') !== (string) $privateRoomTypeId) {
+            return;
+        }
+
+        $room = $this->route('room');
+        $accessCode = trim((string) $this->input('accessCode', ''));
+        if ($accessCode !== '' && ! $validator->errors()->has('accessCode')
+            && app(BingoPrivateRoomAccess::class)->isAccessCodeTaken($accessCode, $room?->id ? (string) $room->id : null)) {
+            $validator->errors()->add('accessCode', 'Ese código ya lo usa otra sala privada. Elige otro.');
+        }
+
+        $activating = filter_var($this->input('activateRoom', false), FILTER_VALIDATE_BOOLEAN);
+        $hasStoredPassword = $room !== null && filled($room->config?->room_password);
+        if ($activating && blank($this->input('roomPassword')) && ! $hasStoredPassword && ! $validator->errors()->has('roomPassword')) {
+            $validator->errors()->add('roomPassword', 'Define una contraseña para activar la sala privada.');
         }
     }
 
