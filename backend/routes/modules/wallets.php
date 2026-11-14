@@ -54,6 +54,7 @@ Route::middleware(['auth', 'verified', 'multiPermission:wallet.view,wallet.depos
     });
     Route::middleware(['tos', 'throttle:5,1'])->group(function() {
         Route::post('wallet/usdt-deposits', [UsdtDepositController::class, 'store'])->name('wallet.usdt-deposits.store');
+        Route::post('wallet/usdt-deposits/claim', [UsdtDepositController::class, 'claimWithoutOrder'])->name('wallet.usdt-deposits.claim-without-order');
         Route::post('wallet/usdt-deposits/{order}/claim', [UsdtDepositController::class, 'claim'])->name('wallet.usdt-deposits.claim');
     });
 

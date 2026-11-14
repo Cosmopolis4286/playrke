@@ -9,6 +9,11 @@ use DomainException;
 /** Error de negocio del depósito USDT, con el status HTTP que corresponde. */
 final class UsdtDepositException extends DomainException
 {
+    public static function amountRequired() : self
+    {
+        return new self('Indica el monto a acreditar, verificado en el explorador.');
+    }
+
     public static function disabled() : self
     {
         return new self('Los depósitos con USDT no están disponibles por ahora.', 404);
@@ -42,6 +47,11 @@ final class UsdtDepositException extends DomainException
     public static function selfReview() : self
     {
         return new self('No puedes revisar un depósito propio.', 403);
+    }
+
+    public static function tooManyOpenClaims() : self
+    {
+        return new self('Ya tienes varios pagos reportados en revisión. Espera a que tesorería los resuelva.', 429);
     }
 
     public static function txHashAlreadyUsed() : self

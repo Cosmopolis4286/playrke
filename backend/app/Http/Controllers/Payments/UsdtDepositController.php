@@ -64,6 +64,24 @@ class UsdtDepositController extends Controller
         ]);
     }
 
+    /** Reportar un pago hecho sin generar orden (o cuya orden ya no se ve). */
+    public function claimWithoutOrder(Request $request) : JsonResponse
+    {
+        $data = $request->validate(['tx_hash' => ['required', 'string', 'max:100']]);
+
+        try {
+            $order = $this->deposits->claimWithoutOrder($request->user(), $data['tx_hash']);
+        } catch (DomainException $e) {
+            return $this->error($e);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Recibimos tu reporte. Tesorería verificará el pago y lo acreditará.',
+            'data' => self::present($order),
+        ], 201);
+    }
+
     public function page() : InertiaResponse
     {
         $latest = UsdtDepositOrder::where('user_id', (string) Auth::id())

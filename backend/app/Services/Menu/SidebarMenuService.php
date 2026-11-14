@@ -21,6 +21,7 @@ class SidebarMenuService
     private const BADGE_COUNTERS = [
         'pendingWalletMovementsCount' => 'pendingWalletMovementsCount',
         'pendingBingoCardPaymentsCount' => 'pendingBingoCardPaymentsCount',
+        'pendingUsdtDepositReviewCount' => 'pendingUsdtDepositReviewCount',
     ];
     /**
      * Estructura completa del menú con permisos requeridos
@@ -283,6 +284,7 @@ class SidebarMenuService
                     'route' => 'usdt-deposits.review',
                     'permission' => 'wallet.movements.manage',
                     'enabled_config' => 'payments.usdt_deposits.enabled',
+                    'badge_counter' => 'pendingUsdtDepositReviewCount',
                 ],
                 'deposit_accounts' => [
                     'title' => 'Cuentas para Depósitos',
@@ -764,6 +766,16 @@ class SidebarMenuService
         $network = \App\Models\Roles\Commerce::where('user_id', $user->id)->first()?->networkUserIds();
 
         return $network ? $query->whereIn('seller_user_id', $network)->count() : 0;
+    }
+
+    /**
+     * Depósitos USDT que esperan a tesorería: órdenes en revisión más
+     * transferencias recibidas sin dueño.
+     */
+    public function pendingUsdtDepositReviewCount() : int
+    {
+        return \App\Domains\Payments\Models\UsdtDepositOrder::where('status', \App\Domains\Payments\Models\UsdtDepositOrder::STATUS_MANUAL_REVIEW)->count()
+            + \App\Domains\Payments\Models\UsdtInboundTransfer::where('status', \App\Domains\Payments\Models\UsdtInboundTransfer::STATUS_UNMATCHED)->count();
     }
 
     /**

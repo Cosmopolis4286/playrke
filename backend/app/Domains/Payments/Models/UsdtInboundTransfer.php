@@ -18,7 +18,7 @@ class UsdtInboundTransfer extends Model
     use SnowflakeId;
 
     public const STATUS_IGNORED = 'IGNORED';
-    public const STATUS_LATE = 'LATE';
+    public const STATUS_IN_REVIEW = 'IN_REVIEW';
     public const STATUS_MATCHED = 'MATCHED';
     public const STATUS_UNMATCHED = 'UNMATCHED';
 

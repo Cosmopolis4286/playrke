@@ -70,5 +70,11 @@ return [
         // Un monto expirado no se reasigna a otra orden durante este tiempo,
         // para que un pago tardío siga identificando a su dueño.
         'amount_reuse_cooldown_hours' => (int) env('USDT_DEPOSIT_AMOUNT_COOLDOWN_HOURS', 48),
+        // Diferencia máxima (USDT) entre lo pedido y lo recibido para acreditar
+        // solo cuando los decimales únicos coinciden: cubre la comisión que el
+        // exchange descuenta al retirar. Más que esto va a revisión.
+        'amount_tolerance_usdt' => (float) env('USDT_DEPOSIT_AMOUNT_TOLERANCE', 3),
+        // Reportes de pago sin orden abiertos a la vez por jugador.
+        'max_open_orphan_claims' => (int) env('USDT_DEPOSIT_MAX_ORPHAN_CLAIMS', 3),
     ],
 ];

@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Schema;
  * (config payments.usdt_deposits). Dos tablas:
  *
  * - usdt_deposit_orders: lo que el jugador pidió depositar. amount_units es
- *   el monto único en micro-USDT (6 decimales, entero): es la llave con la
- *   que el watcher reconoce el pago.
+ *   el monto único en micro-USDT (6 decimales, entero) y amount_suffix sus
+ *   últimos 4 decimales: la llave con la que el watcher reconoce el pago.
  * - usdt_inbound_transfers: cada transferencia TRC20 observada en la
  *   dirección receptora, una vez (tx_hash único). Las que no coinciden con
  *   ninguna orden quedan UNMATCHED para tesorería.
@@ -31,6 +31,10 @@ return new class extends Migration
             $table->string('wallet_id', 20);
             $table->decimal('requested_amount', 20, 2);
             $table->unsignedBigInteger('amount_units')->comment('Monto único a pagar, en micro-USDT');
+            // Últimos 4 decimales del monto (1..9999), únicos entre las órdenes
+            // que pueden recibir un pago: sobreviven a la comisión redonda que
+            // descuenta el exchange (10.000347 → llega 9.000347).
+            $table->unsignedSmallInteger('amount_suffix')->nullable();
             $table->string('deposit_address', 64);
             $table->string('status', 20)->index();
             $table->string('tx_hash', 100)->nullable()->unique();
@@ -46,7 +50,7 @@ return new class extends Migration
             $table->timestamp('reviewed_at')->nullable();
             $table->timestamps();
 
-            $table->index(['amount_units', 'status']);
+            $table->index(['amount_suffix', 'status']);
         });
 
         Schema::create('usdt_inbound_transfers', function(Blueprint $table) {
@@ -57,7 +61,7 @@ return new class extends Migration
             $table->decimal('amount', 20, 6);
             $table->unsignedBigInteger('amount_units');
             $table->timestamp('block_time');
-            $table->string('status', 20)->index()->comment('MATCHED | LATE | UNMATCHED | IGNORED');
+            $table->string('status', 20)->index()->comment('MATCHED | IN_REVIEW | UNMATCHED | IGNORED');
             $table->string('usdt_deposit_order_id', 20)->nullable()->index();
             $table->string('note', 255)->nullable();
             $table->timestamps();

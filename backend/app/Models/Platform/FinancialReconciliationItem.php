@@ -31,6 +31,8 @@ class FinancialReconciliationItem extends Model
 
     /** La wallet de plataforma no tenía saldo para devolver el RKE de una venta reembolsada. */
     public const TYPE_RKE_REVERSAL_FAILED = 'RKE_REVERSAL_FAILED';
+    /** USDT recibido en la dirección de depósitos sin dueño por más de 24 h. */
+    public const TYPE_USDT_UNMATCHED_TRANSFER = 'USDT_UNMATCHED_TRANSFER';
 
     protected $casts = [
         'id' => 'string',

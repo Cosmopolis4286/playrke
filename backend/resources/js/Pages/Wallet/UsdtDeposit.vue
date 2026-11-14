@@ -54,6 +54,8 @@ const countdown = computed(() => {
   const s = secondsLeft.value % 60
   return `${m}:${String(s).padStart(2, '0')}`
 })
+/** Últimos 4 decimales del monto: lo que identifica el pago aunque el exchange descuente comisión. */
+const suffixDigits = computed(() => order.value?.pay_amount.slice(-4) ?? '')
 const qrUrl = computed(() => order.value ? `/wallet/usdt-deposits/${order.value.id}/qr` : '')
 
 function errorMessage(error: unknown, fallback: string): string {
@@ -89,12 +91,14 @@ async function refresh() {
   }
 }
 
+/** Con orden: reporta el pago de esa orden. Sin orden: reporte suelto (pagó sin generar el monto). */
 async function claim() {
-  if (!order.value || !txHash.value.trim()) return
+  if (!txHash.value.trim()) return
   claiming.value = true
   try {
+    const url = order.value ? `/wallet/usdt-deposits/${order.value.id}/claim` : '/wallet/usdt-deposits/claim'
     const { data } = await backendClient.post<{ data: DepositOrder, message: string }>(
-      `/wallet/usdt-deposits/${order.value.id}/claim`,
+      url,
       { tx_hash: txHash.value.trim() }
     )
     order.value = data.data
@@ -187,6 +191,34 @@ onBeforeUnmount(() => {
           >
             <i class="fas" :class="creating ? 'fa-spinner fa-spin' : 'fa-qrcode'" /> Generar pago
           </button>
+
+          <details class="mt-3 small">
+            <summary class="text-muted">
+              ¿Ya pagaste sin generar el monto? Reportar un pago
+            </summary>
+            <p class="mt-2 mb-2 text-muted">
+              Pega el txid (hash de la transacción). Tesorería lo verificará y lo acreditará.
+            </p>
+            <div class="input-group input-group-sm">
+              <input
+                v-model="txHash"
+                type="text"
+                class="form-control text-monospace"
+                placeholder="txid de 64 caracteres"
+                aria-label="txid del pago"
+              >
+              <div class="input-group-append">
+                <button
+                  type="button"
+                  class="btn btn-outline-primary"
+                  :disabled="claiming || !txHash.trim()"
+                  @click="claim"
+                >
+                  <i class="fas" :class="claiming ? 'fa-spinner fa-spin' : 'fa-paper-plane'" /> Reportar
+                </button>
+              </div>
+            </div>
+          </details>
         </div>
       </div>
 
@@ -238,8 +270,9 @@ onBeforeUnmount(() => {
             <div class="alert alert-warning text-left small mb-0">
               <ul class="pl-3 mb-0">
                 <li>Usa solo la red <strong>TRC20 (TRON)</strong>; otra red hace que el pago se pierda.</li>
-                <li>El monto debe <strong>llegar</strong> exacto, con todos sus decimales. Si tu exchange descuenta comisión de retiro, súmala al enviar.</li>
-                <li>Acreditamos {{ order.requested_amount }} USDT apenas el pago se confirma (1-3 minutos).</li>
+                <li>Copia el monto <strong>con todos sus decimales</strong>: los últimos (<strong>…{{ suffixDigits }}</strong>) identifican tu pago.</li>
+                <li>Si tu exchange descuenta una comisión de retiro, igual lo reconocemos y acreditamos lo que llegue. Para recibir {{ order.requested_amount }} completos, súmale la comisión al enviar.</li>
+                <li>Se acredita apenas el pago se confirma (1-3 minutos).</li>
               </ul>
             </div>
           </div>

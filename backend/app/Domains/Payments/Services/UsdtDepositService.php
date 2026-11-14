@@ -49,7 +49,13 @@ final class UsdtDepositService
     {
         $this->assertReviewable($order, $reviewer);
 
-        return $this->credit($order, $amount, $reviewer);
+        $credited = $this->credit($order, $amount, $reviewer);
+        if ($credited->status !== UsdtDepositOrder::STATUS_CREDITED) {
+            // Reporte sin monto conocido (pago aún no visto): hay que indicarlo.
+            throw UsdtDepositException::amountRequired();
+        }
+
+        return $credited;
     }
 
     /**
@@ -59,24 +65,14 @@ final class UsdtDepositService
      */
     public function claim(UsdtDepositOrder $order, string $txHash) : UsdtDepositOrder
     {
-        $txHash = strtolower(trim($txHash));
-        if (! preg_match('/^[0-9a-f]{64}$/', $txHash)) {
-            throw UsdtDepositException::invalidTxHash();
-        }
+        $txHash = $this->normalizeTxHash($txHash);
 
         return DB::transaction(function() use ($order, $txHash) {
             $locked = UsdtDepositOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if (! in_array($locked->status, [UsdtDepositOrder::STATUS_PENDING, UsdtDepositOrder::STATUS_EXPIRED], true)) {
                 throw UsdtDepositException::notClaimable();
             }
-            if (UsdtDepositOrder::where('tx_hash', $txHash)->where('id', '!=', $locked->id)->exists()) {
-                throw UsdtDepositException::txHashAlreadyUsed();
-            }
-
-            $transfer = UsdtInboundTransfer::where('tx_hash', $txHash)->lockForUpdate()->first();
-            if ($transfer && $transfer->status !== UsdtInboundTransfer::STATUS_UNMATCHED) {
-                throw UsdtDepositException::txHashAlreadyUsed();
-            }
+            $transfer = $this->lockClaimableTransfer($txHash, (string) $locked->id);
 
             $locked->update([
                 'status' => UsdtDepositOrder::STATUS_MANUAL_REVIEW,
@@ -87,9 +83,55 @@ final class UsdtDepositService
                     ? 'Reportado por el jugador; transferencia vista en la dirección sin coincidir.'
                     : 'Reportado por el jugador; transferencia aún no vista por el watcher.',
             ]);
-            $transfer?->update(['status' => UsdtInboundTransfer::STATUS_MATCHED, 'usdt_deposit_order_id' => $locked->id]);
+            $transfer?->update(['status' => UsdtInboundTransfer::STATUS_IN_REVIEW, 'usdt_deposit_order_id' => $locked->id]);
 
             return $locked->fresh();
+        });
+    }
+
+    /**
+     * Reporte de un pago SIN orden previa (pagó sin generar el monto, cerró
+     * la pantalla, pagó hace días). Crea una orden directamente en revisión,
+     * vinculada a la transferencia si el watcher ya la vio sin dueño.
+     */
+    public function claimWithoutOrder(User $user, string $txHash) : UsdtDepositOrder
+    {
+        $this->assertEnabled();
+        $txHash = $this->normalizeTxHash($txHash);
+
+        $openOrphanClaims = UsdtDepositOrder::where('user_id', (string) $user->id)
+            ->where('status', UsdtDepositOrder::STATUS_MANUAL_REVIEW)
+            ->whereNull('amount_suffix')
+            ->count();
+        if ($openOrphanClaims >= (int) config('payments.usdt_deposits.max_open_orphan_claims', 3)) {
+            throw UsdtDepositException::tooManyOpenClaims();
+        }
+
+        $wallet = $this->usdtWallet($user);
+
+        return DB::transaction(function() use ($user, $wallet, $txHash) {
+            $transfer = $this->lockClaimableTransfer($txHash, null);
+
+            $order = UsdtDepositOrder::create([
+                'user_id' => (string) $user->id,
+                'wallet_id' => (string) $wallet->id,
+                // Sin sufijo: no reserva ni compite por montos únicos.
+                'requested_amount' => $transfer ? floor($transfer->amount * 100 + 1e-6) / 100 : 0,
+                'amount_units' => $transfer?->amount_units ?? 0,
+                'amount_suffix' => null,
+                'deposit_address' => (string) config('payments.usdt_deposits.receiving_address'),
+                'status' => UsdtDepositOrder::STATUS_MANUAL_REVIEW,
+                'tx_hash' => $txHash,
+                'from_address' => $transfer?->from_address,
+                'received_amount' => $transfer?->amount,
+                'expires_at' => now(),
+                'review_reason' => $transfer
+                    ? 'Pago reportado sin orden; transferencia vista en la dirección.'
+                    : 'Pago reportado sin orden; transferencia aún no vista por el watcher.',
+            ]);
+            $transfer?->update(['status' => UsdtInboundTransfer::STATUS_IN_REVIEW, 'usdt_deposit_order_id' => $order->id]);
+
+            return $order;
         });
     }
 
@@ -109,13 +151,14 @@ final class UsdtDepositService
         // nunca pueden recibir el mismo monto único.
         return Cache::lock('usdt-deposits:amount-allocation', 10)->block(5, function() use ($user, $wallet, $amount, $requestedUnits) {
             $baseUnits = $requestedUnits * (UsdtDepositOrder::UNITS_PER_USDT / 100);
-            $amountUnits = $this->pickUniqueAmountUnits($baseUnits);
+            $suffix = $this->pickUniqueSuffix();
 
             return UsdtDepositOrder::create([
                 'user_id' => (string) $user->id,
                 'wallet_id' => (string) $wallet->id,
                 'requested_amount' => $amount,
-                'amount_units' => $amountUnits,
+                'amount_units' => $baseUnits + $suffix,
+                'amount_suffix' => $suffix,
                 'deposit_address' => (string) config('payments.usdt_deposits.receiving_address'),
                 'status' => UsdtDepositOrder::STATUS_PENDING,
                 'expires_at' => now()->addMinutes((int) config('payments.usdt_deposits.window_minutes', 30)),
@@ -137,7 +180,10 @@ final class UsdtDepositService
                 return $locked;
             }
 
-            $creditAmount = round($amount ?? $locked->requested_amount, 2);
+            $creditAmount = round($amount ?? $locked->creditableAmount(), 2);
+            if ($creditAmount < 0.01) {
+                return $locked;
+            }
             $wallet = Wallet::whereKey($locked->wallet_id)->firstOrFail();
             $movement = $this->walletService->recordCryptoDeposit(
                 $wallet,
@@ -154,6 +200,9 @@ final class UsdtDepositService
                 'reviewed_by' => $reviewer ? (string) $reviewer->id : null,
                 'reviewed_at' => $reviewer ? now() : null,
             ], fn ($value) => $value !== null));
+
+            UsdtInboundTransfer::where('tx_hash', $locked->tx_hash)
+                ->update(['status' => UsdtInboundTransfer::STATUS_MATCHED, 'usdt_deposit_order_id' => $locked->id]);
 
             Log::info('[UsdtDeposit] Acreditado', ['order_id' => $locked->id, 'amount' => $creditAmount, 'manual' => $reviewer !== null]);
 
@@ -208,23 +257,50 @@ final class UsdtDepositService
     }
 
     /**
-     * Sufijo aleatorio (1..9999 micro-USDT) que no choque con otra orden que
-     * todavía pueda recibir un pago: activas, o expiradas hace poco (un pago
-     * tardío debe seguir identificando a su dueño).
+     * El txid no debe estar en otra orden; si el watcher ya vio la
+     * transferencia, debe seguir sin dueño. Devuelve la transferencia
+     * bloqueada, o null si todavía no se vio.
      */
-    private function pickUniqueAmountUnits(int $baseUnits) : int
+    private function lockClaimableTransfer(string $txHash, ?string $exceptOrderId) : ?UsdtInboundTransfer
     {
-        $cooldown = now()->subHours((int) config('payments.usdt_deposits.amount_reuse_cooldown_hours', 48));
+        $usedByOtherOrder = UsdtDepositOrder::where('tx_hash', $txHash)
+            ->when($exceptOrderId, fn ($q) => $q->where('id', '!=', $exceptOrderId))
+            ->exists();
+        if ($usedByOtherOrder) {
+            throw UsdtDepositException::txHashAlreadyUsed();
+        }
+
+        $transfer = UsdtInboundTransfer::where('tx_hash', $txHash)->lockForUpdate()->first();
+        if ($transfer && $transfer->status !== UsdtInboundTransfer::STATUS_UNMATCHED) {
+            throw UsdtDepositException::txHashAlreadyUsed();
+        }
+
+        return $transfer;
+    }
+
+    private function normalizeTxHash(string $txHash) : string
+    {
+        $txHash = strtolower(trim($txHash));
+        if (! preg_match('/^[0-9a-f]{64}$/', $txHash)) {
+            throw UsdtDepositException::invalidTxHash();
+        }
+
+        return $txHash;
+    }
+
+    /**
+     * Sufijo aleatorio (1..9999 micro-USDT) único entre TODAS las órdenes que
+     * todavía pueden recibir un pago (activas o expiradas hace poco), sin
+     * importar el monto base: así el pago se reconoce por sus decimales aunque
+     * el exchange le haya descontado una comisión redonda.
+     */
+    private function pickUniqueSuffix() : int
+    {
+        $taken = UsdtDepositOrder::reservingSuffixes()->pluck('amount_suffix')->flip();
 
         for ($i = 0; $i < self::SUFFIX_ATTEMPTS; $i++) {
-            $candidate = $baseUnits + random_int(1, self::MAX_SUFFIX_UNITS);
-
-            $taken = UsdtDepositOrder::where('amount_units', $candidate)
-                ->where(fn ($q) => $q->whereIn('status', UsdtDepositOrder::ACTIVE_STATUSES)
-                    ->orWhere(fn ($q) => $q->where('status', UsdtDepositOrder::STATUS_EXPIRED)->where('expires_at', '>', $cooldown)))
-                ->exists();
-
-            if (! $taken) {
+            $candidate = random_int(1, self::MAX_SUFFIX_UNITS);
+            if (! $taken->has($candidate)) {
                 return $candidate;
             }
         }

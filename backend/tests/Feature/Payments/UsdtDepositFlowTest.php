@@ -71,6 +71,7 @@ class UsdtDepositFlowTest extends TestCase
         ]);
         WalletLimit::forgetCatalogCache();
 
+        Http::preventStrayRequests();
         Http::fake([
             'tron.test/v1/accounts/*' => fn () => Http::response(['data' => $this->chainTransfers, 'success' => true]),
             'tron.test/wallet/gettransactioninfobyid' => fn ($request) => Http::response(
@@ -94,6 +95,22 @@ class UsdtDepositFlowTest extends TestCase
 
         $this->assertSame(25.0, (float) $this->wallet($bob)->balance);
         $this->assertSame(UsdtDepositOrder::STATUS_PENDING, UsdtDepositOrder::find($a['id'])->status);
+    }
+
+    public function test_difference_beyond_tolerance_goes_to_review_instead_of_crediting() : void
+    {
+        $player = $this->player();
+        $order = $this->createOrder($player, 10);
+
+        $arrived = number_format((float) $order['pay_amount'] - 5, 6, '.', ''); // tolerancia: 3 USDT
+        $this->pay($arrived, block: 900);
+        app(UsdtDepositWatcher::class)->run();
+
+        $review = UsdtDepositOrder::find($order['id']);
+        $this->assertSame(UsdtDepositOrder::STATUS_MANUAL_REVIEW, $review->status);
+        $this->assertStringContainsString('supera la tolerancia', $review->review_reason);
+        $this->assertSame(UsdtInboundTransfer::STATUS_IN_REVIEW, UsdtInboundTransfer::sole()->status);
+        $this->assertSame(0.0, (float) $this->wallet($player)->balance);
     }
 
     public function test_exact_payment_is_detected_confirmed_and_credited_once() : void
@@ -129,6 +146,23 @@ class UsdtDepositFlowTest extends TestCase
             ->assertOk()->assertJsonPath('data.status', UsdtDepositOrder::STATUS_CREDITED);
     }
 
+    public function test_exchange_fee_deducted_is_recognized_by_unique_decimals_and_credits_what_arrived() : void
+    {
+        $player = $this->player();
+        $order = $this->createOrder($player, 10);
+
+        // Binance descontó 1 USDT de comisión: llega 9.00XXXX, mismos decimales únicos.
+        $arrived = number_format((float) $order['pay_amount'] - 1, 6, '.', '');
+        $this->pay($arrived, block: 900);
+        app(UsdtDepositWatcher::class)->run();
+
+        $credited = UsdtDepositOrder::find($order['id']);
+        $this->assertSame(UsdtDepositOrder::STATUS_CREDITED, $credited->status);
+        $this->assertSame(9.0, $credited->credited_amount);
+        $this->assertSame(9.0, (float) $this->wallet($player)->balance);
+        $this->assertSame(UsdtInboundTransfer::STATUS_MATCHED, UsdtInboundTransfer::sole()->status);
+    }
+
     public function test_late_payment_goes_to_review_and_treasury_credits_it() : void
     {
         $player = $this->player();
@@ -140,7 +174,7 @@ class UsdtDepositFlowTest extends TestCase
 
         $late = UsdtDepositOrder::find($order['id']);
         $this->assertSame(UsdtDepositOrder::STATUS_MANUAL_REVIEW, $late->status);
-        $this->assertSame(UsdtInboundTransfer::STATUS_LATE, UsdtInboundTransfer::sole()->status);
+        $this->assertSame(UsdtInboundTransfer::STATUS_IN_REVIEW, UsdtInboundTransfer::sole()->status);
         $this->assertSame(0.0, (float) $this->wallet($player)->balance);
 
         // El jugador no puede revisarse a sí mismo; tesorería sí.
@@ -174,6 +208,27 @@ class UsdtDepositFlowTest extends TestCase
         $this->actingAs($this->player())->get(route('wallet.usdt-deposits.qr', $order['id']))->assertNotFound();
     }
 
+    public function test_payment_reported_without_an_order_goes_to_treasury() : void
+    {
+        $player = $this->player();
+        $tx = $this->pay('12.340000', block: 900);
+        app(UsdtDepositWatcher::class)->run();
+        $this->assertSame(UsdtInboundTransfer::STATUS_UNMATCHED, UsdtInboundTransfer::sole()->status);
+
+        $order = $this->actingAs($player)->postJson(route('wallet.usdt-deposits.claim-without-order'), ['tx_hash' => $tx])
+            ->assertCreated()
+            ->assertJsonPath('data.status', UsdtDepositOrder::STATUS_MANUAL_REVIEW)
+            ->json('data');
+        $this->assertSame(UsdtInboundTransfer::STATUS_IN_REVIEW, UsdtInboundTransfer::sole()->status);
+
+        // El mismo txid no se puede reportar dos veces.
+        $this->actingAs($this->player())->postJson(route('wallet.usdt-deposits.claim-without-order'), ['tx_hash' => $tx])
+            ->assertStatus(409);
+
+        $this->actingAs($this->treasurer())->postJson(route('usdt-deposits.approve', $order['id']))->assertOk();
+        $this->assertSame(12.34, (float) $this->wallet($player)->balance);
+    }
+
     public function test_player_and_treasury_pages_render() : void
     {
         $player = $this->player();
@@ -199,6 +254,22 @@ class UsdtDepositFlowTest extends TestCase
         $this->actingAs($player)->get(route('usdt-deposits.review'))->assertRedirect();
     }
 
+    public function test_treasury_badge_counts_pending_items_and_stale_unmatched_transfers_raise_an_alert() : void
+    {
+        $this->pay('3.000000', block: 900);
+        app(UsdtDepositWatcher::class)->run();
+        $this->assertSame(1, app(\App\Services\Menu\SidebarMenuService::class)->pendingUsdtDepositReviewCount());
+        $this->assertSame(0, \App\Models\Platform\FinancialReconciliationItem::count());
+
+        $this->travel(25)->hours();
+        app(UsdtDepositWatcher::class)->run();
+        app(UsdtDepositWatcher::class)->run(); // idempotente: una alerta por transferencia
+
+        $alert = \App\Models\Platform\FinancialReconciliationItem::sole();
+        $this->assertSame(\App\Models\Platform\FinancialReconciliationItem::TYPE_USDT_UNMATCHED_TRANSFER, $alert->type);
+        $this->assertEqualsWithDelta(3.0, (float) $alert->amount, 0.0001);
+    }
+
     public function test_txid_reported_before_the_watcher_sees_it_is_linked_later() : void
     {
         $player = $this->player();
@@ -210,12 +281,42 @@ class UsdtDepositFlowTest extends TestCase
         $this->pay('9.500000', block: 900, txHash: $tx);
         app(UsdtDepositWatcher::class)->run();
 
-        $this->assertSame(UsdtInboundTransfer::STATUS_MATCHED, UsdtInboundTransfer::sole()->status);
+        $this->assertSame(UsdtInboundTransfer::STATUS_IN_REVIEW, UsdtInboundTransfer::sole()->status);
         $this->assertSame(9.5, UsdtDepositOrder::find($order['id'])->received_amount);
 
-        // Tesorería acredita lo que realmente llegó.
-        $this->actingAs($this->treasurer())->postJson(route('usdt-deposits.approve', $order['id']), ['amount' => 9.5])->assertOk();
+        // Tesorería acredita: por defecto lo que realmente llegó.
+        $this->actingAs($this->treasurer())->postJson(route('usdt-deposits.approve', $order['id']))->assertOk();
         $this->assertSame(9.5, (float) $this->wallet($player)->balance);
+        $this->assertSame(UsdtInboundTransfer::STATUS_MATCHED, UsdtInboundTransfer::sole()->status);
+    }
+
+    public function test_unique_decimals_are_not_shared_between_live_orders_of_different_amounts() : void
+    {
+        $suffixes = collect(range(1, 12))->map(fn ($i) => $this->createOrder($this->player(), 5 + $i))
+            ->map(fn (array $order) => substr($order['pay_amount'], -4));
+
+        $this->assertSame($suffixes->count(), $suffixes->unique()->count());
+    }
+
+    public function test_unseen_orphan_report_needs_an_explicit_amount_and_reports_are_capped() : void
+    {
+        $player = $this->player();
+        $first = $this->actingAs($player)->postJson(route('wallet.usdt-deposits.claim-without-order'), ['tx_hash' => str_repeat('1', 64)])
+            ->assertCreated()->json('data');
+
+        $treasurer = $this->treasurer();
+        $this->actingAs($treasurer)->postJson(route('usdt-deposits.approve', $first['id']))
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Indica el monto a acreditar, verificado en el explorador.');
+        $this->actingAs($treasurer)->postJson(route('usdt-deposits.approve', $first['id']), ['amount' => 7])->assertOk();
+        $this->assertSame(7.0, (float) $this->wallet($player)->balance);
+
+        foreach (['2', '3', '4'] as $digit) {
+            $this->actingAs($player)->postJson(route('wallet.usdt-deposits.claim-without-order'), ['tx_hash' => str_repeat($digit, 64)])
+                ->assertCreated();
+        }
+        $this->actingAs($player)->postJson(route('wallet.usdt-deposits.claim-without-order'), ['tx_hash' => str_repeat('5', 64)])
+            ->assertStatus(429);
     }
 
     public function test_wrong_amount_is_unmatched_until_the_player_reports_the_txid() : void
@@ -236,7 +337,7 @@ class UsdtDepositFlowTest extends TestCase
 
         $claimed = UsdtDepositOrder::find($order['id']);
         $this->assertSame(10.0, $claimed->received_amount);
-        $this->assertSame(UsdtInboundTransfer::STATUS_MATCHED, UsdtInboundTransfer::sole()->status);
+        $this->assertSame(UsdtInboundTransfer::STATUS_IN_REVIEW, UsdtInboundTransfer::sole()->status);
 
         // Otro jugador no puede reclamar el mismo txid.
         $other = $this->player();

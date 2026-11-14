@@ -8,6 +8,8 @@ use App\Domains\Payments\Contracts\BlockchainProviderInterface;
 use App\Domains\Payments\DTOs\InboundTransaction;
 use App\Domains\Payments\Models\UsdtDepositOrder;
 use App\Domains\Payments\Models\UsdtInboundTransfer;
+use App\Models\Platform\FinancialReconciliationItem;
+use App\Services\Platform\FinancialReconciliationService;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -72,8 +74,29 @@ final class UsdtDepositWatcher
         }
 
         $stats['credited'] = $this->creditConfirmed();
+        $this->alertStaleUnmatched();
 
         return $stats;
+    }
+
+    /**
+     * Transferencias sin dueño por más de 24 h: alerta de conciliación (una
+     * por transferencia) para que tesorería no las olvide. Nunca se devuelven
+     * solas: si vino de un exchange, la dirección de origen es compartida.
+     */
+    private function alertStaleUnmatched() : void
+    {
+        UsdtInboundTransfer::where('status', UsdtInboundTransfer::STATUS_UNMATCHED)
+            ->where('block_time', '<', now()->subDay())
+            ->limit(100)
+            ->get()
+            ->each(fn (UsdtInboundTransfer $transfer) => app(FinancialReconciliationService::class)->record(
+                type: FinancialReconciliationItem::TYPE_USDT_UNMATCHED_TRANSFER,
+                message: "Llegaron {$transfer->amount} USDT sin dueño hace más de 24 h (tx {$transfer->tx_hash}). Revisar en Revisión USDT.",
+                amount: (float) $transfer->amount,
+                idempotencyKey: "usdt-unmatched-{$transfer->tx_hash}",
+                details: ['tx_hash' => $transfer->tx_hash, 'from_address' => $transfer->from_address],
+            ));
     }
 
     private function creditConfirmed() : int
@@ -106,22 +129,29 @@ final class UsdtDepositWatcher
     }
 
     /**
-     * Orden dueña de un monto único: la PENDING (pago a tiempo) o, si ya
-     * venció, la EXPIRED reciente con ese monto. Nunca una creada después
-     * del pago.
+     * Orden dueña de un pago por sus decimales únicos (amount_suffix): la
+     * PENDING o, si ya venció, la EXPIRED reciente. El sufijo es único entre
+     * esas órdenes, así que coincide aunque el exchange haya descontado una
+     * comisión redonda (10.000347 → 9.000347). Nunca una creada después del pago.
      */
     private function findOrderFor(int $units, Carbon $blockTime) : ?UsdtDepositOrder
     {
-        $cooldown = now()->subHours((int) config('payments.usdt_deposits.amount_reuse_cooldown_hours', 48));
+        $suffix = $units % UsdtDepositOrder::SUFFIX_MODULO;
+        if ($suffix === 0) {
+            return null;
+        }
 
-        return UsdtDepositOrder::where('amount_units', $units)
+        $candidates = UsdtDepositOrder::reservingSuffixes()
+            ->where('amount_suffix', $suffix)
+            ->whereIn('status', [UsdtDepositOrder::STATUS_PENDING, UsdtDepositOrder::STATUS_EXPIRED])
             ->whereNull('tx_hash')
             ->where('created_at', '<=', $blockTime->copy()->addSeconds(self::CLOCK_SKEW_SECONDS))
-            ->where(fn ($q) => $q->where('status', UsdtDepositOrder::STATUS_PENDING)
-                ->orWhere(fn ($q) => $q->where('status', UsdtDepositOrder::STATUS_EXPIRED)->where('expires_at', '>', $cooldown)))
-            ->orderByRaw('CASE WHEN status = ? THEN 0 ELSE 1 END', [UsdtDepositOrder::STATUS_PENDING])
             ->lockForUpdate()
-            ->first();
+            ->limit(2)
+            ->get();
+
+        // Más de una no debería pasar (sufijo único); si pasa, no se adivina.
+        return $candidates->count() === 1 ? $candidates->first() : null;
     }
 
     /** @return string|null estado de la transferencia, o null si ya se había visto */
@@ -154,9 +184,12 @@ final class UsdtDepositWatcher
                 $claimed = UsdtDepositOrder::where('tx_hash', $tx->txHash)->lockForUpdate()->first();
                 if ($claimed) {
                     $claimed->update(['from_address' => $tx->fromAddress, 'received_amount' => $tx->amount, 'detected_at' => now()]);
-                    $transfer->update(['status' => UsdtInboundTransfer::STATUS_MATCHED, 'usdt_deposit_order_id' => $claimed->id]);
+                    $status = $claimed->status === UsdtDepositOrder::STATUS_CREDITED
+                        ? UsdtInboundTransfer::STATUS_MATCHED
+                        : UsdtInboundTransfer::STATUS_IN_REVIEW;
+                    $transfer->update(['status' => $status, 'usdt_deposit_order_id' => $claimed->id]);
 
-                    return UsdtInboundTransfer::STATUS_MATCHED;
+                    return $status;
                 }
 
                 $order = $this->findOrderFor($units, $blockTime);
@@ -166,21 +199,21 @@ final class UsdtDepositWatcher
                     return UsdtInboundTransfer::STATUS_UNMATCHED;
                 }
 
-                $isOnTime = $order->status === UsdtDepositOrder::STATUS_PENDING && $blockTime->lte($order->expires_at);
+                $reviewReason = $this->reviewReasonFor($order, $units, $blockTime);
                 $order->update([
-                    'status' => $isOnTime ? UsdtDepositOrder::STATUS_CONFIRMING : UsdtDepositOrder::STATUS_MANUAL_REVIEW,
+                    'status' => $reviewReason === null ? UsdtDepositOrder::STATUS_CONFIRMING : UsdtDepositOrder::STATUS_MANUAL_REVIEW,
                     'tx_hash' => $tx->txHash,
                     'from_address' => $tx->fromAddress,
                     'received_amount' => $tx->amount,
                     'detected_at' => now(),
-                    'review_reason' => $isOnTime ? null : 'Pago recibido después de vencer la orden.',
+                    'review_reason' => $reviewReason,
                 ]);
                 $transfer->update([
-                    'status' => $isOnTime ? UsdtInboundTransfer::STATUS_MATCHED : UsdtInboundTransfer::STATUS_LATE,
+                    'status' => $reviewReason === null ? UsdtInboundTransfer::STATUS_MATCHED : UsdtInboundTransfer::STATUS_IN_REVIEW,
                     'usdt_deposit_order_id' => $order->id,
                 ]);
 
-                return $isOnTime ? UsdtInboundTransfer::STATUS_MATCHED : UsdtInboundTransfer::STATUS_LATE;
+                return $reviewReason === null ? UsdtInboundTransfer::STATUS_MATCHED : UsdtInboundTransfer::STATUS_IN_REVIEW;
             });
         } catch (QueryException $e) {
             // Otra corrida la registró al mismo tiempo (tx_hash único).
@@ -190,5 +223,23 @@ final class UsdtDepositWatcher
 
             throw $e;
         }
+    }
+
+    /** null = se acredita solo; si no, el motivo por el que va a revisión. */
+    private function reviewReasonFor(UsdtDepositOrder $order, int $units, Carbon $blockTime) : ?string
+    {
+        if ($order->status !== UsdtDepositOrder::STATUS_PENDING || $blockTime->gt($order->expires_at)) {
+            return 'Pago recibido después de vencer la orden.';
+        }
+
+        $differenceUsdt = abs($units - $order->amount_units) / UsdtDepositOrder::UNITS_PER_USDT;
+        $tolerance = (float) config('payments.usdt_deposits.amount_tolerance_usdt', 3);
+        if ($differenceUsdt > $tolerance + 1e-9) {
+            $received = number_format($units / UsdtDepositOrder::UNITS_PER_USDT, 6, '.', '');
+
+            return "Llegaron {$received} USDT (se esperaba {$order->payAmount()}): la diferencia supera la tolerancia.";
+        }
+
+        return null;
     }
 }
