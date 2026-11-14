@@ -4,6 +4,8 @@ use App\Domains\Wallet\Models\WalletMovement;
 use App\Http\Controllers\Directories\Crypto\BinanceController;
 use App\Http\Controllers\Marketplace\Crypto\DepositAddressController;
 use App\Http\Controllers\MovementTypeController;
+use App\Http\Controllers\Payments\UsdtDepositController;
+use App\Http\Controllers\Payments\UsdtDepositReviewController;
 use App\Http\Controllers\Wallet\DepositAccountController;
 use App\Http\Controllers\Wallet\WalletMovementController;
 use App\Http\Controllers\WalletController;
@@ -43,6 +45,17 @@ Route::middleware(['auth', 'verified', 'multiPermission:wallet.view,wallet.depos
     // detrás de config('crypto.deposits_enabled'), false por defecto —
     // TronUsdtProvider es un stub, la dirección devuelta nunca es real.
     Route::get('wallet/deposit-address', [DepositAddressController::class, 'show'])->name('wallet.deposit-address');
+
+    // Depósito USDT-TRC20 con monto único (config payments.usdt_deposits).
+    Route::get('wallet/usdt-deposit', [UsdtDepositController::class, 'page'])->name('wallet.usdt-deposit');
+    Route::middleware('throttle:wallet-read')->group(function() {
+        Route::get('wallet/usdt-deposits/{order}', [UsdtDepositController::class, 'show'])->name('wallet.usdt-deposits.show');
+        Route::get('wallet/usdt-deposits/{order}/qr', [UsdtDepositController::class, 'qr'])->name('wallet.usdt-deposits.qr');
+    });
+    Route::middleware(['tos', 'throttle:5,1'])->group(function() {
+        Route::post('wallet/usdt-deposits', [UsdtDepositController::class, 'store'])->name('wallet.usdt-deposits.store');
+        Route::post('wallet/usdt-deposits/{order}/claim', [UsdtDepositController::class, 'claim'])->name('wallet.usdt-deposits.claim');
+    });
 
     // Cuentas de la plataforma donde depositar en una moneda (D1).
     Route::get('wallet/deposit-accounts', [DepositAccountController::class, 'activeForCurrency'])->name('wallet.deposit-accounts');
@@ -199,4 +212,14 @@ crud_routes('binance', BinanceController::class, ['auth', 'throttle:10,1'], ['in
 Route::middleware(['auth', 'throttle:10,1'])->group(function() {
     Route::delete('binance/{id}', [BinanceController::class, 'destroy'])->name('binance.destroy');
     Route::get('binance/{id}/info', [BinanceController::class, 'show'])->name('binance.show');
+});
+
+// Tesorería: depósitos USDT a revisar y transferencias sin dueño.
+Route::middleware(['auth', 'multiPermission:wallet.movements.manage'])->group(function() {
+    Route::get('usdt-deposits/review', [UsdtDepositReviewController::class, 'index'])->name('usdt-deposits.review');
+    Route::middleware('throttle:30,1')->group(function() {
+        Route::post('usdt-deposits/{order}/approve', [UsdtDepositReviewController::class, 'approve'])->name('usdt-deposits.approve');
+        Route::post('usdt-deposits/{order}/reject', [UsdtDepositReviewController::class, 'reject'])->name('usdt-deposits.reject');
+        Route::post('usdt-transfers/{transfer}/ignore', [UsdtDepositReviewController::class, 'ignoreTransfer'])->name('usdt-transfers.ignore');
+    });
 });

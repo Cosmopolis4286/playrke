@@ -255,6 +255,12 @@ class SidebarMenuService
                     'route' => 'wallet.index',
                     'permission' => 'wallet.view',
                 ],
+                'usdt_deposit' => [
+                    'title' => 'Depositar USDT',
+                    'route' => 'wallet.usdt-deposit',
+                    'permission' => 'wallet.deposit',
+                    'enabled_config' => 'payments.usdt_deposits.enabled',
+                ],
                 // Histórico de comisiones propias (vendedor/agencia/comercializadora/
                 // creador). Solo roles de negocio: ver CommissionLedgerPolicy.
                 'my_commissions' => [
@@ -271,6 +277,12 @@ class SidebarMenuService
                     // sidebar-dynamic.blade.php) — este valor es solo el
                     // conteo inicial al cargar la página.
                     'badge_counter' => 'pendingWalletMovementsCount',
+                ],
+                'usdt_deposit_review' => [
+                    'title' => 'Revisión USDT',
+                    'route' => 'usdt-deposits.review',
+                    'permission' => 'wallet.movements.manage',
+                    'enabled_config' => 'payments.usdt_deposits.enabled',
                 ],
                 'deposit_accounts' => [
                     'title' => 'Cuentas para Depósitos',
@@ -459,6 +471,11 @@ class SidebarMenuService
                 if (isset($item['submenu'])) {
                     $item['submenu'] = collect($item['submenu'])
                         ->filter(function($subitem, $subKey) use ($parentKey, $userRoles, $userPermissions) {
+                            // Función apagada por configuración (ej. depósitos
+                            // USDT sin dirección configurada): oculta para todos.
+                            if (! empty($subitem['enabled_config']) && ! config($subitem['enabled_config'])) {
+                                return false;
+                            }
                             // Visibilidad por rol editable en BD (reemplaza
                             // exclude_roles hardcodeado — ver isVisibleForRoles()).
                             if (! $this->isVisibleForRoles("{$parentKey}.{$subKey}", $userRoles)) {
