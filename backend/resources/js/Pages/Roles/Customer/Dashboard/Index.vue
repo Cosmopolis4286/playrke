@@ -1,71 +1,77 @@
 <script setup lang="ts">
-  /**
+/**
    * Página Dashboard → Cliente API
    * Organiza sus propias salas (sin red de vendedores) y juega con saldo
    * propio: salas próximas, ventas en sus salas, comisión de sala y billetera.
    */
 
-  import { computed } from 'vue'
+import { computed } from 'vue'
+import { usePage } from '@inertiajs/vue3'
 
-  // ==========================================================================
-  // Componentes
-  // ==========================================================================
+// ==========================================================================
+// Componentes
+// ==========================================================================
 
-  import DashboardWelcomeBanner  from '@/js/Components/Common/Dashboard/DashboardWelcomeBanner.vue'
-  import DashboardStatCard       from '@/js/Components/Common/Dashboard/DashboardStatCard.vue'
-  import DashboardSection        from '@/js/Components/Common/Dashboard/DashboardSection.vue'
-  import NetworkExchangeRateWidget from '@/js/Components/Common/ExchangeRate/NetworkExchangeRateWidget.vue'
-  import DashboardQuickLinks     from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
-  import DashboardTrendChart     from '@/js/Components/Common/Dashboard/DashboardTrendChart.vue'
-  import DashboardActivityFeed   from '@/js/Components/Common/Dashboard/DashboardActivityFeed.vue'
-  import DashboardWalletBalances from '@/js/Components/Common/Dashboard/DashboardWalletBalances.vue'
-  import DashboardUpcomingRooms  from '@/js/Components/Common/Dashboard/DashboardUpcomingRooms.vue'
-  import type { QuickLink }      from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
+import DashboardWelcomeBanner  from '@/js/Components/Common/Dashboard/DashboardWelcomeBanner.vue'
+import DashboardStatCard       from '@/js/Components/Common/Dashboard/DashboardStatCard.vue'
+import DashboardSection        from '@/js/Components/Common/Dashboard/DashboardSection.vue'
+import NetworkExchangeRateWidget from '@/js/Components/Common/ExchangeRate/NetworkExchangeRateWidget.vue'
+import DashboardQuickLinks     from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
+import DashboardTrendChart     from '@/js/Components/Common/Dashboard/DashboardTrendChart.vue'
+import DashboardActivityFeed   from '@/js/Components/Common/Dashboard/DashboardActivityFeed.vue'
+import DashboardWalletBalances from '@/js/Components/Common/Dashboard/DashboardWalletBalances.vue'
+import DashboardUpcomingRooms  from '@/js/Components/Common/Dashboard/DashboardUpcomingRooms.vue'
+import type { QuickLink }      from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
 
-  // ==========================================================================
-  // Composables
-  // ==========================================================================
+// ==========================================================================
+// Composables
+// ==========================================================================
 
-  import { useDashboard }             from '@/js/composables/common/dashboard/useDashboard'
-  import { useCreatorSalesRealtime }  from '@/js/composables/common/dashboard/useCreatorSalesRealtime'
-  import { useDashboardMountLoading } from '@/js/composables/common/dashboard/useDashboardMountLoading'
+import { useDashboard }             from '@/js/composables/common/dashboard/useDashboard'
+import { useCreatorSalesRealtime }  from '@/js/composables/common/dashboard/useCreatorSalesRealtime'
+import { useDashboardMountLoading } from '@/js/composables/common/dashboard/useDashboardMountLoading'
 
-  // ==========================================================================
-  // Types
-  // ==========================================================================
+// ==========================================================================
+// Types
+// ==========================================================================
 
-  import type { DashboardCustomerPageProps } from '@/js/types/roles/customer/dashboard/dashboard-customer'
-  import type { StatCardData }               from '@/js/types/common/dashboard/dashboard'
+import type { DashboardCustomerPageProps } from '@/js/types/roles/customer/dashboard/dashboard-customer'
+import type { StatCardData }               from '@/js/types/common/dashboard/dashboard'
 
-  const props = defineProps<DashboardCustomerPageProps>()
+const props = defineProps<DashboardCustomerPageProps>()
 
-  const { sortedActivity, prependActivity } = useDashboard(undefined, props.recentActivity)
-  // Es el creador de sus salas: recibe creators.activity.{userId} en vivo.
-  const { isLive, cardsSoldToday } = useCreatorSalesRealtime(prependActivity)
-  const { loading: sectionsLoading } = useDashboardMountLoading()
+const { sortedActivity, prependActivity } = useDashboard(undefined, props.recentActivity)
+// Es el creador de sus salas: recibe creators.activity.{userId} en vivo.
+const { isLive, cardsSoldToday } = useCreatorSalesRealtime(prependActivity)
+const { loading: sectionsLoading } = useDashboardMountLoading()
 
-  const statCards = computed<StatCardData[]>(() => props.stats
-    ? [props.stats.activeRooms, props.stats.cardsToday, props.stats.salesThisMonth, props.stats.commission]
-    : [])
+const statCards = computed<StatCardData[]>(() => props.stats
+  ? [props.stats.activeRooms, props.stats.cardsToday, props.stats.salesThisMonth, props.stats.commission]
+  : [])
 
-  const quickLinks: QuickLink[] = [
-    { label: 'Gestionar Salas', description: 'Crea y programa tus salas', icon: 'fas fa-dice',       href: '/bingo-rooms',      variant: 'primary' },
-    { label: 'Jugar Bingo',     description: 'Salas disponibles',          icon: 'fas fa-play',       href: '/bingo/game-rooms', variant: 'success' },
-    { label: 'Trivia',          description: 'Juega y compite',            icon: 'fas fa-brain',      href: '/trivia/lobby',     variant: 'info' },
-    { label: 'Mi Billetera',    description: 'Saldo y movimientos',        icon: 'fas fa-wallet',     href: '/wallet',           variant: 'warning' },
-    { label: 'Directorio',      description: 'Métodos de pago',            icon: 'fas fa-university', href: '/directory',        variant: 'secondary' },
-    { label: 'Mi Cliente',      description: 'Datos de tu cuenta',         icon: 'fas fa-id-card',    href: '/customer/profile', variant: 'danger' },
-  ]
+// Módulos apagados desde el panel (HandleInertiaRequests::disabledModules).
+const disabledModules = computed(() => (usePage().props.disabledModules as string[] | undefined) ?? [])
+
+const allQuickLinks: QuickLink[] = [
+  { label: 'Gestionar Salas', description: 'Crea y programa tus salas', icon: 'fas fa-dice',       href: '/bingo-rooms',      variant: 'primary' },
+  { label: 'Jugar Bingo',     description: 'Salas disponibles',          icon: 'fas fa-play',       href: '/bingo/game-rooms', variant: 'success' },
+  { label: 'Trivia',          description: 'Juega y compite',            icon: 'fas fa-brain',      href: '/trivia/lobby',     variant: 'info' },
+  { label: 'Mi Billetera',    description: 'Saldo y movimientos',        icon: 'fas fa-wallet',     href: '/wallet',           variant: 'warning' },
+  { label: 'Directorio',      description: 'Métodos de pago',            icon: 'fas fa-university', href: '/directory',        variant: 'secondary' },
+  { label: 'Mi Cliente',      description: 'Datos de tu cuenta',         icon: 'fas fa-id-card',    href: '/customer/profile', variant: 'danger' }
+]
+const quickLinks = computed(() => allQuickLinks.filter(
+  link => !(link.href.startsWith('/trivia') && disabledModules.value.includes('games_trivia'))
+))
 </script>
 
 <template>
   <div class="ds-page">
     <div class="ds-inner">
-
       <DashboardWelcomeBanner
-        :userName="userName ?? 'Cliente'"
-        roleName="Cliente"
-        roleKey="customer"
+        :user-name="userName ?? 'Cliente'"
+        role-name="Cliente"
+        role-key="customer"
         :message="period ? `Período: ${period}` : undefined"
         :actions="[
           { label: 'Gestionar salas', icon: 'fas fa-dice', href: '/bingo-rooms', variant: 'primary' },
@@ -75,7 +81,7 @@
           <div class="wb-stat">
             <span class="wb-stat__label">
               Vendidos hoy
-              <span v-if="isLive" class="wb-live-dot" title="Escuchando en vivo"></span>
+              <span v-if="isLive" class="wb-live-dot" title="Escuchando en vivo" />
             </span>
             <span class="wb-stat__value">{{ statCards[1]?.value ?? '—' }}</span>
           </div>
@@ -159,7 +165,7 @@
             :loading="sectionsLoading"
             skeleton-variant="list"
           >
-            <DashboardActivityFeed :items="sortedActivity" :maxItems="8" />
+            <DashboardActivityFeed :items="sortedActivity" :max-items="8" />
           </DashboardSection>
         </div>
       </div>

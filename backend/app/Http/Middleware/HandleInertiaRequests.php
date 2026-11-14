@@ -77,6 +77,12 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
 
+            // Módulos apagados para este usuario (ver EnsureModuleActive): el
+            // cliente oculta sus accesos directos. Admin/superadmin los ven igual.
+            'disabledModules' => $user && $user->hasRole(['superadmin', 'admin'])
+                ? []
+                : array_values(array_filter(['games_trivia', 'marketplace'], fn (string $key) => ! \App\Models\Module::isActive($key))),
+
             'app' => [
                 'env' => app()->environment(),
                 'debug' => config('app.debug'),

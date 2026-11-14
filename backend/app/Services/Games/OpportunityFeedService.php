@@ -43,7 +43,8 @@ final class OpportunityFeedService
     public function getFeed(int $userId) : array
     {
         $bingo = $this->bingoOpportunities($userId);
-        $trivia = $this->triviaOpportunities();
+        // Trivia apagada desde el panel de módulos: no se ofrece en el feed.
+        $trivia = \App\Models\Module::isActive('games_trivia') ? $this->triviaOpportunities() : collect();
 
         $opportunities = $bingo->concat($trivia)
             ->sortBy(fn (array $o) => $o['starts_at'] ?? PHP_INT_MAX)

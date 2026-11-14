@@ -25,8 +25,6 @@ class WalletLimitServiceTest extends TestCase
         $this->service = app(WalletLimitService::class);
     }
 
-    // ── assertWithinLimits() — límites por transacción ──────────────────────
-
     public function test_assert_within_limits_throws_when_amount_exceeds_max_per_transaction() : void
     {
         $wallet = $this->makeWallet();
@@ -34,7 +32,7 @@ class WalletLimitServiceTest extends TestCase
 
         $this->expectException(WalletDomainException::class);
 
-        $this->service->assertWithinLimits($wallet, 60.0, 0);
+        $this->service->assertWithinLimits($wallet, 60.0, 2);
     }
 
     public function test_assert_within_limits_throws_when_no_limit_configured() : void
@@ -43,7 +41,7 @@ class WalletLimitServiceTest extends TestCase
 
         $this->expectException(WalletDomainException::class);
 
-        $this->service->assertWithinLimits($wallet, 10.0, 0);
+        $this->service->assertWithinLimits($wallet, 10.0, 2);
     }
 
     public function test_resolve_falls_back_to_global_limit_when_no_currency_specific_row() : void
@@ -51,7 +49,7 @@ class WalletLimitServiceTest extends TestCase
         $currency = Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'type' => 'FIAT']);
         $this->makeLimit(null, ['max_daily' => 200]);
 
-        $resolved = WalletLimit::resolve((string) $currency->id, 0);
+        $resolved = WalletLimit::resolve((string) $currency->id, 2);
 
         $this->assertNotNull($resolved);
         $this->assertSame(200.0, (float) $resolved->max_daily);
@@ -67,7 +65,7 @@ class WalletLimitServiceTest extends TestCase
         // Snowflake ids llegan siempre como string desde el lado de la app —
         // resolve() debe encontrar la fila sin importar cómo PDO tipó la
         // columna al leerla de vuelta (bigint unsigned -> puede volver int).
-        $resolved = WalletLimit::resolve((string) $currency->id, 0);
+        $resolved = WalletLimit::resolve((string) $currency->id, 2);
 
         $this->assertNotNull($resolved);
         $this->assertSame(50.0, (float) $resolved->max_daily);
@@ -79,7 +77,7 @@ class WalletLimitServiceTest extends TestCase
         $this->makeLimit(null, ['max_daily' => 200]);
         $this->makeLimit((string) $currency->id, ['max_daily' => 75]);
 
-        $resolved = WalletLimit::resolve((string) $currency->id, 0);
+        $resolved = WalletLimit::resolve((string) $currency->id, 2);
 
         $this->assertSame(75.0, (float) $resolved->max_daily);
     }
@@ -92,7 +90,7 @@ class WalletLimitServiceTest extends TestCase
         $this->makeLimit(null, ['max_daily' => 100, 'max_weekly' => 1000, 'max_monthly' => 1000, 'max_per_transaction' => 100]);
 
         // Primer retiro: dentro del límite diario (100).
-        $this->service->assertWithinLimits($wallet, 60.0, 0);
+        $this->service->assertWithinLimits($wallet, 60.0, 2);
         WalletMovement::create([
             'wallet_id' => $wallet->id,
             'user_id' => $wallet->user_id,
@@ -109,7 +107,28 @@ class WalletLimitServiceTest extends TestCase
         $this->service->invalidateWithdrawalSums((string) $wallet->id);
 
         $this->expectException(WalletDomainException::class);
-        $this->service->assertWithinLimits($wallet, 60.0, 0);
+        $this->service->assertWithinLimits($wallet, 60.0, 2);
+    }
+
+    // ── assertWithinLimits() — límites por transacción ──────────────────────
+
+    public function test_unverified_user_cannot_withdraw_even_with_limits_configured() : void
+    {
+        $wallet = $this->makeWallet();
+        $this->makeLimit(null, ['kyc_level' => 0]);
+
+        try {
+            $this->service->assertWithinLimits($wallet, 10.0, 0);
+            $this->fail('Un usuario sin KYC no debe poder retirar');
+        } catch (WalletDomainException $e) {
+            $this->assertSame(403, $e->httpStatus());
+            $this->assertStringContainsString('Verifica tu identidad', $e->getMessage());
+        }
+
+        // Con el requisito desactivado vuelve a regir solo el límite.
+        config(['wallet.withdrawal_min_kyc_level' => 0]);
+        $this->service->assertWithinLimits($wallet, 10.0, 0);
+        $this->addToAssertionCount(1);
     }
 
     public function test_withdrawal_sums_cache_is_invalidated_by_key() : void
@@ -117,7 +136,7 @@ class WalletLimitServiceTest extends TestCase
         $wallet = $this->makeWallet();
         $this->makeLimit(null, ['max_daily' => 100]);
 
-        $usageBefore = $this->service->usage($wallet, 0);
+        $usageBefore = $this->service->usage($wallet, 2);
         $this->assertSame(0.0, $usageBefore['daily']['used']);
 
         WalletMovement::create([
@@ -132,12 +151,12 @@ class WalletLimitServiceTest extends TestCase
 
         // Sin invalidar, usage() seguiría devolviendo el valor cacheado (0)
         // pese a que ya existe un retiro completado de 40.
-        $usageStale = $this->service->usage($wallet, 0);
+        $usageStale = $this->service->usage($wallet, 2);
         $this->assertSame(0.0, $usageStale['daily']['used']);
 
         $this->service->invalidateWithdrawalSums((string) $wallet->id);
 
-        $usageFresh = $this->service->usage($wallet, 0);
+        $usageFresh = $this->service->usage($wallet, 2);
         $this->assertSame(40.0, $usageFresh['daily']['used']);
     }
 
@@ -145,7 +164,7 @@ class WalletLimitServiceTest extends TestCase
     {
         $limit = WalletLimit::create(array_merge([
             'currency_id' => $currencyId,
-            'kyc_level' => 0,
+            'kyc_level' => 2,
             'min_deposit' => 1,
             'max_deposit' => 1000,
             'min_per_transaction' => 1,

@@ -13,37 +13,38 @@ function pct(used: number, max: number) {
   return max > 0 ? Math.min(100, Math.round((used / max) * 100)) : 0
 }
 function fmt(n: number, symbol = '') {
-  return symbol + ' ' + n.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return `${symbol} ${n.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 </script>
 
 <template>
   <div v-if="state" class="kyc-banner-wrap">
-
     <!-- Estado KYC -->
     <div
       class="kyc-status-bar"
       :class="{
-        'kyc-status-bar--none':     state.kyc_status === 'NONE',
-        'kyc-status-bar--pending':  state.kyc_status === 'PENDING',
+        'kyc-status-bar--none': state.kyc_status === 'NONE',
+        'kyc-status-bar--pending': state.kyc_status === 'PENDING',
         'kyc-status-bar--verified': state.kyc_status === 'VERIFIED',
         'kyc-status-bar--rejected': state.kyc_status === 'REJECTED',
       }"
     >
       <div class="kyc-status-bar__left">
-        <i :class="[
-          'fas kyc-status-bar__icon',
-          state.kyc_status === 'VERIFIED' ? 'fa-shield-check' :
-          state.kyc_status === 'PENDING'  ? 'fa-clock'        :
-          state.kyc_status === 'REJECTED' ? 'fa-times-circle' : 'fa-shield-alt'
-        ]" />
+        <i
+          :class="[
+            'fas kyc-status-bar__icon',
+            state.kyc_status === 'VERIFIED' ? 'fa-shield-check' :
+            state.kyc_status === 'PENDING' ? 'fa-clock' :
+            state.kyc_status === 'REJECTED' ? 'fa-times-circle' : 'fa-shield-alt'
+          ]"
+        />
         <div>
           <p class="kyc-status-bar__label">
             Nivel {{ state.kyc_level }} —
             {{ state.kyc_status === 'VERIFIED' ? 'Identidad verificada' :
-               state.kyc_status === 'PENDING'  ? 'Verificación en revisión (24-48 h)' :
-               state.kyc_status === 'REJECTED' ? 'Verificación rechazada' :
-               'Sin verificar' }}
+              state.kyc_status === 'PENDING' ? 'Verificación en revisión (24-48 h)' :
+              state.kyc_status === 'REJECTED' ? 'Verificación rechazada' :
+              'Sin verificar' }}
           </p>
           <p v-if="state.kyc_status === 'REJECTED' && state.rejection_reason" class="kyc-status-bar__reason">
             {{ state.rejection_reason }}
@@ -61,8 +62,13 @@ function fmt(n: number, symbol = '') {
     </div>
 
     <!-- Límites de retiro -->
-    <div v-if="limits" class="kyc-limits">
-      <p class="kyc-limits__title"><i class="fas fa-chart-bar" /> Límites de retiro</p>
+    <p v-if="limits?.withdrawal_requires_kyc" class="kyc-limits__title">
+      <i class="fas fa-lock" /> Para retirar debes verificar tu identidad. Depositar y jugar no lo requiere.
+    </p>
+    <div v-else-if="limits" class="kyc-limits">
+      <p class="kyc-limits__title">
+        <i class="fas fa-chart-bar" /> Límites de retiro
+      </p>
       <div class="kyc-limits__grid">
         <div class="kyc-limit-item">
           <div class="kyc-limit-item__header">
@@ -102,7 +108,6 @@ function fmt(n: number, symbol = '') {
         Depósito permitido: {{ fmt(limits.deposit.min, currencySymbol) }} — {{ fmt(limits.deposit.max, currencySymbol) }}
       </p>
     </div>
-
   </div>
 </template>
 

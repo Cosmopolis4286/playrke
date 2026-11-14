@@ -41,13 +41,15 @@ class WalletDepositWithdrawFlowTest extends TestCase
 
         $currency = Currency::firstOrCreate(['iso_code' => 'VES'], ['name' => 'Bolívar', 'type' => 'FIAT']);
         WalletLimit::create([
-            'currency_id' => $currency->id, 'kyc_level' => 0,
+            'currency_id' => $currency->id, 'kyc_level' => 2,
             'min_deposit' => 1, 'max_deposit' => 1000, 'min_per_transaction' => 1, 'max_per_transaction' => 500,
             'max_daily' => 1000, 'max_weekly' => 3000, 'max_monthly' => 10000, 'is_active' => true,
         ]);
         WalletLimit::forgetCatalogCache();
 
         $player = User::factory()->create(['email_verified_at' => now()]);
+        // Retirar exige KYC (config wallet.withdrawal_min_kyc_level); ver test aparte.
+        $player->forceFill(['kyc_level' => 2])->save();
         $player->givePermissionTo(['wallet.view', 'wallet.deposit', 'wallet.withdraw']);
         $player->forceFill(['withdrawal_pin_hash' => Hash::make('123456'), 'withdrawal_pin_set_at' => now()])->save();
         $wallet = Wallet::create([

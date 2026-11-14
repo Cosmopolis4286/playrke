@@ -18,6 +18,7 @@ class ModuleSeeder extends Seeder
             ['key' => 'games_trivia', 'label' => 'Trivia'],
             ['key' => 'business',     'label' => 'Negocio'],
             ['key' => 'wallet',       'label' => 'Billetera'],
+            ['key' => 'marketplace',  'label' => 'Marketplace'],
             ['key' => 'users',        'label' => 'Usuarios'],
             ['key' => 'system',       'label' => 'Sistema'],
         ];

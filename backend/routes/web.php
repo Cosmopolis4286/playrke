@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+
 /*
 |--------------------------------------------------------------------------
 | Routes Index - Punto de entrada limpio y organizado
@@ -41,14 +43,15 @@ require __DIR__ . '/modules/treasurer.php';        // "Mi Tesorería"
 require __DIR__ . '/modules/external-players.php';
 require __DIR__ . '/modules/games.php';
 require __DIR__ . '/modules/games/bingo.php';
-require __DIR__ . '/modules/games/trivia.php';
+// module:<key> — apagado desde el panel de módulos, bloquea también las rutas.
+Route::middleware('module:games_trivia')->group(__DIR__ . '/modules/games/trivia.php');
 require __DIR__ . '/modules/app-parameters.php';
 require __DIR__ . '/modules/exchange-rate.php';
 require __DIR__ . '/modules/currency.php';
 require __DIR__ . '/modules/payments.php';
 require __DIR__ . '/modules/wallets.php';
 require __DIR__ . '/modules/commissions.php';      // "Mis Comisiones"
-require __DIR__ . '/modules/marketplace.php';
+Route::middleware('module:marketplace')->group(__DIR__ . '/modules/marketplace.php');
 require __DIR__ . '/modules/usdt-payments.php';
 require __DIR__ . '/modules/tos.php';
 require __DIR__ . '/modules/kyc.php';

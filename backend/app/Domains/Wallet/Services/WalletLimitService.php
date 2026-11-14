@@ -68,6 +68,13 @@ final class WalletLimitService
      */
     public function assertWithinLimits(Wallet $wallet, float $amount, int $kycLevel) : void
     {
+        // Retirar exige identidad verificada (config wallet.withdrawal_min_kyc_level).
+        // Va antes que los límites: un usuario sin KYC no tiene cupo de retiro.
+        $minKycLevel = (int) config('wallet.withdrawal_min_kyc_level', 1);
+        if ($kycLevel < $minKycLevel) {
+            throw WalletDomainException::withdrawalRequiresKyc();
+        }
+
         $limit = WalletLimit::resolve((string) $wallet->currency_id, $kycLevel);
 
         if (! $limit) {
@@ -176,6 +183,8 @@ final class WalletLimitService
 
         return [
             'kyc_level' => $kycLevel,
+            // Mismo criterio que assertWithinLimits(): el cliente avisa antes de intentar retirar.
+            'withdrawal_requires_kyc' => $kycLevel < (int) config('wallet.withdrawal_min_kyc_level', 1),
             'deposit' => ['min' => $limit->min_deposit, 'max' => $limit->max_deposit],
             'per_tx' => ['max' => $limit->max_per_transaction, 'min' => $limit->min_per_transaction],
             'daily' => ['used' => $sums['daily'],   'max' => $limit->max_daily],
