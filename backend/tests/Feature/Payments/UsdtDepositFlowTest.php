@@ -37,6 +37,8 @@ class UsdtDepositFlowTest extends TestCase
 
     private int $currentBlock = 1000;
 
+    private string $originalTimezone;
+
     /** @var array<string, int> bloque de cada tx */
     private array $txBlocks = [];
 
@@ -45,6 +47,7 @@ class UsdtDepositFlowTest extends TestCase
     protected function setUp() : void
     {
         parent::setUp();
+        $this->originalTimezone = date_default_timezone_get();
         (new MovementTypeSeeder)->run();
         MovementType::forgetCatalogCache();
         Cache::flush();
@@ -79,6 +82,34 @@ class UsdtDepositFlowTest extends TestCase
             ),
             'tron.test/wallet/getnowblock' => fn () => Http::response(['block_header' => ['raw_data' => ['number' => $this->currentBlock]]]),
         ]);
+    }
+
+    protected function tearDown() : void
+    {
+        date_default_timezone_set($this->originalTimezone);
+        parent::tearDown();
+    }
+
+    public function test_a_payment_never_matches_an_order_created_after_it_in_any_timezone() : void
+    {
+        // CI y producción corren con APP_TIMEZONE=America/Caracas: la hora del
+        // bloque (UTC en la API) debe compararse en la misma zona que created_at.
+        config(['app.timezone' => 'America/Caracas']);
+        date_default_timezone_set('America/Caracas');
+
+        $player = $this->player();
+        $this->travel(-10)->minutes();
+        $tx = $this->pay('10.000000', block: 900); // pagó hace 10 minutos…
+        $this->travelBack();
+        $order = $this->createOrder($player, 10);   // …y la orden es de ahora
+        $this->chainTransfers[0]['value'] = (string) (UsdtDepositOrder::find($order['id'])->amount_units);
+
+        app(UsdtDepositWatcher::class)->run();
+
+        $this->assertSame(UsdtDepositOrder::STATUS_PENDING, UsdtDepositOrder::find($order['id'])->status);
+        $transfer = UsdtInboundTransfer::where('tx_hash', $tx)->sole();
+        $this->assertSame(UsdtInboundTransfer::STATUS_UNMATCHED, $transfer->status);
+        $this->assertEqualsWithDelta(now()->subMinutes(10)->timestamp, $transfer->block_time->timestamp, 5);
     }
 
     public function test_concurrent_orders_get_different_amounts_and_each_payment_finds_its_owner() : void

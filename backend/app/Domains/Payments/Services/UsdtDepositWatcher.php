@@ -165,7 +165,11 @@ final class UsdtDepositWatcher
         }
 
         $units = (int) round($tx->amount * UsdtDepositOrder::UNITS_PER_USDT);
-        $blockTime = Carbon::createFromTimestamp($tx->timestamp);
+        // En la zona de la app: createFromTimestamp() da UTC, y Eloquent guarda
+        // la hora "de reloj" sin convertir, así que con APP_TIMEZONE≠UTC
+        // block_time quedaba corrido (y las comparaciones en SQL contra
+        // created_at/expires_at también).
+        $blockTime = Carbon::createFromTimestamp($tx->timestamp)->setTimezone(config('app.timezone'));
 
         try {
             return DB::transaction(function() use ($tx, $units, $blockTime) {
