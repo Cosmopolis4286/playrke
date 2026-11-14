@@ -32,6 +32,7 @@ return Application::configure(
             'validate.token' => \App\Http\Middleware\ValidateToken::class,
             'tos' => \App\Http\Middleware\RequireTosAcceptance::class,
             'block-during-impersonation' => \App\Http\Middleware\BlockDuringImpersonation::class,
+            'module' => \App\Http\Middleware\EnsureModuleActive::class,
         ]);
 
         /*

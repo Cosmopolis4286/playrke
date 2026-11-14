@@ -194,7 +194,7 @@ class WalletWithdrawalPinTest extends TestCase
 
     private function makeWalletWithUser(float $balance = 1000.0, ?string $pin = null) : Wallet
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['kyc_level' => 2]);
         if ($pin !== null) {
             $user->forceFill([
                 'withdrawal_pin_hash' => Hash::make($pin),
@@ -209,7 +209,7 @@ class WalletWithdrawalPinTest extends TestCase
         // sin esto, cualquier retiro falla ANTES de llegar al check del PIN
         // real que este test quiere ejercitar.
         WalletLimit::firstOrCreate(
-            ['currency_id' => null, 'kyc_level' => 0],
+            ['currency_id' => null, 'kyc_level' => 2],
             [
                 'min_deposit' => 1, 'max_deposit' => 100000,
                 'min_per_transaction' => 1, 'max_per_transaction' => 100000,

@@ -39,7 +39,7 @@ class WithdrawalServiceTest extends TestCase
         // WalletLimitService::assertWithinLimits() bloquea por precaución si
         // no hay ninguna fila — ver docblock de ese método.
         WalletLimit::firstOrCreate(
-            ['currency_id' => $usdt->id, 'kyc_level' => 0],
+            ['currency_id' => $usdt->id, 'kyc_level' => 2],
             [
                 'min_deposit' => 1, 'max_deposit' => 100000,
                 'min_per_transaction' => 1, 'max_per_transaction' => 100000,
@@ -49,7 +49,7 @@ class WithdrawalServiceTest extends TestCase
         );
         WalletLimit::forgetCatalogCache();
 
-        $this->user = User::factory()->create();
+        $this->user = User::factory()->create(['kyc_level' => 2]);
         $this->admin = User::factory()->create();
         $this->wallet = Wallet::create([
             'user_id' => $this->user->id, 'currency_id' => $usdt->id, 'balance' => 100, 'status' => 'ACTIVE',

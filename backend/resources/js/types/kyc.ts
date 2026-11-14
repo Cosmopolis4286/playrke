@@ -12,6 +12,8 @@ export interface KycState {
 
 export interface WithdrawalLimitUsage {
   kyc_level: KycLevel
+  /** true si su nivel KYC no alcanza para retirar (debe verificarse). */
+  withdrawal_requires_kyc?: boolean
   deposit:   { min: number; max: number }
   per_tx:    { max: number; min: number }
   daily:     { used: number; max: number }

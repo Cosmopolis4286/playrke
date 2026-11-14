@@ -398,6 +398,11 @@ final class WalletDomainException extends DomainException
         return new self('Ingresa tu PIN de retiro para continuar.', 422);
     }
 
+    public static function withdrawalRequiresKyc() : self
+    {
+        return new self('Verifica tu identidad para poder retirar: usa el botón «Verificar» de tu billetera o perfil.', 403);
+    }
+
     /**
      * checkWithdrawalVelocity(): el usuario alcanzó MAX_WITHDRAWALS_PER_DAY.
      */
