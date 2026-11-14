@@ -62,4 +62,5 @@ schedule_dynamic('marketplace:reconcile-escrows', fn (Event $e) => $e->everyFive
 schedule_dynamic('marketplace:reconcile', fn (Event $e) => $e->everyFifteenMinutes());
 schedule_dynamic('marketplace:reconcile-crypto-deposits', fn (Event $e) => $e->everyFifteenMinutes());
 schedule_dynamic('payments:watch-orders', fn (Event $e) => $e->everyMinute());
+schedule_dynamic('payments:watch-usdt-deposits', fn (Event $e) => $e->everyMinute()->withoutOverlapping());
 schedule_dynamic('payments:reconcile-orders', fn (Event $e) => $e->everyFifteenMinutes());
