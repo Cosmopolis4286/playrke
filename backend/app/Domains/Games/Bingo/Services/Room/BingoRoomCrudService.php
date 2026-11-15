@@ -781,7 +781,12 @@ class BingoRoomCrudService
         $userId = Auth::id() !== null ? (string) Auth::id() : null;
         $guard->assertNotLocked($userId, $room);
 
-        $codeMatches = $config->access_code !== null && hash_equals(mb_strtolower((string) $config->access_code), mb_strtolower(trim($accessCode)));
+        // Desde la sala de espera la sala ya se conoce por su URL: basta la
+        // contraseña (el código solo hace falta en "Tengo un código"). Si se
+        // envía, igual se valida.
+        $accessCode = trim($accessCode);
+        $codeMatches = $accessCode === ''
+            || ($config->access_code !== null && hash_equals(mb_strtolower((string) $config->access_code), mb_strtolower($accessCode)));
         $passwordMatches = $config->room_password !== null && Hash::check($password, $config->room_password);
 
         if (! $codeMatches || ! $passwordMatches) {

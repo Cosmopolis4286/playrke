@@ -113,6 +113,18 @@ class BingoPrivateRoomTest extends TestCase
     }
 
     #[Test]
+    public function en_la_sala_de_espera_basta_la_contrasena_pero_un_codigo_enviado_se_valida() : void
+    {
+        $room = $this->privateRoom('SOLOPASS');
+        $this->actAs(User::factory()->create());
+        $crud = app(BingoRoomCrudService::class);
+
+        $this->assertFalse($crud->verifyRoomAccess($room, '', 'mala')['verified']);
+        $this->assertFalse($crud->verifyRoomAccess($room, 'OTRO', 'secreta123')['verified'], 'Código enviado y erróneo');
+        $this->assertTrue($crud->verifyRoomAccess($room, '', 'secreta123')['verified']);
+    }
+
+    #[Test]
     public function muchas_cuentas_probando_bloquean_la_sala_y_avisan_al_creador() : void
     {
         $room = $this->privateRoom('ATAQUE');

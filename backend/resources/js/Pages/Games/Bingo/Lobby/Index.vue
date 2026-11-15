@@ -40,13 +40,13 @@ const page  = usePage()
 
 // ── Live state ──
 const live = reactive({
-  prizePool:      props.room?.prize_pool    ?? 0,
-  totalPlayers:   props.room?.total_players ?? 0,
-  totalCards:     props.room?.total_cards   ?? 0,
-  userCards:      props.userCards           ?? 0,
-  statusCode:     props.room?.status_code   ?? '',
-  cardPrice:      props.room?.card_price    ?? props.room?.card_price_usd ?? 0,
-  currencySymbol: props.room?.currency_symbol ?? 'USD',
+  prizePool: props.room?.prize_pool    ?? 0,
+  totalPlayers: props.room?.total_players ?? 0,
+  totalCards: props.room?.total_cards   ?? 0,
+  userCards: props.userCards           ?? 0,
+  statusCode: props.room?.status_code   ?? '',
+  cardPrice: props.room?.card_price    ?? props.room?.card_price_usd ?? 0,
+  currencySymbol: props.room?.currency_symbol ?? 'USD'
 })
 
 const liveFullHousePrize = ref<number | null>(props.room?.full_house_prize ?? null)
@@ -98,15 +98,15 @@ const shareName = computed(() =>
 const { share, copied }                = useLobbyShare(shareName.value)
 const notification                     = useLobbyNotification(
   props.room?.uuid_code ?? 'Bingo',
-  () => `/bingo/${roomRouteKey.value}/game`,
+  () => `/bingo/${roomRouteKey.value}/game`
 )
 
 const userId = computed(() => (page.props.auth as any)?.user?.id ?? null)
 const { wsStatus } = useLobbyEcho(props.room.id, () => userId.value, live, {
-  onPrizeChanged:   () => flash(prizeFlash),
+  onPrizeChanged: () => flash(prizeFlash),
   onPlayersChanged: (prev, next) => { if (next > prev) flash(playersFlash) },
-  onCardsChanged:   (total) => { pushSaleToast(total); recordSale() },
-  onCardsUpdated:   (price, symbol) => {
+  onCardsChanged: (total) => { pushSaleToast(total); recordSale() },
+  onCardsUpdated: (price, symbol) => {
     if (price  !== null) live.cardPrice      = price
     if (symbol !== null) live.currencySymbol = symbol
   },
@@ -114,7 +114,7 @@ const { wsStatus } = useLobbyEcho(props.room.id, () => userId.value, live, {
   onSubPrizesChanged: (fhp, sp) => {
     if (fhp !== undefined) liveFullHousePrize.value = fhp
     if (sp  !== undefined) liveSerialPrize.value    = sp
-  },
+  }
 })
 
 const players = useLobbyPlayers(props.roomRouteKey, () => live.totalPlayers)
@@ -154,10 +154,14 @@ async function handleVerifyAccess(accessCode: string, password: string) {
       // completa vía Inertia para obtenerlos con la sesión ya verificada.
       router.reload()
     } else {
-      accessError.value = 'Código o contraseña incorrectos.'
+      accessError.value = 'Contraseña incorrecta.'
     }
-  } catch {
-    accessError.value = 'No se pudo verificar el acceso. Intenta de nuevo.'
+  } catch (error) {
+    // 429: demasiados intentos — el backend explica cuánto esperar.
+    const response = (error as { response?: { status?: number, data?: { message?: string } } })?.response
+    accessError.value = response?.status === 429 && response.data?.message
+      ? response.data.message
+      : 'No se pudo verificar el acceso. Intenta de nuevo.'
   } finally {
     verifyingAccess.value = false
   }
@@ -211,29 +215,29 @@ const cardsProgressReady = computed(() =>
 // ── Purchase ──
 function buildRoomSnapshot(): BingoGameRoom {
   return {
-    id:              props.room.id,
-    encrypted:       props.roomRouteKey ?? undefined,
-    uuid_code:       props.room.uuid_code ?? null,
-    prize_pool:      live.prizePool,
-    total_players:   live.totalPlayers,
+    id: props.room.id,
+    encrypted: props.roomRouteKey ?? undefined,
+    uuid_code: props.room.uuid_code ?? null,
+    prize_pool: live.prizePool,
+    total_players: live.totalPlayers,
     creator_user_id: '',
-    room_type:       'PUBLIC',
-    game_mode:       props.room.game_mode_description ?? null,
-    status_code:     live.statusCode,
+    room_type: 'PUBLIC',
+    game_mode: props.room.game_mode_description ?? null,
+    status_code: live.statusCode,
     currency_symbol: live.currencySymbol,
-    card_price:      live.cardPrice,
-    players_room:    [{ card_count: live.userCards }],
+    card_price: live.cardPrice,
+    players_room: [{ card_count: live.userCards }],
     config: props.room.unix_date ? {
-      room_id:         props.room.id,
-      card_price_usd:  props.room.card_price_usd ?? 0,
+      room_id: props.room.id,
+      card_price_usd: props.room.card_price_usd ?? 0,
       // TODO: LobbyRoom no expone el código del tipo de bote — el backend del lobby
       // debe agregarlo (ver fix aplicado en BingoGameRoomsDTO::toView para game-rooms).
       prize_pool_type: null,
-      unix_date:       props.room.unix_date,
-      date:            props.room.date ?? '',
-      time:            props.room.time ?? '',
-      game_variant:    props.room.game_variant ?? null,
-    } : null,
+      unix_date: props.room.unix_date,
+      date: props.room.date ?? '',
+      time: props.room.time ?? '',
+      game_variant: props.room.game_variant ?? null
+    } : null
   }
 }
 
@@ -251,7 +255,6 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; cardCou
 
 <template>
   <div class="lby-page">
-
     <!-- FAB: reglamento — anclado a .lby-page (no Teleport/fixed): con
          Teleport+fixed quedaba posicionado respecto al viewport completo
          en vez del área de contenido con scroll propio, igual que el bug
@@ -367,7 +370,6 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; cardCou
       :exchange-rate="rate"
       @success="onPurchaseSuccess"
     />
-
   </div>
 </template>
 

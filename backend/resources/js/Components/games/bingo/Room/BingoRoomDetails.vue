@@ -15,6 +15,7 @@ import RoomSerialsSection       from './Details/RoomSerialsSection.vue'
 import RoomWinnersList          from './Details/RoomWinnersList.vue'
 import WinnerCardViewerModal    from './Details/WinnerCardViewerModal.vue'
 import RoomVoidDrawPanel        from './Details/RoomVoidDrawPanel.vue'
+import RoomInvitePanel         from './Details/RoomInvitePanel.vue'
 
 interface Props {
   room: BingoRoom
@@ -60,6 +61,8 @@ const tabs = computed(() => [
     <RoomDetailsHeader :room="room" :schedule-info="scheduleInfo" />
 
     <RoomVoidDrawPanel :room="room" />
+
+    <RoomInvitePanel :room="room" />
 
     <nav class="rd-tabs" role="tablist">
       <button

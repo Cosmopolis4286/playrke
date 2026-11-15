@@ -9,12 +9,13 @@ defineProps<{
 
 const emit = defineEmits<{ verify: [accessCode: string, password: string]; leave: [] }>()
 
-const accessCode = ref('')
+// La sala ya se conoce por su URL: basta la contraseña. El código solo se
+// pide en "Tengo un código" (listado de salas), donde la sala es desconocida.
 const password = ref('')
 
 function submit() {
-  if (!accessCode.value || !password.value) return
-  emit('verify', accessCode.value, password.value)
+  if (!password.value) return
+  emit('verify', '', password.value)
 }
 </script>
 
@@ -28,23 +29,16 @@ function submit() {
           <div class="lby-modal__header">
             <i class="fas fa-lock lby-modal__icon" />
             <div>
-              <h3 class="lby-modal__title">Sala Privada</h3>
-              <p class="lby-modal__sub">Ingresa el código y la contraseña para continuar</p>
+              <h3 class="lby-modal__title">
+                Sala Privada
+              </h3>
+              <p class="lby-modal__sub">
+                Ingresa la contraseña que te dio el anfitrión
+              </p>
             </div>
           </div>
 
           <div class="lby-access-modal__body">
-            <label class="lby-access-modal__label" for="lby-access-code">Código de acceso</label>
-            <input
-              id="lby-access-code"
-              v-model="accessCode"
-              type="text"
-              class="lby-access-modal__input"
-              placeholder="Código de acceso"
-              autocomplete="off"
-              :disabled="loading"
-            />
-
             <label class="lby-access-modal__label" for="lby-access-password">Contraseña</label>
             <input
               id="lby-access-password"
@@ -54,7 +48,7 @@ function submit() {
               placeholder="Contraseña"
               autocomplete="off"
               :disabled="loading"
-            />
+            >
 
             <p v-if="error" class="lby-access-modal__error">
               <i class="fas fa-exclamation-circle" /> {{ error }}
@@ -62,10 +56,15 @@ function submit() {
           </div>
 
           <div class="lby-access-modal__actions">
-            <button type="button" class="lby-access-modal__leave" :disabled="loading" @click="emit('leave')">
+            <button
+              type="button"
+              class="lby-access-modal__leave"
+              :disabled="loading"
+              @click="emit('leave')"
+            >
               Salir
             </button>
-            <button type="submit" class="lby-access-modal__submit" :disabled="loading || !accessCode || !password">
+            <button type="submit" class="lby-access-modal__submit" :disabled="loading || !password">
               <i v-if="loading" class="fas fa-spinner fa-spin" />
               <span>{{ loading ? 'Verificando...' : 'Entrar' }}</span>
             </button>

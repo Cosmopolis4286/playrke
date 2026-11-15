@@ -180,6 +180,8 @@ export interface BingoRoom {
         room_type_id?: string | number | null
         access_code?: string | null
         has_password?: boolean
+        /** Código del tipo de sala (PUBLIC, PRIVATE, VIP, DEMO). */
+        room_type_code?: string | null
         host_user_id?: string | number | null
         host_user_label?: string | null
         start_mode?: string | null

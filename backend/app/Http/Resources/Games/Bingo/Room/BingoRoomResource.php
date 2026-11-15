@@ -140,6 +140,7 @@ class BingoRoomResource extends JsonResource
 
             'config' => $config ? [
                 'room_type_id' => $config->room_type_id,
+                'room_type_code' => $config->roomType?->code,
                 // Sala privada: el código se expone para que el admin pueda compartirlo;
                 // la contraseña NUNCA sale del backend (ni en texto plano ni el hash) —
                 // solo un booleano indicando si ya tiene una configurada.
