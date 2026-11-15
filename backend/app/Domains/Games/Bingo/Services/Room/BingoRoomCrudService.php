@@ -333,7 +333,10 @@ class BingoRoomCrudService
             'moveFreeSpacePricePct' => $config->move_free_space_price_pct !== null ? (float) $config->move_free_space_price_pct : null,
             'allowSpecialCard' => (bool) $config->allow_special_card,
             'maxSpecialCards' => $config->max_special_cards !== null ? (int) $config->max_special_cards : null,
-            'accessCode' => $config->access_code,
+            // Código nuevo: el de la original sigue en uso (los códigos son únicos
+            // entre salas privadas abiertas). La copia queda INACTIVE y no se puede
+            // activar sin definir contraseña (assertHasCredentials).
+            'accessCode' => $config->access_code !== null ? app(BingoPrivateRoomAccess::class)->generateUniqueCode() : null,
             'hostUserId' => $config->host_user_id,
             // roomPassword deliberadamente NO se copia: la sala copiada queda sin
             // contraseña hasta que el admin defina una nueva desde el formulario.
@@ -444,8 +447,15 @@ class BingoRoomCrudService
         }
 
         $verifiedRooms = session(self::SESSION_VERIFIED_ROOMS_KEY, []);
+        if (in_array((string) $room->id, $verifiedRooms, true)) {
+            return true;
+        }
 
-        return in_array((string) $room->id, $verifiedRooms, true);
+        // Ya compró cartones: vuelve sin reingresar el código aunque cambie de
+        // dispositivo o expire la sesión.
+        $userId = Auth::id();
+
+        return app(BingoPrivateRoomAccess::class)->hasPurchasedCards($room, $userId !== null ? (string) $userId : null);
     }
 
     /**
@@ -472,18 +482,25 @@ class BingoRoomCrudService
             return ['verified' => false, 'room_route_key' => null];
         }
 
-        $candidates = $this->bingoRooms->findActivePrivateRoomsByAccessCode($accessCode);
+        $guard = app(BingoPrivateRoomAccess::class);
+        $userId = Auth::id() !== null ? (string) Auth::id() : null;
+        $guard->assertNotLocked($userId);
+
+        $candidates = $this->bingoRooms->findActivePrivateRoomsByAccessCode(trim($accessCode));
 
         foreach ($candidates as $room) {
             $config = $room->config;
             if (! $config) {
                 continue;
             }
+            // Una sala bloqueada por fuerza bruta tampoco se prueba por aquí.
+            $guard->assertNotLocked(null, $room);
 
-            $codeMatches = $config->access_code !== null && hash_equals((string) $config->access_code, $accessCode);
+            $codeMatches = $config->access_code !== null && hash_equals(mb_strtolower((string) $config->access_code), mb_strtolower(trim($accessCode)));
             $passwordMatches = $config->room_password !== null && Hash::check($password, $config->room_password);
 
             if ($codeMatches && $passwordMatches) {
+                $guard->clearFailures($userId);
                 $verifiedRooms = session(self::SESSION_VERIFIED_ROOMS_KEY, []);
                 if (! in_array((string) $room->id, $verifiedRooms, true)) {
                     $verifiedRooms[] = (string) $room->id;
@@ -493,6 +510,8 @@ class BingoRoomCrudService
                 return ['verified' => true, 'room_route_key' => $room->getRouteKey()];
             }
         }
+
+        $guard->recordFailure($userId, $candidates);
 
         return ['verified' => false, 'room_route_key' => null];
     }
@@ -716,6 +735,9 @@ class BingoRoomCrudService
 
             $wasActive = $locked->status?->code === 'ACTIVE';
             $newStatus = $wasActive ? 'INACTIVE' : 'ACTIVE';
+            if ($newStatus === 'ACTIVE') {
+                app(BingoPrivateRoomAccess::class)->assertHasCredentials($locked);
+            }
 
             $room->setRelations($locked->getRelations());
             $room->fill($locked->getAttributes());
@@ -755,12 +777,19 @@ class BingoRoomCrudService
             return ['verified' => true];
         }
 
-        $codeMatches = $config->access_code !== null && hash_equals((string) $config->access_code, $accessCode);
+        $guard = app(BingoPrivateRoomAccess::class);
+        $userId = Auth::id() !== null ? (string) Auth::id() : null;
+        $guard->assertNotLocked($userId, $room);
+
+        $codeMatches = $config->access_code !== null && hash_equals(mb_strtolower((string) $config->access_code), mb_strtolower(trim($accessCode)));
         $passwordMatches = $config->room_password !== null && Hash::check($password, $config->room_password);
 
         if (! $codeMatches || ! $passwordMatches) {
+            $guard->recordFailure($userId, [$room]);
+
             return ['verified' => false];
         }
+        $guard->clearFailures($userId);
 
         $verifiedRooms = session(self::SESSION_VERIFIED_ROOMS_KEY, []);
         if (! in_array((string) $room->id, $verifiedRooms, true)) {
@@ -1712,6 +1741,12 @@ class BingoRoomCrudService
                 ['room_id' => $room->id],
                 $configData,
             );
+
+            // Sala privada activa sin código o contraseña: nadie podría entrar
+            // (revierte toda la transacción).
+            if ($statusCode === 'ACTIVE') {
+                app(BingoPrivateRoomAccess::class)->assertHasCredentials($room->setRelation('config', $config->load('roomType')));
+            }
 
             // Auditoría: registrar la creación de salas sin horario (requieren activación manual)
             if ($isCreate && ($configData['start_mode'] ?? 'SCHEDULED') === 'MANUAL') {
