@@ -37,15 +37,19 @@ export function useGameRoomJoinByCode() {
       if (data.verified && data.room_route_key) {
         redirecting.value = true
         router.visit(`/bingo/${data.room_route_key}/lobby`, {
-          onFinish: () => { redirecting.value = false },
+          onFinish: () => { redirecting.value = false }
         })
       } else {
         // Mensaje deliberadamente genérico — el backend tampoco distingue
         // "código no existe" vs "contraseña incorrecta" (evita enumeración).
         error.value = 'Código o contraseña incorrectos.'
       }
-    } catch {
-      error.value = 'No se pudo verificar el acceso. Intenta de nuevo.'
+    } catch (err) {
+      // 429: demasiados intentos — el backend explica cuánto esperar.
+      const response = (err as { response?: { status?: number, data?: { message?: string } } })?.response
+      error.value = response?.status === 429 && response.data?.message
+        ? response.data.message
+        : 'No se pudo verificar el acceso. Intenta de nuevo.'
     } finally {
       loading.value = false
     }
@@ -58,6 +62,6 @@ export function useGameRoomJoinByCode() {
     redirecting,
     open,
     close,
-    submit,
+    submit
   }
 }

@@ -1,20 +1,26 @@
 // useRoomPrivateAccess.ts
 
-/**
- * Genera un código de acceso legible para compartir (ej. "FAMILIA2026" en el
- * placeholder) — combina 2 palabras cortas + un número de 2 dígitos, fácil de
- * dictar/recordar. Longitud típica 8-14 caracteres, dentro del rango
- * min:4/max:20 validado en BingoRoomRequest.php.
- */
+/** Palabras para el código de acceso (ver generateAccessCode). */
 const ACCESS_CODE_WORDS = [
   'BINGO', 'FIESTA', 'RONDA', 'JUEGO', 'SUERTE', 'CARTON', 'PREMIO',
-  'ESTRELLA', 'DORADO', 'REAL', 'CLUB', 'SALA',
+  'ESTRELLA', 'DORADO', 'REAL', 'CLUB', 'SALA'
 ]
 
+// Sin 0/O ni 1/I/L (mismo alfabeto que BingoPrivateRoomAccess en el backend).
+const ACCESS_CODE_SUFFIX_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+
+/**
+ * Código legible y con muchas combinaciones (ej. "FIESTA-7K3M"): el código es
+ * único entre salas privadas abiertas, así que una palabra + 2 dígitos
+ * chocaba seguido. El backend igual valida que no esté en uso.
+ */
 export function generateAccessCode(): string {
   const word = ACCESS_CODE_WORDS[secureRandomInt(ACCESS_CODE_WORDS.length)]
-  const number = secureRandomInt(90) + 10 // 2 dígitos, 10-99
-  return `${word}${number}`
+  let suffix = ''
+  for (let i = 0; i < 4; i++) {
+    suffix += ACCESS_CODE_SUFFIX_CHARS[secureRandomInt(ACCESS_CODE_SUFFIX_CHARS.length)]
+  }
+  return `${word.slice(0, 15)}-${suffix}`
 }
 
 /**
