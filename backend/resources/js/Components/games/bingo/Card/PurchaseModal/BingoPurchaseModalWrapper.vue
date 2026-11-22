@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Ref } from 'vue'
 import BingoPurchaseModal from './BingoPurchaseModal.vue'
 import { useGameRoomPurchaseModal } from '@js/composables/games/bingo/card/purchase-modal/useGameRoomPurchaseModal'
 
@@ -12,7 +13,7 @@ type PurchaseModal = ReturnType<typeof useGameRoomPurchaseModal>
  *   <BingoPurchaseModalWrapper :modal="modal" :exchange-rate="rate" :guard="canBuy"
  *     @success="onPurchaseSuccess" />
  */
-const props = defineProps<{
+defineProps<{
   modal: PurchaseModal
   exchangeRate: number
   guard?: boolean
@@ -21,6 +22,12 @@ const props = defineProps<{
 const emit = defineEmits<{
   success: [roomId: string, result: { prizePool: number; cardCount: number }]
 }>()
+
+// Los refs viven en el composable (props.modal): se actualizan por esta vía
+// en vez de asignar sobre la prop en el template.
+function setRef<T>(target: Ref<T>, value: T) {
+  target.value = value
+}
 </script>
 
 <template>
@@ -35,6 +42,8 @@ const emit = defineEmits<{
     :card-price="modal.cardPrice.value"
     :currency-symbol="modal.currencySymbol.value"
     :loading-price="modal.loadingPrice.value"
+    :wallet-options="modal.walletOptions.value"
+    :selected-currency-id="modal.selectedCurrencyId.value"
     :card-count="modal.cardCount.value"
     :total-amount="modal.totalAmount.value"
     :can-advance="modal.canAdvance.value"
@@ -59,15 +68,16 @@ const emit = defineEmits<{
     :confirm-incomplete-custom-card="modal.confirmIncompleteCustomCard"
     @close="modal.close()"
     @select-country="modal.selectCountry($event)"
+    @select-wallet="modal.selectWallet($event)"
     @next="modal.nextStep()"
     @prev="modal.prevStep()"
     @increment="modal.increment()"
     @decrement="modal.decrement()"
     @set-card-count="modal.setCardCount($event)"
     @toggle-customize="modal.toggleCustomize()"
-    @update:custom-card-numbers="modal.customCardNumbers.value = $event"
-    @update:manual-edits="modal.manualEditsPerCard.value = $event"
-    @set-active-card-index="modal.activeCardIndex.value = $event"
+    @update:custom-card-numbers="setRef(modal.customCardNumbers, $event)"
+    @update:manual-edits="setRef(modal.manualEditsPerCard, $event)"
+    @set-active-card-index="setRef(modal.activeCardIndex, $event)"
     @purchase="modal.purchase(result => { const id = modal.selectedRoom.value?.id; if (id) emit('success', id, result) })"
   />
 </template>

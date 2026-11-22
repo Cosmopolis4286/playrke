@@ -507,6 +507,61 @@ class BingoTest extends TestCase
         $this->assertStringContainsString('Insufficient wallet balance', $response->json('message') ?? '');
     }
 
+    /** @test */
+    public function player_chooses_which_accepted_wallet_pays_and_the_price_follows_it()
+    {
+        $player = $this->makePlayer();
+        $usdWallet = $this->makeWallet($player, 500);
+        $ves = $this->secondCurrency('VES', 40);
+        $vesWallet = Wallet::factory()->create([
+            'user_id' => $player->id, 'currency_id' => $ves->id,
+            'balance' => 1000, 'bonus_balance' => 0, 'status' => 'ACTIVE',
+        ]);
+        $room = $this->makeRoom([], ['allowed_currencies' => json_encode([$this->currency->id, $ves->id])]);
+
+        $price = $this->actingAs($player)->getJson("/bingo/game-rooms/{$room->hashed_id}/player-card-price?currency_id={$ves->id}")
+            ->assertOk()
+            ->assertJsonPath('currency_id', (string) $ves->id)
+            ->assertJsonCount(2, 'wallet_options')
+            ->json();
+        $this->assertEquals(400.0, (float) $price['card_price'], '10 USD × 40');
+
+        $this->actingAs($player)->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", ['card_count' => 2, 'currency_id' => (string) $ves->id])
+            ->assertOk();
+        $this->assertEquals(200.0, (float) $vesWallet->fresh()->balance);
+        $this->assertEquals(500.0, (float) $usdWallet->fresh()->balance);
+    }
+
+    /** @test */
+    public function player_pays_with_a_wallet_in_a_currency_the_room_accepts()
+    {
+        // Bolívares con más saldo NOMINAL que los dólares: antes la compra
+        // tomaba esa billetera aunque la sala solo aceptara USD.
+        $player = $this->makePlayer();
+        $usdWallet = $this->makeWallet($player, 50);
+        $ves = $this->secondCurrency('VES', 40);
+        $vesWallet = Wallet::factory()->create([
+            'user_id' => $player->id, 'currency_id' => $ves->id,
+            'balance' => 100000, 'bonus_balance' => 0, 'status' => 'ACTIVE',
+        ]);
+        $room = $this->makeRoom(); // allowed_currencies = [USD], 10 USD el cartón
+
+        $this->actingAs($player)->getJson("/bingo/game-rooms/{$room->hashed_id}/player-card-price")
+            ->assertOk()
+            ->assertJsonPath('currency_id', (string) $this->currency->id)
+            ->assertJsonCount(1, 'wallet_options');
+
+        $this->actingAs($player)->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", ['card_count' => 1])
+            ->assertOk();
+        $this->assertEquals(40.0, (float) $usdWallet->fresh()->balance);
+        $this->assertEquals(100000.0, (float) $vesWallet->fresh()->balance, 'La billetera en una moneda no aceptada no se toca');
+
+        // Elegir explícitamente una moneda que la sala no acepta: rechazado.
+        $this->actingAs($player)->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", ['card_count' => 1, 'currency_id' => (string) $ves->id])
+            ->assertStatus(422);
+        $this->assertEquals(100000.0, (float) $vesWallet->fresh()->balance);
+    }
+
     // ─── Sorteo / números cantados ──────────────────────────────────────────────
 
     /** @test */
@@ -523,6 +578,23 @@ class BingoTest extends TestCase
         // con las fichas cantadas, junto a totalPlayers/prizePool/roomFinished/etc.
         $response->assertOk()
             ->assertJsonStructure(['draw', 'totalPlayers', 'prizePool', 'roomFinished']);
+    }
+
+    /** @test */
+    public function player_without_a_wallet_in_an_accepted_currency_cannot_buy()
+    {
+        $player = $this->makePlayer();
+        $ves = $this->secondCurrency('VES', 40);
+        Wallet::factory()->create([
+            'user_id' => $player->id, 'currency_id' => $ves->id,
+            'balance' => 100000, 'bonus_balance' => 0, 'status' => 'ACTIVE',
+        ]);
+        $room = $this->makeRoom();
+
+        $this->actingAs($player)->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", ['card_count' => 1])
+            ->assertStatus(422)
+            ->assertJsonPath('message', __('errors.BINGO_CARD_CURRENCY_NOT_ALLOWED'));
+        $this->assertSame(0, BingoCard::where('room_id', $room->id)->count());
     }
 
     /** @test */
@@ -742,6 +814,21 @@ class BingoTest extends TestCase
         }
 
         return (string) $id;
+    }
+
+    private function secondCurrency(string $iso, float $rate) : Currency
+    {
+        $currency = Currency::firstOrCreate(
+            ['iso_code' => $iso],
+            ['symbol' => $iso, 'name' => $iso, 'type' => 'FIAT', 'decimal_places' => 2, 'status' => 'ACTIVE'],
+        );
+        DB::table('exchange_rates')->insert([
+            'id' => $this->nextId(), 'user_id' => $this->user->id, 'currency_id' => $currency->id,
+            'amount' => $rate, 'percentage' => 0, 'status' => 'ACTIVE', 'source' => 'user',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        return $currency;
     }
 
     private function seedGameStatuses() : void

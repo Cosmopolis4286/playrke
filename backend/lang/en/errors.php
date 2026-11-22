@@ -179,6 +179,7 @@ return [
     'BINGO_CARD_CUSTOM_MATRIX_INVALID' => 'Card #:position: :error',
     'BINGO_CARD_INSUFFICIENT_BALANCE' => 'Insufficient wallet balance. Current balance: :balance, Required amount: :required',
     'BINGO_CARD_NO_ACTIVE_WALLET' => 'You do not have an active wallet for this purchase.',
+    'BINGO_CARD_CURRENCY_NOT_ALLOWED' => 'This room does not accept payments in that currency. Choose a wallet in a currency the room accepts.',
 
     // Wallet (generic, App\Domains\Wallet\Exceptions)
     'WALLET_UNAVAILABLE' => 'We could not reach the wallet right now. Please try again later.',

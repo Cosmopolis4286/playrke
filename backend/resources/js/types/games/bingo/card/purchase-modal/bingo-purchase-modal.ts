@@ -29,9 +29,21 @@ export interface BingoAvailableCountry {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Respuesta de /card-price */
+/** Billetera del jugador en una moneda que la sala acepta. */
+export interface BingoWalletOption {
+  readonly currency_id: string
+  readonly iso_code: string | null
+  readonly symbol: string | null
+  readonly balance: number
+}
+
 export interface BingoCardPriceResponse {
   readonly card_price: number
   readonly currency_symbol: string
+  /** Moneda con la que se calculó el precio (la billetera que pagaría). */
+  readonly currency_id?: string
+  /** Billeteras con las que el jugador puede pagar en esta sala. */
+  readonly wallet_options?: BingoWalletOption[]
   readonly exchange_rate: number
   readonly is_custom_price: boolean
   /** Modalidad del cartón personalizado de la sala (solo presente en /player-card-price) */

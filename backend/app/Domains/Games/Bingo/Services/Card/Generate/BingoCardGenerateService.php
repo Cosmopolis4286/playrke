@@ -415,11 +415,11 @@ final class BingoCardGenerateService
      * @param string $roomId ID de la sala
      * @param int    $userId ID del usuario
      */
-    public function getPlayerCardPrice(string $roomId, int $userId) : array
+    public function getPlayerCardPrice(string $roomId, int $userId, ?string $currencyId = null) : array
     {
         // Eager-load config en la misma query — evita la segunda query lazy al acceder a card_price_usd.
         // room_type_id es necesario para el chequeo de acceso por tipo de sala.
-        $room = BingoRoom::with('config:id,room_id,room_type_id,card_price_usd,game_variant,allow_custom_card,custom_card_price_pct,custom_card_mode,custom_card_every_x,move_free_space_mode,move_free_space_price_pct')
+        $room = BingoRoom::with('config:id,room_id,room_type_id,card_price_usd,game_variant,allowed_currencies,allow_custom_card,custom_card_price_pct,custom_card_mode,custom_card_every_x,move_free_space_mode,move_free_space_price_pct')
             ->find($roomId);
 
         if (! $room) {
@@ -430,16 +430,10 @@ final class BingoCardGenerateService
         // revela ni el precio.
         $this->bingoRoomCrud->assertPlayerCanAccessRoom($room);
 
-        // Obtener la billetera activa del jugador
-        $activeWallets = $this->walletRepository->getActiveWalletsByUser((string) $userId, ['currency_id']);
-
-        if ($activeWallets->isEmpty()) {
-            throw BingoCardGenerateException::noActiveWallet();
-        }
-
-        // Usar la primera billetera activa (podría haber lógica para seleccionar una específica)
-        $playerWallet = $activeWallets->first();
-        $currencyId = $playerWallet->currency_id;
+        // Billetera con la que pagaría: la elegida por el jugador o, si no
+        // eligió, una de las monedas que la sala acepta.
+        ['wallet' => $playerWallet, 'options' => $walletOptions] = $this->resolvePlayerWallet($room, $userId, $currencyId);
+        $currencyId = (string) $playerWallet->currency_id;
 
         // Obtener información de la moneda
         $currency = $this->currencies->find($currencyId, ['symbol']);
@@ -490,6 +484,10 @@ final class BingoCardGenerateService
             'card_price' => (float) $cardPrice,
             'card_price_usd' => (float) $cardPriceUsd,
             'currency_symbol' => (string) ($currencySymbol ?? 'USD'),
+            'currency_id' => $currencyId,
+            // Billeteras del jugador con las que se puede pagar en esta sala
+            // (para que elija; el precio se pide de nuevo con ?currency_id=).
+            'wallet_options' => $walletOptions,
             'exchange_rate' => $exchangeRate,
             'is_custom_price' => $isCustomPrice,
             'custom_card_mode' => $customCardMode,
@@ -519,28 +517,31 @@ final class BingoCardGenerateService
             return [];
         }
 
-        $activeWallets = $this->walletRepository->getActiveWalletsByUser((string) $userId, ['currency_id']);
+        $wallets = $this->walletRepository->getActiveWalletsByUser((string) $userId, ['id', 'currency_id', 'balance', 'bonus_balance']);
 
-        if ($activeWallets->isEmpty()) {
+        if ($wallets->isEmpty()) {
             return [];
         }
 
-        $playerWallet = $activeWallets->first();
-        $currencyId = $playerWallet->currency_id;
-
-        $currency = $this->currencies->find($currencyId, ['symbol']);
-        $currencySymbol = $currency?->symbol ?? 'USD';
-
-        $exchangeRate = $this->currencyExchangeRate->getActiveRate($currencyId);
-
-        $rooms = BingoRoom::with('config:id,room_id,card_price_usd,game_variant')
+        $rooms = BingoRoom::with('config:id,room_id,card_price_usd,game_variant,allowed_currencies')
             ->whereIn('id', $roomIds)
             ->get()
             ->keyBy('id');
 
+        $walletCurrencyIds = $wallets->pluck('currency_id')->map(fn ($id) => (string) $id)->unique()->values()->all();
         $customPrices = BingoCardPrice::whereIn('room_id', $roomIds)
-            ->byCurrency($currencyId)
-            ->pluck('card_price', 'room_id');
+            ->whereIn('currency_id', $walletCurrencyIds)
+            ->get(['room_id', 'currency_id', 'card_price'])
+            ->keyBy(fn ($price) => $price->room_id . ':' . $price->currency_id);
+
+        // Símbolo y tasa una vez por moneda (no por sala).
+        $currencyInfo = [];
+        $infoFor = function(string $currencyId) use (&$currencyInfo) : array {
+            return $currencyInfo[$currencyId] ??= [
+                'symbol' => $this->currencies->find($currencyId, ['symbol'])?->symbol ?? 'USD',
+                'rate' => $this->currencyExchangeRate->getActiveRate($currencyId),
+            ];
+        };
 
         $results = [];
 
@@ -551,7 +552,21 @@ final class BingoCardGenerateService
                 continue;
             }
 
-            $customPrice = $customPrices->get($roomId);
+            // Misma regla que resolvePlayerWallet(): la moneda que la sala acepta
+            // con más saldo. Sin ninguna aceptada, la sala no muestra precio.
+            $allowed = array_map('strval', (array) ($room->config?->allowed_currencies ?? []));
+            $wallet = ($allowed === [] ? $wallets : $wallets->filter(fn ($w) => in_array((string) $w->currency_id, $allowed, true)))
+                ->sortByDesc(fn ($w) => (float) $w->getPlayableBalance())
+                ->first();
+
+            if (! $wallet) {
+                continue;
+            }
+
+            $currencyId = (string) $wallet->currency_id;
+            ['symbol' => $currencySymbol, 'rate' => $exchangeRate] = $infoFor($currencyId);
+
+            $customPrice = $customPrices->get($roomId . ':' . $currencyId)?->card_price;
             $isCustomPrice = $customPrice !== null;
 
             if ($isCustomPrice) {
@@ -564,7 +579,8 @@ final class BingoCardGenerateService
             $results[$roomId] = [
                 'card_price' => (float) $cardPrice,
                 'card_price_usd' => (float) $this->toUsdAmount($cardPrice, $exchangeRate),
-                'currency_symbol' => (string) ($currencySymbol ?? 'USD'),
+                'currency_symbol' => (string) $currencySymbol,
+                'currency_id' => $currencyId,
                 'exchange_rate' => $exchangeRate,
                 'is_custom_price' => $isCustomPrice,
             ];
@@ -573,21 +589,6 @@ final class BingoCardGenerateService
         return $results;
     }
 
-    /**
-     * Todas las salas vendibles de una fecha en una sola llamada, con los IDs
-     * de tipo de sala / conexión / bote para que el punto de venta filtre en
-     * el cliente (chips).
-     *
-     * Visibilidad: ACTIVE, propias del comercio o PUBLIC, de la fecha pedida.
-     * Las salas de inicio manual (sin fecha ni hora) se listan en "hoy",
-     * vendibles hasta que el admin las inicie.
-     *
-     * Cada sala trae sales_close_at / sales_open (ver findSellableRoom()):
-     * las que ya pasaron el cierre se listan igual, marcadas, para que el
-     * vendedor entienda por qué no puede venderlas.
-     *
-     * @return array<int, array<string, mixed>>
-     */
     public function listSellableRooms(string $date) : array
     {
         $creatorUserId = $this->resolveCreatorOrManagerUserId();
@@ -654,7 +655,7 @@ final class BingoCardGenerateService
      *                                   count($customMatrices) debe ser === $cardCount. Cada elemento es el mismo shape
      *                                   que BingoVariant::generateCardMatrix. Se valida cada matriz individualmente.
      */
-    public function playerBuyFromGameRooms(string $roomId, int $cardCount, ?array $customMatrices = null) : array
+    public function playerBuyFromGameRooms(string $roomId, int $cardCount, ?array $customMatrices = null, ?string $currencyId = null) : array
     {
         $userId = $this->userContext->resolveUserId();
 
@@ -717,8 +718,8 @@ final class BingoCardGenerateService
             }
         }
 
-        // Obtener precio para jugador
-        $priceInfo = $this->getPlayerCardPrice($roomId, $userId);
+        // Obtener precio para jugador, en la moneda con la que va a pagar
+        $priceInfo = $this->getPlayerCardPrice($roomId, $userId, $currencyId);
         $basePrice = $priceInfo['card_price'];
 
         // Precio de cartones personalizados según la modalidad configurada en la sala
@@ -732,14 +733,10 @@ final class BingoCardGenerateService
 
         $totalAmount = round($basePrice * $regularCount + $customTotal, 4);
 
-        // Obtener billetera activa del jugador con saldo
-        $activeWallets = $this->walletRepository->getActiveWalletsByUser((string) $userId, ['id', 'currency_id', 'balance', 'bonus_balance']);
-
-        if ($activeWallets->isEmpty()) {
-            throw BingoCardGenerateException::noActiveWallet();
-        }
-
-        $playerWallet = $activeWallets->first();
+        // La misma billetera con la que se calculó el precio: antes se tomaba
+        // la de mayor saldo nominal sin mirar la moneda, ni si la sala la
+        // aceptaba.
+        $playerWallet = $this->resolvePlayerWallet($room, $userId, $priceInfo['currency_id'])['wallet'];
         $currencyId = $playerWallet->currency_id;
 
         // Verificación optimista (fail-fast antes de generar cartones); la
@@ -1251,6 +1248,49 @@ final class BingoCardGenerateService
             'subsidiary' => $this->resolveSubsidiaryCurrencies($entityId),
             default => throw BingoCardGenerateException::unsupportedCurrencyRole($role),
         };
+    }
+
+    /**
+     * Billetera con la que paga un jugador en una sala: la de la moneda
+     * elegida ($currencyId) o, si no eligió, la de más saldo entre las que la
+     * sala acepta (allowed_currencies; vacío = sin restricción, salas viejas).
+     *
+     * @return array{wallet: \App\Domains\Wallet\Models\Wallet, options: list<array{currency_id: string, iso_code: ?string, symbol: ?string, balance: float}>}
+     *
+     * @throws BingoCardGenerateException sin billetera activa, o ninguna en una moneda que la sala acepte
+     */
+    private function resolvePlayerWallet(BingoRoom $room, int|string $userId, ?string $currencyId = null) : array
+    {
+        $wallets = $this->walletRepository->getActiveWalletsByUser((string) $userId, ['id', 'currency_id', 'balance', 'bonus_balance']);
+        if ($wallets->isEmpty()) {
+            throw BingoCardGenerateException::noActiveWallet();
+        }
+
+        $allowed = array_map('strval', (array) ($room->config?->allowed_currencies ?? []));
+        $eligible = $allowed === []
+            ? $wallets
+            : $wallets->filter(fn ($wallet) => in_array((string) $wallet->currency_id, $allowed, true))->values();
+
+        if ($eligible->isEmpty()) {
+            throw BingoCardGenerateException::currencyNotAllowedInRoom();
+        }
+
+        $wallet = $currencyId !== null && $currencyId !== ''
+            ? $eligible->first(fn ($w) => (string) $w->currency_id === (string) $currencyId)
+            : $eligible->sortByDesc(fn ($w) => (float) $w->getPlayableBalance())->first();
+
+        if (! $wallet) {
+            throw BingoCardGenerateException::currencyNotAllowedInRoom();
+        }
+
+        $options = $eligible->map(fn ($w) => [
+            'currency_id' => (string) $w->currency_id,
+            'iso_code' => $w->currency?->iso_code,
+            'symbol' => $w->currency?->symbol,
+            'balance' => (float) $w->getPlayableBalance(),
+        ])->values()->all();
+
+        return ['wallet' => $wallet, 'options' => $options];
     }
 
     /**
