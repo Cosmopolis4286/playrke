@@ -179,6 +179,7 @@ return [
     'BINGO_CARD_CUSTOM_MATRIX_INVALID' => 'Cartón #:position: :error',
     'BINGO_CARD_INSUFFICIENT_BALANCE' => 'Saldo insuficiente en la billetera. Saldo actual: :balance, Monto requerido: :required',
     'BINGO_CARD_NO_ACTIVE_WALLET' => 'No tienes una billetera activa para esta compra.',
+    'BINGO_CARD_CURRENCY_NOT_ALLOWED' => 'Esta sala no acepta pagos en esa moneda. Elige una billetera en una moneda que la sala acepte.',
 
     // Wallet (genérico, App\Domains\Wallet\Exceptions)
     'WALLET_UNAVAILABLE' => 'No se pudo acceder a la billetera en este momento. Intenta más tarde.',
