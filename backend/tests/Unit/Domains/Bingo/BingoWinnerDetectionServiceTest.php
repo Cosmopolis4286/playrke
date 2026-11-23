@@ -321,14 +321,16 @@ class BingoWinnerDetectionServiceTest extends TestCase
         ]);
 
         // Ejecutar las 75 fichas sin esperas: el intervalo 0 solo se usa en este test.
-        config(['app.env' => 'local']);
-        putenv('BINGO_DEV_INTERVAL_SECONDS=0');
+        // resolveChipInterval() mira app()->environment(), no config('app.env'):
+        // con config() el test esperaba 5 s por ficha (~6 min en cada corrida).
+        $this->app->detectEnvironment(fn () => 'local');
+        config(['bingo.dev_chip_interval_seconds' => 0]);
         $room->config->update(['time_chip' => 0]);
 
         try {
             app(BingoDrawService::class)->startDraw($room->fresh());
         } finally {
-            putenv('BINGO_DEV_INTERVAL_SECONDS');
+            $this->app->detectEnvironment(fn () => 'testing');
         }
 
         $this->assertSame('FINISHED', $round->fresh()->status);

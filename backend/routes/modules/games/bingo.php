@@ -222,12 +222,12 @@ route_group('bingo/game-rooms', 'bingo-game-rooms.', ['auth', 'verified', 'multi
 // sin verificar no debe poder cobrar.
 route_group('bingo', 'bingo.', ['auth', 'verified', 'multiPermission:games.bingo,games.bingo.game_rooms'], BingoGameController::class, [
     'lobby' => ['method' => 'get',  'uri' => '{room}/lobby',         'action' => 'lobby'],
-    'lobby-players' => ['method' => 'get',  'uri' => '{room}/lobby-players', 'action' => 'lobbyPlayers'],
+    'lobby-players' => ['method' => 'get',  'uri' => '{room}/lobby-players', 'action' => 'lobbyPlayers', 'middleware' => ['throttle:bingo-game-read']],
     'game' => ['method' => 'get',  'uri' => '{room}/game',          'action' => 'inGame'],
-    'draw-state' => ['method' => 'get',  'uri' => '{room}/draw-state',    'action' => 'drawState'],
-    'user-cards' => ['method' => 'get',  'uri' => '{room}/user-cards',    'action' => 'getUserCards'],
+    'draw-state' => ['method' => 'get',  'uri' => '{room}/draw-state',    'action' => 'drawState', 'middleware' => ['throttle:bingo-game-read']],
+    'user-cards' => ['method' => 'get',  'uri' => '{room}/user-cards',    'action' => 'getUserCards', 'middleware' => ['throttle:bingo-game-read']],
     'check-bingo' => ['method' => 'post', 'uri' => '{room}/check-bingo',   'action' => 'checkBingo', 'middleware' => ['throttle:bingo-check-bingo']],
-    'view-card' => ['method' => 'get',  'uri' => '{room}/card/{card}',   'action' => 'viewCard'],
+    'view-card' => ['method' => 'get',  'uri' => '{room}/card/{card}',   'action' => 'viewCard', 'middleware' => ['throttle:bingo-game-read']],
 ]);
 
 // Solo disponible en entorno local — utilidades de desarrollo

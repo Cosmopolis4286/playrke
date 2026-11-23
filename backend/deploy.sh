@@ -104,6 +104,27 @@ log "Iniciando y esperando MySQL y Redis..."
 log "Ejecutando migraciones una sola vez antes de iniciar workers..."
 "${COMPOSE[@]}" run --rm --no-deps --entrypoint sh php -c 'php artisan package:discover --ansi && php artisan migrate --force --no-interaction'
 
+# Recrear los workers corta el sorteo en curso: se recupera solo (heartbeat),
+# pero los jugadores ven una pausa de 1-2 minutos. Se espera a que terminen
+# (hasta DEPLOY_DRAW_WAIT_MINUTES) salvo FORCE_DEPLOY=1.
+wait_for_active_draws() {
+    local max_minutes="${DEPLOY_DRAW_WAIT_MINUTES:-20}"
+    local waited=0
+    local active
+    while true; do
+        active="$("${COMPOSE[@]}" exec -T php php artisan bingo:active-draws 2>/dev/null | tr -dc '0-9')"
+        [[ -z "$active" || "$active" == "0" ]] && return 0
+        [[ "${FORCE_DEPLOY:-0}" == "1" ]] && { log "FORCE_DEPLOY=1: se despliega con ${active} sorteo(s) en curso."; return 0; }
+        (( waited >= max_minutes )) && fail "Hay ${active} sorteo(s) en curso tras ${max_minutes} min. Reintenta luego o usa FORCE_DEPLOY=1."
+        log "Hay ${active} sorteo(s) en curso; esperando 60 s antes de reiniciar los workers (${waited}/${max_minutes} min)..."
+        sleep 60
+        waited=$((waited + 1))
+    done
+}
+
+log "Verificando sorteos de Bingo en curso..."
+wait_for_active_draws
+
 log "Iniciando la aplicación, Reverb, workers, scheduler y proxy..."
 "${COMPOSE[@]}" up -d --build --remove-orphans --wait --wait-timeout 300
 

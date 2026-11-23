@@ -42,7 +42,7 @@ final class BingoDrawService
 
     /** Número de fichas entre cada verificación de compras mid-sorteo. */
     private const ACTIVE_CARDS_REFRESH_INTERVAL = 5;
-    // En local se usa BINGO_DEV_INTERVAL_SECONDS si no hay time_chip en la config.
+    // En local se usa config('bingo.dev_chip_interval_seconds') si no hay time_chip en la config.
     private const CHIP_INTERVAL_DEV = 3;
     private const CHIP_INTERVAL_SECONDS = 5; // fallback si time_chip no está configurado
     private const DRAW_LOCK_MIN_TTL_SECONDS = 5400;
@@ -1241,7 +1241,7 @@ final class BingoDrawService
         return $configInterval > 0
             ? $configInterval
             : (app()->environment('local')
-                ? (int) env('BINGO_DEV_INTERVAL_SECONDS', self::CHIP_INTERVAL_DEV)
+                ? (int) config('bingo.dev_chip_interval_seconds', self::CHIP_INTERVAL_DEV)
                 : self::CHIP_INTERVAL_SECONDS);
     }
 
