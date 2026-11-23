@@ -55,14 +55,20 @@ RUN apk add --no-cache \
     freetype libjpeg-turbo libwebp \
     postgresql-libs \
     libxml2 libxslt readline sqlite-libs \
-    gmp
+    gmp \
+    libuv
 
+# ext-uv (libuv): Reverb (ReactPHP) usa stream_select sin ella, limitado a
+# ~1024 sockets por proceso: una sala con más jugadores conectados dejaba a
+# los nuevos sin las bolas en vivo. Con uv el límite es el de archivos
+# abiertos (ulimits del servicio reverb en docker-compose.prod.yml).
 RUN apk add --no-cache --virtual .build-deps \
     libpng-dev libzip-dev oniguruma-dev icu-dev \
     freetype-dev libjpeg-turbo-dev libwebp-dev \
     postgresql-dev \
     libxml2-dev libxslt-dev readline-dev sqlite-dev \
     gmp-dev \
+    libuv-dev \
  && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
  && docker-php-ext-install \
     pdo_mysql pdo_pgsql mbstring exif pcntl bcmath \
@@ -70,6 +76,8 @@ RUN apk add --no-cache --virtual .build-deps \
  && apk add --no-cache $PHPIZE_DEPS \
  && pecl install redis \
  && docker-php-ext-enable redis \
+ && pecl install channel://pecl.php.net/uv-0.3.0 \
+ && docker-php-ext-enable uv \
  && apk del .build-deps $PHPIZE_DEPS
 
 # OPcache agresivo para prod

@@ -98,6 +98,11 @@ log "Validando la configuración efectiva de Docker Compose..."
 log "Construyendo la imagen de producción..."
 "${COMPOSE[@]}" build php nginx
 
+# Sin ext-uv, Reverb queda limitado a ~1024 conexiones simultáneas.
+log "Verificando ext-uv para Reverb..."
+"${COMPOSE[@]}" run --rm --no-deps --entrypoint php php -m | grep -qx uv \
+    || fail "La imagen no trae ext-uv: Reverb quedaría limitado a ~1024 conexiones."
+
 log "Iniciando y esperando MySQL y Redis..."
 "${COMPOSE[@]}" up -d --wait --wait-timeout 180 mysql redis
 
