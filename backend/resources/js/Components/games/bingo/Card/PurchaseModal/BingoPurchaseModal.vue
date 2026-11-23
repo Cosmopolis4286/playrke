@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  /**
+/**
    * BingoPurchaseModal
    *
    * Modal de compra de cartones de bingo desde game-rooms (2 pasos):
@@ -8,125 +8,131 @@
    *
    * El jugador ya está autenticado — no se requieren sus datos.
    */
-  import { computed, ref } from 'vue'
-  import { router } from '@inertiajs/vue3'
-  import PurchaseModalHeader from './PurchaseModalHeader.vue'
-  import PurchaseModalRoomBanner from './PurchaseModalRoomBanner.vue'
-  import PurchaseModalCountryStep from './PurchaseModalCountryStep.vue'
-  import PurchaseModalConfirmStep from './PurchaseModalConfirmStep.vue'
-  import PurchaseModalFooter from './PurchaseModalFooter.vue'
-  import type { BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo-game-room'
-  import type {
-    BingoAvailableCountry,
-    PurchaseModalStep
-  } from '@/js/types/games/bingo/card/purchase-modal/bingo-purchase-modal'
+import { computed, ref } from 'vue'
+import { router } from '@inertiajs/vue3'
+import PurchaseModalHeader from './PurchaseModalHeader.vue'
+import PurchaseModalRoomBanner from './PurchaseModalRoomBanner.vue'
+import PurchaseModalCountryStep from './PurchaseModalCountryStep.vue'
+import PurchaseModalWalletPicker from './PurchaseModalWalletPicker.vue'
+import PurchaseModalConfirmStep from './PurchaseModalConfirmStep.vue'
+import PurchaseModalFooter from './PurchaseModalFooter.vue'
+import type { BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo-game-room'
+import type {
+  BingoAvailableCountry,
+  BingoWalletOption,
+  PurchaseModalStep
+} from '@/js/types/games/bingo/card/purchase-modal/bingo-purchase-modal'
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Props
-  // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Props
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const props = defineProps<{
-    isOpen: boolean
-    step: PurchaseModalStep
-    selectedRoom: BingoGameRoom | null
-    countries: BingoAvailableCountry[]
-    loadingCountries: boolean
-    selectedCountry: BingoAvailableCountry | null
-    cardPrice: number
-    currencySymbol: string
-    loadingPrice: boolean
-    cardCount: number
-    totalAmount: number
-    canAdvance: boolean
-    purchasing: boolean
-    exchangeRate: number
-    isPlayer: boolean | null
-    canCustomize: boolean
-    customizeCard: boolean
-    customCardNumbers: Record<string, (number | null)[]>[]
-    /** Índice del cartón activo en el picker (0-based). */
-    activeCardIndex: number
-    /** True mientras el config de la sala aún no se ha cargado (spinner en el toggle). */
-    configLoading: boolean
-    /** Por cartón: true si el usuario tocó ≥1 casilla manualmente. */
-    manualEdits: boolean[]
-    /** Modalidad de cartón personalizado de la sala. */
-    customCardMode?: 'paid' | 'by_range' | 'every_x' | 'free' | null
-    /** Recargo % para cartones personalizados (0 = sin recargo; aplica en modo 'paid' y 'by_range'). */
-    customPricePct: number
-    /** Máximo de cartones personalizables permitidos en esta compra (modo 'every_x'). */
-    maxCustomCardsAllowed?: number
-    /** Si true, el jugador puede mover la casilla LIBRE a cualquier celda (solo BINGO_75). */
-    allowMoveFreeSpace?: boolean
-    /** Recargo % adicional por mover la libre (0 = sin recargo; se suma a customPricePct). */
-    moveFreeSpacePricePct?: number | null
-    /** True si el jugador personalizó más cartones de los permitidos. */
-    exceedsCustomCardLimit?: boolean
-    /** Precio base por cartón (sin recargo). */
-    basePricePerCard: number
-    /** Precio por cartón personalizado (con recargo). */
-    customPricePerCard: number
-    /** Cuántos cartones tienen edición manual real. */
-    manualCardCount: number
-    /** Pregunta al usuario si autocompletar o seguir editando; resuelve true si puede continuar la compra. */
-    confirmIncompleteCustomCard: (missingCount: number, autoFill: () => void) => Promise<boolean>
-  }>()
+const props = defineProps<{
+  isOpen: boolean
+  step: PurchaseModalStep
+  selectedRoom: BingoGameRoom | null
+  countries: BingoAvailableCountry[]
+  loadingCountries: boolean
+  selectedCountry: BingoAvailableCountry | null
+  cardPrice: number
+  currencySymbol: string
+  loadingPrice: boolean
+  /** Billeteras con las que el jugador puede pagar en esta sala (selector si hay más de una). */
+  walletOptions?: BingoWalletOption[]
+  selectedCurrencyId?: string | null
+  cardCount: number
+  totalAmount: number
+  canAdvance: boolean
+  purchasing: boolean
+  exchangeRate: number
+  isPlayer: boolean | null
+  canCustomize: boolean
+  customizeCard: boolean
+  customCardNumbers: Record<string, (number | null)[]>[]
+  /** Índice del cartón activo en el picker (0-based). */
+  activeCardIndex: number
+  /** True mientras el config de la sala aún no se ha cargado (spinner en el toggle). */
+  configLoading: boolean
+  /** Por cartón: true si el usuario tocó ≥1 casilla manualmente. */
+  manualEdits: boolean[]
+  /** Modalidad de cartón personalizado de la sala. */
+  customCardMode?: 'paid' | 'by_range' | 'every_x' | 'free' | null
+  /** Recargo % para cartones personalizados (0 = sin recargo; aplica en modo 'paid' y 'by_range'). */
+  customPricePct: number
+  /** Máximo de cartones personalizables permitidos en esta compra (modo 'every_x'). */
+  maxCustomCardsAllowed?: number
+  /** Si true, el jugador puede mover la casilla LIBRE a cualquier celda (solo BINGO_75). */
+  allowMoveFreeSpace?: boolean
+  /** Recargo % adicional por mover la libre (0 = sin recargo; se suma a customPricePct). */
+  moveFreeSpacePricePct?: number | null
+  /** True si el jugador personalizó más cartones de los permitidos. */
+  exceedsCustomCardLimit?: boolean
+  /** Precio base por cartón (sin recargo). */
+  basePricePerCard: number
+  /** Precio por cartón personalizado (con recargo). */
+  customPricePerCard: number
+  /** Cuántos cartones tienen edición manual real. */
+  manualCardCount: number
+  /** Pregunta al usuario si autocompletar o seguir editando; resuelve true si puede continuar la compra. */
+  confirmIncompleteCustomCard: (missingCount: number, autoFill: () => void) => Promise<boolean>
+}>()
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Emits
-  // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Emits
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const emit = defineEmits<{
-    (e: 'close'): void
-    (e: 'select-country', country: BingoAvailableCountry): void
-    (e: 'next'): void
-    (e: 'prev'): void
-    (e: 'increment'): void
-    (e: 'decrement'): void
-    (e: 'set-card-count', value: number): void
-    (e: 'toggle-customize'): void
-    (e: 'update:custom-card-numbers', value: Record<string, (number | null)[]>[]): void
-    (e: 'update:manual-edits', value: boolean[]): void
-    (e: 'set-active-card-index', index: number): void
-    (e: 'purchase'): void
-  }>()
+const emit = defineEmits<{
+  (e: 'close'): void
+  (e: 'select-country', country: BingoAvailableCountry): void
+  (e: 'select-wallet', currencyId: string): void
+  (e: 'next'): void
+  (e: 'prev'): void
+  (e: 'increment'): void
+  (e: 'decrement'): void
+  (e: 'set-card-count', value: number): void
+  (e: 'toggle-customize'): void
+  (e: 'update:custom-card-numbers', value: Record<string, (number | null)[]>[]): void
+  (e: 'update:manual-edits', value: boolean[]): void
+  (e: 'set-active-card-index', index: number): void
+  (e: 'purchase'): void
+}>()
 
-  const confirmStep = ref<InstanceType<typeof PurchaseModalConfirmStep> | null>(null)
+const confirmStep = ref<InstanceType<typeof PurchaseModalConfirmStep> | null>(null)
 
-  function handlePurchaseClick(): void {
-    confirmStep.value?.handlePurchaseClick()
-  }
+function handlePurchaseClick(): void {
+  confirmStep.value?.handlePurchaseClick()
+}
 
-  function goToLobby() {
-    if (!props.selectedRoom) return
-    emit('close')
-    router.visit(`/bingo/${props.selectedRoom.id}/lobby`)
-  }
+function goToLobby() {
+  if (!props.selectedRoom) return
+  emit('close')
+  router.visit(`/bingo/${props.selectedRoom.id}/lobby`)
+}
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Computed
-  // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Computed
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const stepIndex = computed(() => {
-    if (props.isPlayer === null) return 0 // Loading state
-    if (props.isPlayer) return 0 // Players only have one step
-    return props.step === 'country' ? 0 : 1
-  })
+const stepIndex = computed(() => {
+  if (props.isPlayer === null) return 0 // Loading state
+  if (props.isPlayer) return 0 // Players only have one step
+  return props.step === 'country' ? 0 : 1
+})
 
-  const stepperLabels = computed(() => {
-    if (props.isPlayer === null) return ['Cargando...'] // Loading state
-    if (props.isPlayer) return ['Confirmar'] // Players only see confirm step
-    return ['País', 'Confirmar'] // Other roles see both steps
-  })
+const stepperLabels = computed(() => {
+  if (props.isPlayer === null) return ['Cargando...'] // Loading state
+  if (props.isPlayer) return ['Confirmar'] // Players only see confirm step
+  return ['País', 'Confirmar'] // Other roles see both steps
+})
 
-  const prizeFormatted = computed(() => {
-    if (!props.selectedRoom) return '0.00'
-    return (props.selectedRoom.prize_pool * props.exchangeRate).toFixed(2)
-  })
+const prizeFormatted = computed(() => {
+  if (!props.selectedRoom) return '0.00'
+  return (props.selectedRoom.prize_pool * props.exchangeRate).toFixed(2)
+})
 
-  const currentCardCount = computed(() => {
-    return props.selectedRoom?.players_room?.[0]?.card_count ?? 0
-  })
+const currentCardCount = computed(() => {
+  return props.selectedRoom?.players_room?.[0]?.card_count ?? 0
+})
 </script>
 
 <template>
@@ -166,75 +172,81 @@
 
             <!-- ═══════ Bloqueo nativo de inputs/botones durante procesamiento ════════ -->
             <fieldset :disabled="purchasing" style="display:contents;border:none;padding:0;margin:0">
+              <!-- ═══════════════════ BODY ═══════════════════ -->
+              <div class="pm-body">
+                <PurchaseModalCountryStep
+                  :is-player="isPlayer"
+                  :step="step"
+                  :loading-countries="loadingCountries"
+                  :countries="countries"
+                  :selected-country="selectedCountry"
+                  :card-price="cardPrice"
+                  :loading-price="loadingPrice"
+                  :currency-symbol="currencySymbol"
+                  @select-country="emit('select-country', $event)"
+                />
 
-            <!-- ═══════════════════ BODY ═══════════════════ -->
-            <div class="pm-body">
-              <PurchaseModalCountryStep
+                <PurchaseModalWalletPicker
+                  v-if="isPlayer && step === 'confirm'"
+                  :options="walletOptions ?? []"
+                  :selected-currency-id="selectedCurrencyId ?? null"
+                  :loading="loadingPrice"
+                  @select="emit('select-wallet', $event)"
+                />
+
+                <PurchaseModalConfirmStep
+                  ref="confirmStep"
+                  :step="step"
+                  :current-card-count="currentCardCount"
+                  :card-count="cardCount"
+                  :can-customize="canCustomize"
+                  :customize-card="customizeCard"
+                  :config-loading="configLoading"
+                  :custom-card-numbers="customCardNumbers"
+                  :manual-edits="manualEdits"
+                  :active-card-index="activeCardIndex"
+                  :variant="selectedRoom?.config?.game_variant"
+                  :custom-card-mode="customCardMode"
+                  :custom-price-pct="customPricePct"
+                  :max-custom-allowed="maxCustomCardsAllowed"
+                  :allow-move-free-space="allowMoveFreeSpace"
+                  :move-free-space-price-pct="moveFreeSpacePricePct"
+                  :exceeds-custom-card-limit="exceedsCustomCardLimit"
+                  :manual-card-count="manualCardCount"
+                  :confirm-incomplete-custom-card="confirmIncompleteCustomCard"
+                  @increment="emit('increment')"
+                  @decrement="emit('decrement')"
+                  @set-card-count="emit('set-card-count', $event)"
+                  @toggle-customize="emit('toggle-customize')"
+                  @update:custom-card-numbers="emit('update:custom-card-numbers', $event)"
+                  @update:manual-edits="emit('update:manual-edits', $event)"
+                  @set-active-card-index="emit('set-active-card-index', $event)"
+                  @purchase="emit('purchase')"
+                />
+              </div>
+
+              <PurchaseModalFooter
                 :is-player="isPlayer"
                 :step="step"
-                :loading-countries="loadingCountries"
-                :countries="countries"
-                :selected-country="selectedCountry"
-                :card-price="cardPrice"
-                :loading-price="loadingPrice"
-                :currency-symbol="currencySymbol"
-                @select-country="emit('select-country', $event)"
-              />
-
-              <PurchaseModalConfirmStep
-                ref="confirmStep"
-                :step="step"
                 :current-card-count="currentCardCount"
-                :card-count="cardCount"
-                :can-customize="canCustomize"
+                :purchasing="purchasing"
+                :can-advance="canAdvance"
+                :loading-price="loadingPrice"
                 :customize-card="customizeCard"
-                :config-loading="configLoading"
-                :custom-card-numbers="customCardNumbers"
-                :manual-edits="manualEdits"
-                :active-card-index="activeCardIndex"
-                :variant="selectedRoom?.config?.game_variant"
+                :manual-card-count="manualCardCount"
+                :base-price-per-card="basePricePerCard"
+                :custom-price-per-card="customPricePerCard"
                 :custom-card-mode="customCardMode"
                 :custom-price-pct="customPricePct"
-                :max-custom-allowed="maxCustomCardsAllowed"
-                :allow-move-free-space="allowMoveFreeSpace"
-                :move-free-space-price-pct="moveFreeSpacePricePct"
                 :exceeds-custom-card-limit="exceedsCustomCardLimit"
-                :manual-card-count="manualCardCount"
-                :confirm-incomplete-custom-card="confirmIncompleteCustomCard"
-                @increment="emit('increment')"
-                @decrement="emit('decrement')"
-                @set-card-count="emit('set-card-count', $event)"
-                @toggle-customize="emit('toggle-customize')"
-                @update:custom-card-numbers="emit('update:custom-card-numbers', $event)"
-                @update:manual-edits="emit('update:manual-edits', $event)"
-                @set-active-card-index="emit('set-active-card-index', $event)"
-                @purchase="emit('purchase')"
+                :card-count="cardCount"
+                :total-amount="totalAmount"
+                :currency-symbol="currencySymbol"
+                @prev="emit('prev')"
+                @next="emit('next')"
+                @purchase="handlePurchaseClick"
+                @lobby="goToLobby"
               />
-            </div>
-
-            <PurchaseModalFooter
-              :is-player="isPlayer"
-              :step="step"
-              :current-card-count="currentCardCount"
-              :purchasing="purchasing"
-              :can-advance="canAdvance"
-              :loading-price="loadingPrice"
-              :customize-card="customizeCard"
-              :manual-card-count="manualCardCount"
-              :base-price-per-card="basePricePerCard"
-              :custom-price-per-card="customPricePerCard"
-              :custom-card-mode="customCardMode"
-              :custom-price-pct="customPricePct"
-              :exceeds-custom-card-limit="exceedsCustomCardLimit"
-              :card-count="cardCount"
-              :total-amount="totalAmount"
-              :currency-symbol="currencySymbol"
-              @prev="emit('prev')"
-              @next="emit('next')"
-              @purchase="handlePurchaseClick"
-              @lobby="goToLobby"
-            />
-
             </fieldset><!-- /purchasing lock -->
           </template>
         </div>

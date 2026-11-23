@@ -269,6 +269,9 @@ final class BingoRoomController extends Controller
             // array se generan al azar a precio base.
             'custom_numbers' => 'sometimes|nullable|array|max:40',
             'custom_numbers.*' => 'array',
+            // Billetera con la que paga (moneda). Sin ella, la de más saldo
+            // entre las monedas que la sala acepta.
+            'currency_id' => 'sometimes|nullable|string|max:20',
         ]);
 
         $customNumbers = $request->input('custom_numbers');
@@ -283,6 +286,7 @@ final class BingoRoomController extends Controller
                 $room->id,
                 $cardCount,
                 $customNumbers,
+                $request->input('currency_id'),
             ),
         );
     }
@@ -294,12 +298,13 @@ final class BingoRoomController extends Controller
      *
      * @return JsonResponse respuesta con card_price, currency_symbol, exchange_rate, is_custom_price
      */
-    public function playerCardPrice(BingoRoom $room) : JsonResponse
+    public function playerCardPrice(Request $request, BingoRoom $room) : JsonResponse
     {
         $userId = $this->userContext->resolveUserId();
+        $currencyId = $request->query('currency_id');
 
         return $this->handleServiceJson(
-            fn () => $this->generateService->getPlayerCardPrice($room->id, $userId),
+            fn () => $this->generateService->getPlayerCardPrice($room->id, $userId, is_string($currencyId) && $currencyId !== '' ? $currencyId : null),
         );
     }
 

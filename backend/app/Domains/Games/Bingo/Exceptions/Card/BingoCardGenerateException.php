@@ -28,6 +28,12 @@ final class BingoCardGenerateException extends DomainException
         return new self('BINGO_CARD_COMMERCE_NOT_FOUND', 404);
     }
 
+    /** Ninguna billetera del jugador está en una moneda que la sala acepte (o eligió una que no). */
+    public static function currencyNotAllowedInRoom() : self
+    {
+        return new self('BINGO_CARD_CURRENCY_NOT_ALLOWED', 422);
+    }
+
     public static function currencyNotAvailable() : self
     {
         return new self('BINGO_CARD_CURRENCY_NOT_AVAILABLE', 422);
