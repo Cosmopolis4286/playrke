@@ -96,6 +96,16 @@ final class TriviaAnswerController extends Controller
             return response()->json(['success' => false, 'message' => 'Pregunta no activa.'], 422);
         }
 
+        // Pregunta cerrada (fase de revelación): la respuesta correcta ya se
+        // anunció a la sala, aceptar respuestas ahora sería regalarla.
+        if (! empty($questionData['closed_at_ms'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La pregunta ya cerró.',
+                'question_id' => $questionId,
+            ], 409);
+        }
+
         // ── 4. Evitar doble respuesta ─────────────────────────────────────────
         $alreadyAnswered = $pgsql->table('trivia_answers')
             ->where('game_id', $gameId)
@@ -283,76 +293,27 @@ final class TriviaAnswerController extends Controller
             Log::warning('[TriviaAnswerController] broadcast falló: ' . $e->getMessage());
         }
 
-        // ── 9. Avance automático: todos respondieron → siguiente pregunta ─────
-        $this->maybeAdvanceQuestion($gameId, $gameState->roomId, $questionId, $gameState->playerIds, $pgsql);
+        // ── 9. Cierre anticipado: todos respondieron → revelación ─────────────
+        // closeQuestion() anuncia la respuesta correcta a la sala y programa la
+        // siguiente pregunta tras la fase de revelación (ya no se salta directo).
+        try {
+            $this->gameEngine->closeQuestionIfEveryoneAnswered($gameId, $questionId);
+        } catch (Throwable $e) {
+            Log::error('[TriviaAnswerController] Error cerrando la pregunta', [
+                'game_id' => $gameId,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return response()->json([
             'success' => true,
+            'question_id' => $questionId,
             'is_correct' => $isCorrect,
             'is_late' => $isLate,
             'points_earned' => $points,
             'correct_option_index' => $correctOptionIndex,
             'current_score' => $currentScore,
         ]);
-    }
-
-    /**
-     * Si todos los jugadores activos ya respondieron la pregunta actual,
-     * envía la siguiente pregunta (o finaliza el juego si era la última).
-     */
-    private function maybeAdvanceQuestion(
-        string $gameId,
-        string $roomId,
-        string $questionId,
-        array $playerIds,
-        object $pgsql,
-    ) : void {
-        if (empty($playerIds)) {
-            return;
-        }
-
-        // Redis conserva la lista inicial de jugadores incluso después de que
-        // alguien abandona o es eliminado. Solo los participantes activos deben
-        // bloquear el avance automático de la pregunta.
-        $activePlayerIds = $pgsql->table('trivia_participants')
-            ->where('room_id', $roomId)
-            ->whereIn('user_id', $playerIds)
-            ->whereNull('deleted_at')
-            ->whereIn('status', ['registered', 'confirmed', 'playing'])
-            ->pluck('user_id')
-            ->map(fn ($id) => (string) $id)
-            ->all();
-
-        if (empty($activePlayerIds)) {
-            return;
-        }
-
-        $answeredCount = $pgsql->table('trivia_answers')
-            ->where('game_id', $gameId)
-            ->where('question_id', $questionId)
-            ->whereNull('deleted_at')
-            ->whereIn('player_id', $activePlayerIds)
-            ->distinct()
-            ->count('player_id');
-
-        if ($answeredCount < count($activePlayerIds)) {
-            return; // Todavía faltan respuestas de participantes activos
-        }
-
-        // Todos los participantes activos respondieron → avanzar
-        try {
-            $nextQuestion = $this->gameEngine->sendNextQuestion($gameId, $questionId);
-
-            if ($nextQuestion === null) {
-                // sendNextQuestion devuelve null cuando llama finishGame() internamente
-                Log::info('[TriviaAnswerController] Juego finalizado automáticamente', ['game_id' => $gameId]);
-            }
-        } catch (Throwable $e) {
-            Log::error('[TriviaAnswerController] Error avanzando pregunta', [
-                'game_id' => $gameId,
-                'error' => $e->getMessage(),
-            ]);
-        }
     }
 
     private function upsertScore(

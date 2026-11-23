@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Games\Trivia\Game;
 
+use App\Domains\Games\Trivia\Contracts\GameEngineInterface;
 use App\Domains\Games\Trivia\Contracts\GameStateRepositoryInterface;
 use App\Domains\Games\Trivia\Enums\TriviaPowerUpType;
 use App\Domains\Games\Trivia\Services\TriviaPowerUpService;
@@ -55,6 +56,10 @@ final class TriviaPowerUpController extends Controller
         }
 
         $questionId = (string) ($questionData['question_id'] ?? $questionData['id'] ?? '');
+
+        if (! empty($questionData['closed_at_ms'])) {
+            return response()->json(['success' => false, 'message' => 'La pregunta ya cerró.'], 409);
+        }
 
         // Redis puede conservar playerIds de participantes que ya salieron o
         // fueron eliminados. Igual que al responder, la inscripción activa en
@@ -238,63 +243,20 @@ final class TriviaPowerUpController extends Controller
             ], $result['status']);
         }
 
-        $this->maybeAdvanceQuestion($gameId, $roomId, $questionId, $playerIds, $pgsql);
+        // Saltar cuenta como respuesta: si era el último pendiente, se cierra
+        // la pregunta (revelación) igual que al responder.
+        try {
+            app(GameEngineInterface::class)->closeQuestionIfEveryoneAnswered($gameId, $questionId);
+        } catch (Throwable $e) {
+            Log::error('[TriviaPowerUpController] Error cerrando la pregunta tras skip', [
+                'game_id' => $gameId,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return response()->json([
             'success' => true,
             'type' => TriviaPowerUpType::SKIP->value,
         ]);
-    }
-
-    /**
-     * Misma lógica que TriviaAnswerController::maybeAdvanceQuestion() — se
-     * duplica en vez de compartir para no acoplar ambos controllers a una
-     * dependencia cruzada por un método privado; si se repite una tercera
-     * vez, corresponde extraerlo a un servicio compartido.
-     */
-    private function maybeAdvanceQuestion(string $gameId, string $roomId, string $questionId, array $playerIds, object $pgsql) : void
-    {
-        if (empty($playerIds)) {
-            return;
-        }
-
-        // Solo cuentan los participantes que siguen activos en la sala.
-        // Los playerIds de Redis representan la lista inicial y pueden incluir
-        // usuarios que abandonaron; además, los duplicados no deben acelerar
-        // ni bloquear el avance.
-        $activePlayerIds = $pgsql->table('trivia_participants')
-            ->where('room_id', $roomId)
-            ->whereIn('user_id', $playerIds)
-            ->whereNull('deleted_at')
-            ->whereIn('status', ['registered', 'confirmed', 'playing'])
-            ->distinct()
-            ->pluck('user_id')
-            ->map(fn ($id) => (string) $id)
-            ->all();
-
-        if (empty($activePlayerIds)) {
-            return;
-        }
-
-        $answeredCount = $pgsql->table('trivia_answers')
-            ->where('game_id', $gameId)
-            ->where('question_id', $questionId)
-            ->whereNull('deleted_at')
-            ->whereIn('player_id', $activePlayerIds)
-            ->distinct()
-            ->count('player_id');
-
-        if ($answeredCount < count($activePlayerIds)) {
-            return;
-        }
-
-        try {
-            app(\App\Domains\Games\Trivia\Contracts\GameEngineInterface::class)->sendNextQuestion($gameId);
-        } catch (Throwable $e) {
-            Log::error('[TriviaPowerUpController] Error avanzando pregunta tras skip', [
-                'game_id' => $gameId,
-                'error' => $e->getMessage(),
-            ]);
-        }
     }
 }

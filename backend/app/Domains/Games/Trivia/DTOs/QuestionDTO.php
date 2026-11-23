@@ -104,7 +104,25 @@ class QuestionDTO
             'options' => $this->options,
             'time_limit_seconds' => $this->timeLimitSeconds,
             'points' => $this->points,
+            // Reloj del servidor: el cliente cuenta hacia deadline_ms en vez de
+            // arrancar su propio contador, así un recargo de página o un reloj
+            // local desfasado no le regalan ni le quitan tiempo al jugador.
+            'started_at_ms' => $this->serverTimestampMs !== null ? (int) round($this->serverTimestampMs) : null,
+            'deadline_ms' => $this->deadlineMs(),
         ];
+    }
+
+    /**
+     * Instante (ms epoch del servidor) en que vence el tiempo base de la
+     * pregunta, sin bonus individuales (power-up extra_time).
+     */
+    public function deadlineMs() : ?int
+    {
+        if ($this->serverTimestampMs === null) {
+            return null;
+        }
+
+        return (int) round($this->serverTimestampMs + $this->timeLimitSeconds * 1000);
     }
 
     /**

@@ -248,17 +248,23 @@ final class TriviaGameController extends Controller
      * La pregunta activa se obtiene de Redis (GameStateRepository) — no de BD.
      * La BD solo persiste datos finales; el estado en tiempo real vive en Redis.
      */
-    public function play(string $gameId) : Response
+    public function play(string $gameId) : Response|\Illuminate\Http\RedirectResponse
     {
         $user = Auth::user();
         $pgsql = DB::connection('pgsql_trivia');
 
         $game = $pgsql->table('trivia_games')
             ->where('id', $gameId)
-            ->whereIn('status', ['playing', 'active', 'paused'])
             ->first();
 
-        if (! $game) {
+        // Un jugador que recarga (o cuyo cliente se resincroniza tras perder el
+        // evento de fin) después de terminada la partida va a los resultados
+        // en vez de chocar con un 404.
+        if ($game && $game->status === 'finished') {
+            return redirect()->route('trivia.play.results', $gameId);
+        }
+
+        if (! $game || ! in_array($game->status, ['playing', 'active', 'paused'], true)) {
             abort(404, 'Juego no encontrado');
         }
 
@@ -277,19 +283,69 @@ final class TriviaGameController extends Controller
         $gameState = $stateRepo->getState($gameId);
 
         $question = null;
+        $myAnswer = null;
+        $reveal = null;
         if ($questionData) {
             $options = $questionData['options'] ?? [];
             if (is_string($options)) {
                 $options = json_decode($options, true) ?? [];
             }
+            $questionId = (string) ($questionData['question_id'] ?? $questionData['id'] ?? '');
+            $timeLimit = (int) ($questionData['time_limit_seconds'] ?? $room->time_per_question ?? 20);
+            $startedAtMs = isset($questionData['server_timestamp_ms']) ? (int) round((float) $questionData['server_timestamp_ms']) : null;
+            $correctIndex = (int) ($questionData['correct_answer'] ?? $questionData['correct_option_index'] ?? 0);
+            $closedAtMs = ! empty($questionData['closed_at_ms']) ? (int) round((float) $questionData['closed_at_ms']) : null;
+
             $question = [
-                'id' => (string) ($questionData['question_id'] ?? $questionData['id'] ?? ''),
+                'id' => $questionId,
                 'text' => $questionData['question_text'] ?? $questionData['text'] ?? '',
                 'image' => $questionData['image_url'] ?? null,
                 'options' => $options,
-                'timeLimit' => (int) ($questionData['time_limit_seconds'] ?? $room->time_per_question ?? 20),
+                'timeLimit' => $timeLimit,
                 'category' => $questionData['category'] ?? null,
+                'startedAtMs' => $startedAtMs,
+                // Vencimiento personal: incluye el bonus de extra_time si este
+                // jugador lo activó para la pregunta en curso.
+                'deadlineMs' => $startedAtMs !== null
+                    ? $startedAtMs + $timeLimit * 1000
+                        + app(\App\Domains\Games\Trivia\Services\TriviaPowerUpService::class)
+                            ->extraTimeBonusMs($gameId, (string) $user->id, $questionId)
+                    : null,
             ];
+
+            // Respuesta ya enviada a esta pregunta: tras recargar la página el
+            // jugador ve su resultado en vez de una pregunta "nueva" que el
+            // servidor le rechazaría con 409.
+            $answer = $pgsql->table('trivia_answers')
+                ->where('game_id', $gameId)
+                ->where('player_id', (string) $user->id)
+                ->where('question_id', $questionId)
+                ->whereNull('deleted_at')
+                ->first();
+
+            if ($answer) {
+                $myAnswer = [
+                    'question_id' => $questionId,
+                    'selected_option_index' => (int) $answer->selected_option_index,
+                    'is_correct' => (bool) $answer->is_correct,
+                    'is_late' => (bool) ($answer->is_late ?? false),
+                    'points_earned' => (int) $answer->points_earned,
+                    'correct_option_index' => $correctIndex,
+                ];
+            }
+
+            // Pregunta ya cerrada (fase de revelación) al cargar la página.
+            if ($closedAtMs !== null) {
+                $stats = \App\Domains\Games\Trivia\Services\TriviaQuestionStats::forQuestion($gameId, $questionId, count($options));
+                $reveal = [
+                    'question_id' => $questionId,
+                    'correct_option_index' => $correctIndex,
+                    'distribution' => $stats['distribution'],
+                    'answered_count' => $stats['answered'],
+                    'player_count' => count($gameState?->playerIds ?? []),
+                    'next_question_at_ms' => $closedAtMs + max(0, (int) config('trivia.game.reveal_seconds', 4)) * 1000,
+                ];
+            }
         }
 
         $currentQuestionIndex = $gameState?->currentQuestionIndex ?? ($game->current_question_index ?? 0);
@@ -327,6 +383,15 @@ final class TriviaGameController extends Controller
                 'isPaused' => $game->status === 'paused',
             ],
             'question' => $question,
+            'myAnswer' => $myAnswer,
+            'reveal' => $reveal,
+            'score' => (int) ($pgsql->table('trivia_scores')
+                ->where('game_id', $gameId)
+                ->where('player_id', (string) $user->id)
+                ->value('final_score') ?? 0),
+            // Reloj del servidor al renderizar: el cliente estima su desfase
+            // y cuenta hacia deadlineMs con la hora del servidor.
+            'serverNowMs' => (int) round(microtime(true) * 1000),
             'player' => [
                 'id' => (string) $user->id,
                 'name' => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->username ?? 'Jugador'),

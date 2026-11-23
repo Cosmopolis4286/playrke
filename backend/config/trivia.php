@@ -17,6 +17,14 @@ return [
         'max_players' => 1000,
         'max_response_time' => 30, // segundos
 
+        // Ciclo de cada pregunta: abierta → cerrada (revelación) → siguiente.
+        // Al cerrarse se anuncia a toda la sala la respuesta correcta y cuántos
+        // eligieron cada opción; la siguiente pregunta llega tras reveal_seconds.
+        'reveal_seconds' => (int) env('TRIVIA_REVEAL_SECONDS', 4),
+        // Margen tras el vencimiento antes de cerrar por tiempo: absorbe la
+        // latencia de las respuestas enviadas justo en el último segundo.
+        'close_grace_seconds' => (int) env('TRIVIA_CLOSE_GRACE_SECONDS', 1),
+
         // Puntuación
         'base_points_per_question' => 100,
         'time_bonus_multiplier' => 0.5, // 50% extra por rapidez

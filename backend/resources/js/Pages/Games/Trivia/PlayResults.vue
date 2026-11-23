@@ -50,6 +50,16 @@ const rankMedal = computed(() => {
   return '🏅'
 })
 
+// El titular depende del desempeño real: antes felicitaba a todos, incluso
+// al último lugar o a un "#1" con 0 aciertos.
+const headline = computed(() => {
+  const name = props.player.name
+  if (props.game.correctAnswers === 0) return `¡Gracias por jugar, ${name}!`
+  if (props.game.rank === 1) return `¡Ganaste, ${name}!`
+  if (props.game.rank <= 3) return `¡Felicitaciones, ${name}!`
+  return `¡Buen intento, ${name}!`
+})
+
 const rankColor = computed(() => {
   if (props.game.rank === 1) return 'from-yellow-500 to-yellow-700'
   if (props.game.rank === 2) return 'from-gray-400 to-gray-600'
@@ -91,8 +101,8 @@ const rankColor = computed(() => {
         </div>
 
         <!-- Contenido principal -->
-        <div class="bg-gradient-to-b from-[#1a1f3a] to-[#0f1429] border-2 border-blue-500/50 rounded-2xl p-6 pt-12 mt-4">
-          <h2 class="text-xl font-bold text-center mb-4">¡Felicitaciones {{ player.name }}!</h2>
+        <div class="bg-gradient-to-b from-[#1a1f3a] to-[#0f1429] border-2 border-blue-500/50 rounded-2xl p-6 pt-20 mt-4">
+          <h2 class="text-xl font-bold text-center mb-4">{{ headline }}</h2>
           
           <!-- Posición -->
           <div class="text-center mb-6">

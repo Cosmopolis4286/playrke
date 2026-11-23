@@ -81,6 +81,28 @@ manualmente vía `TriviaServiceProvider::boot()` con `loadMigrationsFrom()`
    Redis es la fuente de verdad en tiempo real; el tiempo de respuesta se
    calcula server-side (`SubmitAnswerAction::calculateResponseTime()`),
    nunca confiando en el timestamp del cliente.
+   **Ciclo de cada pregunta** (`abierta → cerrada → siguiente`):
+   - *Abierta*: el servidor fija `deadline_ms` (inicio + `time_per_question`
+     de la sala, que manda sobre el límite propio de la pregunta). El cliente
+     cuenta hacia ese vencimiento con un reloj sincronizado con el servidor
+     (`serverNowMs` en props + `server_timestamp` de cada evento), así que
+     recargar la página o tener el reloj local desfasado no cambia el tiempo.
+   - *Cerrada (revelación)*: `GameEngineService::closeQuestion()` se dispara
+     cuando responde el último participante activo
+     (`closeQuestionIfEveryoneAnswered()`, también tras un *skip*) o cuando
+     vence el tiempo (job `AdvanceTriviaQuestion`, fase `close`, que espera el
+     plazo extendido de quien activó *extra_time*). Es idempotente, comparte
+     el lock de avance y emite `trivia.question.closed` con la respuesta
+     correcta y la distribución por opción. Desde ese momento las respuestas
+     y power-ups de esa pregunta se rechazan con 409.
+   - *Siguiente*: tras `trivia.game.reveal_seconds` (4 s por defecto) el job
+     `AdvanceTriviaQuestion` en fase `advance` envía la siguiente pregunta o
+     termina la partida. Una pausa durante la revelación se reprograma al
+     reanudar.
+   - Recarga y resincronización: `play()` devuelve la respuesta propia ya
+     registrada (`myAnswer`), la revelación en curso (`reveal`) y el puntaje;
+     si el cliente detecta que no llegó un evento esperado, recarga los props,
+     y una partida ya terminada redirige a resultados.
 5. **Cierre**: automático al agotar preguntas o por inactividad
    (`AutoFinishStaleTriviaGamesCommand`). El ranking final se reconstruye
    desde PostgreSQL, no desde Redis.

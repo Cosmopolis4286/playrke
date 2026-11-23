@@ -63,6 +63,10 @@ export interface Question {
   difficulty?: 'easy' | 'medium' | 'hard'
   orderIndex?: number
   totalQuestions?: number
+  /** Inicio de la pregunta según el reloj del servidor (ms epoch). */
+  startedAtMs?: number | null
+  /** Vencimiento según el reloj del servidor (ms epoch); incluye extra_time propio. */
+  deadlineMs?: number | null
 }
 
 // ── Game ──────────────────────────────────────────────────────────────────────
@@ -92,6 +96,7 @@ export interface AnswerPayload {
 
 export interface AnswerResult {
   success: boolean
+  question_id?: string
   is_correct: boolean
   is_late: boolean
   points_earned: number
@@ -193,6 +198,41 @@ export interface WsGamePaused {
 export interface WsGameResumed {
   game_id: string
   remaining_seconds: number
+  /** Nuevo vencimiento de la pregunta en curso, ya corrido por la pausa. */
+  deadline_ms?: number | null
+  server_timestamp?: number
+}
+
+/** La pregunta dejó de aceptar respuestas: revelación para toda la sala. */
+export interface QuestionReveal {
+  question_id: string
+  correct_option_index: number
+  /** Cuántos jugadores eligieron cada opción (índice = opción). */
+  distribution: number[]
+  answered_count: number
+  player_count: number
+  next_question_at_ms: number
+  is_last_question?: boolean
+}
+
+export interface WsQuestionClosed extends QuestionReveal {
+  game_id: string
+  question_index: number
+  total_questions: number
+  is_last_question: boolean
+  reveal_seconds: number
+  reason: 'all_answered' | 'timeout' | string
+  server_timestamp: number
+}
+
+/** Respuesta propia ya registrada para la pregunta en curso (restaurada al recargar). */
+export interface MyAnswer {
+  question_id: string
+  selected_option_index: number
+  is_correct: boolean
+  is_late: boolean
+  points_earned: number
+  correct_option_index: number
 }
 
 // ── API response helpers ──────────────────────────────────────────────────────

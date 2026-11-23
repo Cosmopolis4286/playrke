@@ -20,6 +20,7 @@ use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Events\Games\Trivia\TriviaGameCancelled;
 use App\Events\Games\Trivia\TriviaGameFinished;
 use App\Events\Games\Trivia\TriviaGameStarted;
+use App\Events\Games\Trivia\TriviaQuestionClosed;
 use App\Jobs\Games\Trivia\AdvanceTriviaQuestion;
 use App\Models\GameParticipation;
 use App\Models\User;
@@ -174,6 +175,129 @@ class GameEngineService implements GameEngineInterface
         } finally {
             $lock->release();
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Ciclo de una pregunta: abierta → cerrada (fase de revelación) → siguiente.
+     * Comparte el lock de avance con sendNextQuestion() para que un cierre y un
+     * avance nunca se crucen sobre la misma pregunta.
+     */
+    public function closeQuestion(string $gameId, string $questionId, string $reason) : bool
+    {
+        $lock = Cache::lock("trivia:game:{$gameId}:advance-question", 30);
+
+        // A diferencia del avance, un cierre no debe perderse por contención:
+        // espera brevemente a que termine la operación en curso.
+        if (! $lock->block(5)) {
+            return false;
+        }
+
+        $revealSeconds = max(0, (int) config('trivia.game.reveal_seconds', 4));
+
+        try {
+            $state = $this->stateRepository->getState($gameId);
+
+            if (! $state || ! $state->isActive()) {
+                return false;
+            }
+
+            $current = $this->stateRepository->getCurrentQuestion($gameId);
+
+            if (! TriviaQuestionAdvanceGuard::matchesExpectedQuestion($questionId, $current)
+                || ! empty($current['closed_at_ms'])) {
+                return false;
+            }
+
+            $current['closed_at_ms'] = microtime(true) * 1000;
+            $current['close_reason'] = $reason;
+            $this->stateRepository->saveCurrentQuestion($gameId, $current);
+
+            $this->stateRepository->updateField(
+                $gameId,
+                'metadata',
+                array_merge($state->metadata, ['last_activity' => time()]),
+            );
+
+            $options = $current['options'] ?? [];
+            if (is_string($options)) {
+                $options = json_decode($options, true) ?? [];
+            }
+
+            $stats = TriviaQuestionStats::forQuestion($gameId, $questionId, count($options));
+
+            try {
+                broadcast(new TriviaQuestionClosed(
+                    roomId: $state->roomId,
+                    gameId: $gameId,
+                    questionId: $questionId,
+                    questionIndex: $state->currentQuestionIndex,
+                    totalQuestions: $state->totalQuestions,
+                    correctOptionIndex: (int) ($current['correct_answer'] ?? $current['correct_option_index'] ?? 0),
+                    distribution: $stats['distribution'],
+                    answeredCount: $stats['answered'],
+                    playerCount: count($state->playerIds),
+                    revealSeconds: $revealSeconds,
+                    reason: $reason,
+                ));
+            } catch (Throwable $e) {
+                Log::warning('[GameEngine] broadcast TriviaQuestionClosed falló: ' . $e->getMessage());
+            }
+        } finally {
+            $lock->release();
+        }
+
+        // Fuera del lock: con la cola 'sync' el job corre en el acto y
+        // necesita tomar el mismo lock para avanzar.
+        AdvanceTriviaQuestion::dispatch($gameId, $questionId, AdvanceTriviaQuestion::PHASE_ADVANCE)
+            ->delay(now()->addSeconds($revealSeconds));
+
+        return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function closeQuestionIfEveryoneAnswered(string $gameId, string $questionId) : bool
+    {
+        $state = $this->stateRepository->getState($gameId);
+
+        if (! $state || ! $state->isActive() || empty($state->playerIds)) {
+            return false;
+        }
+
+        $pgsql = DB::connection('pgsql_trivia');
+
+        // Redis conserva la lista inicial de jugadores aunque alguien abandone:
+        // solo los participantes activos deben bloquear el cierre anticipado.
+        $activePlayerIds = $pgsql->table('trivia_participants')
+            ->where('room_id', $state->roomId)
+            ->whereIn('user_id', $state->playerIds)
+            ->whereNull('deleted_at')
+            ->whereIn('status', ['registered', 'confirmed', 'playing'])
+            ->distinct()
+            ->pluck('user_id')
+            ->map(fn ($id) => (string) $id)
+            ->all();
+
+        if (empty($activePlayerIds)) {
+            return false;
+        }
+
+        $answeredCount = $pgsql->table('trivia_answers')
+            ->where('game_id', $gameId)
+            ->where('question_id', $questionId)
+            ->whereNull('deleted_at')
+            ->whereIn('player_id', $activePlayerIds)
+            ->distinct()
+            ->count('player_id');
+
+        if ($answeredCount < count($activePlayerIds)) {
+            return false;
+        }
+
+        return $this->closeQuestion($gameId, $questionId, 'all_answered');
     }
 
     /**
@@ -790,7 +914,11 @@ class GameEngineService implements GameEngineInterface
             questionText: $question->question_text,
             imageUrl: $question->image_url ?? null,
             options: is_array($question->options) ? $question->options : json_decode($question->options, true) ?? [],
-            timeLimitSeconds: (int) ($question->time_limit_seconds ?? $room?->time_per_question ?? 20),
+            // El tiempo lo fija la sala (decisión del anfitrión). El límite propio
+            // de la pregunta solo aplica si la sala no define uno: la columna
+            // time_limit_seconds es NOT NULL con default 15, así que antes el
+            // "tiempo por pregunta" configurado en la sala se ignoraba siempre.
+            timeLimitSeconds: (int) ($room?->time_per_question ?: $question->time_limit_seconds ?: 20),
             correctAnswer: (string) ($question->correct_option_index ?? 0),
             points: (int) ($question->points ?? 100),
             serverTimestampMs: microtime(true) * 1000,
@@ -815,10 +943,11 @@ class GameEngineService implements GameEngineInterface
         // Evento de dominio (para listeners internos)
         event(new QuestionSent(question: $questionDto, gameId: $gameId, serverTimestamp: time()));
 
-        // Job de seguridad: si no todos responden antes del timer, avanzar igual.
-        // Delay = time_limit_seconds + 2 s de buffer.
-        $delaySeconds = $questionDto->timeLimitSeconds + 2;
-        AdvanceTriviaQuestion::dispatch($gameId, $questionDto->questionId)
+        // Cierre por tiempo: si no todos responden antes del vencimiento, el job
+        // cierra la pregunta (revelación) y programa la siguiente. El job
+        // respeta los bonus individuales de extra_time antes de cerrar.
+        $delaySeconds = $questionDto->timeLimitSeconds + max(0, (int) config('trivia.game.close_grace_seconds', 1));
+        AdvanceTriviaQuestion::dispatch($gameId, $questionDto->questionId, AdvanceTriviaQuestion::PHASE_CLOSE)
             ->delay(now()->addSeconds($delaySeconds));
 
         // Detección de desconexión masiva: se evalúa DESPUÉS de registrar el

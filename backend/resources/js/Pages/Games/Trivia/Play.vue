@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Head } from '@inertiajs/vue3'
+import { Head, router } from '@inertiajs/vue3'
 import { getEchoInstance } from '@js/plugins/echo'
 import { getRoute } from '@js/routes/triviaRoutes'
-import type { WsQuestionSent, WsAnswerResult, WsGameFinished, WsGameCancelled, WsGamePaused, WsGameResumed, Question, AnswerResult, PowerUpsAvailable, PowerUpType, PowerUpResponse } from '@js/types/trivia'
+import type {
+  WsQuestionSent, WsAnswerResult, WsGameCancelled, WsGameResumed, WsQuestionClosed,
+  Question, AnswerResult, PowerUpsAvailable, PowerUpType, PowerUpResponse, QuestionReveal, MyAnswer,
+} from '@js/types/trivia'
 
 interface Props {
   room: {
@@ -21,6 +24,13 @@ interface Props {
     isPaused: boolean
   }
   question: Question | null
+  /** Respuesta propia ya registrada para la pregunta en curso (tras recargar). */
+  myAnswer: MyAnswer | null
+  /** Revelación en curso si la pregunta ya cerró al cargar la página. */
+  reveal: QuestionReveal | null
+  score: number
+  /** Reloj del servidor al renderizar (ms epoch), para sincronizar el timer. */
+  serverNowMs: number
   player: {
     id: string
     name: string
@@ -32,45 +42,118 @@ interface Props {
 
 const props = defineProps<Props>()
 
-// ── Estado del juego ──────────────────────────────────────────────────────────
-const currentQuestion  = ref<Question | null>(props.question)
+// ── Estado ────────────────────────────────────────────────────────────────────
+// Ciclo de cada pregunta: playing → answered (esperando al resto) → reveal
+// (respuesta correcta + distribución) → siguiente pregunta | resultados.
+type GameStatus = 'waiting' | 'playing' | 'answered' | 'reveal' | 'finished' | 'cancelled' | 'paused'
+
+const currentQuestion  = ref<Question | null>(null)
 const questionIndex    = ref(props.game.currentQuestion)
 const totalQuestions   = ref(props.game.totalQuestions)
 const selectedAnswer   = ref<number | null>(null)
 const hasAnswered      = ref(false)
-const timeLeft         = ref(0)
-const totalTime        = ref(0)
-const gameStatus       = ref<'waiting' | 'playing' | 'answered' | 'between' | 'finished' | 'cancelled' | 'paused'>(props.game.isPaused ? 'paused' : 'waiting')
-const statusBeforePause: { value: typeof gameStatus.value } = { value: gameStatus.value }
-const currentScore     = ref(0)
+const gameStatus       = ref<GameStatus>(props.game.isPaused ? 'paused' : 'waiting')
+const statusBeforePause: { value: GameStatus } = { value: gameStatus.value }
+const currentScore     = ref(props.score ?? 0)
 const answerResult     = ref<AnswerResult | null>(null)
+const reveal           = ref<QuestionReveal | null>(null)
 const isSubmitting     = ref(false)
 const cancelledReason  = ref<string | null>(null)
 const isTogglingPause  = ref(false)
-let   timerInterval:   ReturnType<typeof setInterval> | null = null
-let   questionStart:   number = 0
-let   betweenTimeout:  ReturnType<typeof setTimeout> | null = null
 
-// ── Pausa (manual host, o automática por desconexión masiva) ──────────────────
+// ── Reloj sincronizado con el servidor ────────────────────────────────────────
+// El vencimiento de cada pregunta lo fija el servidor (deadlineMs). El cliente
+// solo estima su desfase de reloj: cada marca de tiempo del servidor recibida
+// es una cota inferior del desfase real (se generó antes de llegar), así que
+// se conserva la mayor observada. Un reloj local adelantado o atrasado, o un
+// recargo de página, ya no regalan ni quitan segundos.
+let clockOffsetMs = props.serverNowMs ? props.serverNowMs - Date.now() : 0
+const nowMs = ref(Date.now() + clockOffsetMs)
+
+function syncClock(serverTimestampMs?: number | null) {
+  if (!serverTimestampMs) return
+  clockOffsetMs = Math.max(clockOffsetMs, serverTimestampMs - Date.now())
+}
+function serverNow(): number {
+  return Date.now() + clockOffsetMs
+}
+
+const deadlineMs        = ref<number | null>(null)
+const totalTime         = ref(0)
+const pausedRemainingMs = ref<number | null>(null)
+let   lastProgressAt    = Date.now()
+let   tickInterval: ReturnType<typeof setInterval> | null = null
+let   resyncInFlight    = false
+
+const timeLeft = computed(() => {
+  if (pausedRemainingMs.value !== null) return Math.max(0, Math.ceil(pausedRemainingMs.value / 1000))
+  if (deadlineMs.value === null || gameStatus.value === 'reveal') return 0
+  return Math.max(0, Math.ceil((deadlineMs.value - nowMs.value) / 1000))
+})
+
+const revealLeft = computed(() =>
+  reveal.value ? Math.max(0, Math.ceil((reveal.value.next_question_at_ms - nowMs.value) / 1000)) : 0
+)
+
+function tick() {
+  nowMs.value = serverNow()
+
+  if (gameStatus.value === 'playing' && !hasAnswered.value && deadlineMs.value !== null && nowMs.value >= deadlineMs.value) {
+    handleTimeUp()
+  }
+
+  // Red de seguridad: si un evento en tiempo real se perdió (reconexión del
+  // WebSocket, pestaña suspendida), el estado local se queda atrás. Pasado un
+  // margen sobre lo esperado, se recargan los props desde el servidor.
+  const stalledFor = Date.now() - lastProgressAt
+  const expectedNextAt =
+    gameStatus.value === 'reveal' && reveal.value ? reveal.value.next_question_at_ms
+    : (gameStatus.value === 'playing' || gameStatus.value === 'answered') && deadlineMs.value ? deadlineMs.value
+    : null
+
+  if (expectedNextAt !== null && nowMs.value > expectedNextAt + 8000 && stalledFor > 8000) {
+    resync()
+  } else if (gameStatus.value === 'waiting' && stalledFor > 15000) {
+    resync()
+  }
+}
+
+function resync() {
+  if (resyncInFlight) return
+  resyncInFlight = true
+  lastProgressAt = Date.now()
+  router.reload({
+    onSuccess: (page) => initFromProps(page.props as unknown as Props),
+    onFinish: () => { resyncInFlight = false },
+  })
+}
+
+function initFromProps(p: Props) {
+  syncClock(p.serverNowMs)
+  currentScore.value = p.score ?? currentScore.value
+  if (p.game.isPaused) {
+    gameStatus.value = 'paused'
+    return
+  }
+  if (p.question) {
+    loadQuestion(p.question, p.game.currentQuestion, p.game.totalQuestions, p.myAnswer, p.reveal)
+  } else {
+    gameStatus.value = 'waiting'
+  }
+}
+
+// ── Pausa (anfitrión) ─────────────────────────────────────────────────────────
 async function togglePause() {
   if (isTogglingPause.value) return
   isTogglingPause.value = true
 
-  const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? ''
   const action = gameStatus.value === 'paused' ? 'resume' : 'pause'
 
   try {
     await fetch(getRoute(action === 'pause' ? 'gamePause' : 'gameResume', { gameId: props.game.id }), {
       method:  'POST',
-      headers: {
-        'Content-Type':     'application/json',
-        'Accept':           'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRF-TOKEN':     csrf,
-      },
+      headers: jsonHeaders(),
     })
-    // El cambio real de UI llega por broadcast (trivia.game.paused/resumed) —
-    // esto solo dispara la acción, no asume que tuvo éxito.
   } catch (err) {
     console.warn('[Play] togglePause error:', err)
   } finally {
@@ -78,8 +161,18 @@ async function togglePause() {
   }
 }
 
+function jsonHeaders(): Record<string, string> {
+  const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? ''
+  return {
+    'Content-Type':     'application/json',
+    'Accept':           'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+    'X-CSRF-TOKEN':     csrf,
+  }
+}
+
 // ── Power-ups ─────────────────────────────────────────────────────────────────
-const powerUpsLeft      = ref<PowerUpsAvailable>({ ...(props.powerUps ?? {}) })
+const powerUpsLeft        = ref<PowerUpsAvailable>({ ...(props.powerUps ?? {}) })
 const hiddenOptionIndexes = ref<number[]>([])
 const doublePointsActive  = ref(false)
 const isUsingPowerUp      = ref<PowerUpType | null>(null)
@@ -91,18 +184,12 @@ function hasPowerUp(type: PowerUpType): boolean {
 async function usePowerUp(type: PowerUpType) {
   if (hasAnswered.value || gameStatus.value !== 'playing' || isUsingPowerUp.value || !hasPowerUp(type) || !currentQuestion.value) return
   isUsingPowerUp.value = type
-
-  const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? ''
+  const questionId = currentQuestion.value.id
 
   try {
     const res = await fetch(getRoute('gamePowerUp', { gameId: props.game.id }), {
       method:  'POST',
-      headers: {
-        'Content-Type':     'application/json',
-        'Accept':           'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRF-TOKEN':     csrf,
-      },
+      headers: jsonHeaders(),
       body: JSON.stringify({ type }),
     })
 
@@ -113,23 +200,21 @@ async function usePowerUp(type: PowerUpType) {
       return
     }
 
-    // Descuenta el uso localmente — el backend ya lo descontó en Postgres.
     powerUpsLeft.value = { ...powerUpsLeft.value, [type]: 0 }
+
+    // La pregunta pudo cambiar mientras viajaba la petición.
+    if (currentQuestion.value?.id !== questionId) return
 
     if (type === 'fifty_fifty' && data.hidden_indexes) {
       hiddenOptionIndexes.value = data.hidden_indexes
     } else if (type === 'double_points') {
       doublePointsActive.value = true
-    } else if (type === 'extra_time' && data.bonus_ms) {
-      timeLeft.value += Math.round(data.bonus_ms / 1000)
+    } else if (type === 'extra_time' && data.bonus_ms && deadlineMs.value !== null) {
+      deadlineMs.value += data.bonus_ms
+      totalTime.value  += Math.round(data.bonus_ms / 1000)
     } else if (type === 'skip') {
-      // El backend ya avanzó (o avanzará) la pregunta si todos respondieron/saltaron.
-      // Se marca localmente como "respondida" para bloquear la UI hasta la siguiente pregunta.
       hasAnswered.value = true
       gameStatus.value  = 'answered'
-      betweenTimeout = setTimeout(() => {
-        if (gameStatus.value === 'answered') gameStatus.value = 'between'
-      }, 1500)
     }
   } catch (err) {
     console.warn('[Play] usePowerUp error:', err)
@@ -138,12 +223,26 @@ async function usePowerUp(type: PowerUpType) {
   }
 }
 
-// ── Echo ──────────────────────────────────────────────────────────────────────
-const echo        = getEchoInstance()
-const roomChannel = `trivia.room.${props.room.id}`
+// ── Tiempo real ───────────────────────────────────────────────────────────────
+const echo          = getEchoInstance()
+const roomChannel   = `trivia.room.${props.room.id}`
 const playerChannel = `trivia.player.${props.player.id}`
-let   channel: any = null
+let   channel: any  = null
 let   playerCh: any = null
+
+function questionFromPayload(raw: any): Question {
+  return {
+    ...raw,
+    id:          raw.question_id ?? raw.id,
+    text:        raw.question_text ?? raw.text,
+    image:       raw.image_url ?? raw.image ?? null,
+    timeLimit:   raw.time_limit_seconds ?? raw.timeLimit ?? 20,
+    points:      raw.points ?? 100,
+    options:     raw.options ?? [],
+    startedAtMs: raw.started_at_ms ?? raw.startedAtMs ?? null,
+    deadlineMs:  raw.deadline_ms ?? raw.deadlineMs ?? null,
+  } as Question
+}
 
 function setupEcho() {
   try {
@@ -151,55 +250,55 @@ function setupEcho() {
 
     channel
       .listen('.trivia.question.sent', (data: WsQuestionSent) => {
-        // Compensar latencia: si el servidor envió la pregunta hace N ms,
-        // ajustamos el tiempo restante del timer.
-        const lagMs = data.server_timestamp ? Date.now() - data.server_timestamp : 0
-        // Normalizar: el backend envía time_limit_seconds (snake_case), el tipo espera timeLimit
-        const q: Question = {
-          ...data.question,
-          id:        (data.question as any).question_id ?? data.question.id,
-          text:      (data.question as any).question_text ?? data.question.text,
-          timeLimit: (data.question as any).time_limit_seconds ?? data.question.timeLimit ?? 20,
-          points:    data.question.points ?? 100,
-          options:   data.question.options ?? [],
-        } as Question
-        loadQuestion(q, data.question_index, data.total_questions, Math.max(0, lagMs))
+        syncClock(data.server_timestamp)
+        const q = questionFromPayload(data.question)
+        if (currentQuestion.value?.id === q.id) return // duplicado
+        loadQuestion(q, data.question_index, data.total_questions)
       })
-      .listen('.trivia.game.finished', (data: WsGameFinished) => {
-        stopTimer()
+      .listen('.trivia.question.closed', (data: WsQuestionClosed) => {
+        syncClock(data.server_timestamp)
+        if (data.question_id !== currentQuestion.value?.id) return
+        applyReveal(data)
+      })
+      .listen('.trivia.game.finished', () => {
         gameStatus.value = 'finished'
         window.location.href = getRoute('playResults', { gameId: props.game.id })
       })
       .listen('.trivia.game.cancelled', (data: WsGameCancelled) => {
-        stopTimer()
-        gameStatus.value    = 'cancelled'
+        gameStatus.value      = 'cancelled'
         cancelledReason.value = data.reason
       })
-      .listen('.trivia.game.paused', (data: WsGamePaused) => {
-        if (gameStatus.value === 'paused' || gameStatus.value === 'cancelled' || gameStatus.value === 'finished') return
+      .listen('.trivia.game.paused', () => {
+        if (['paused', 'cancelled', 'finished'].includes(gameStatus.value)) return
         statusBeforePause.value = gameStatus.value
-        stopTimer()
+        pausedRemainingMs.value = deadlineMs.value !== null ? Math.max(0, deadlineMs.value - serverNow()) : null
         gameStatus.value = 'paused'
+        lastProgressAt = Date.now()
       })
       .listen('.trivia.game.resumed', (data: WsGameResumed) => {
         if (gameStatus.value !== 'paused') return
-        gameStatus.value = statusBeforePause.value === 'paused' ? 'playing' : statusBeforePause.value
-        if (currentQuestion.value && data.remaining_seconds > 0) {
-          startTimer(data.remaining_seconds, totalTime.value || data.remaining_seconds)
+        syncClock(data.server_timestamp)
+        if (data.deadline_ms) {
+          deadlineMs.value = data.deadline_ms
+        } else if (pausedRemainingMs.value !== null) {
+          deadlineMs.value = serverNow() + pausedRemainingMs.value
         }
+        pausedRemainingMs.value = null
+        gameStatus.value = statusBeforePause.value === 'paused' ? 'playing' : statusBeforePause.value
+        lastProgressAt = Date.now()
       })
 
     playerCh = echo.private(playerChannel)
     playerCh.listen('.trivia.answer.result', (data: WsAnswerResult) => {
-      answerResult.value  = {
+      applyResult(data.question_id, {
         success:              true,
+        question_id:          data.question_id,
         is_correct:           data.is_correct,
         is_late:              false,
         points_earned:        data.points_earned,
         correct_option_index: data.correct_option_index,
         current_score:        data.current_score,
-      }
-      currentScore.value = data.current_score
+      })
     })
   } catch (err) {
     console.warn('[Play] Echo no disponible:', err)
@@ -209,64 +308,68 @@ function setupEcho() {
 function teardownEcho() {
   try { echo.leaveChannel(roomChannel) } catch {}
   try { echo.leave(playerChannel) } catch {}
-  channel   = null
-  playerCh  = null
-  if (betweenTimeout !== null) { clearTimeout(betweenTimeout); betweenTimeout = null }
+  channel  = null
+  playerCh = null
 }
 
-// ── Timer ─────────────────────────────────────────────────────────────────────
-function startTimer(limit: number, displayTotal?: number) {
-  stopTimer()
-  timeLeft.value  = limit
-  totalTime.value = displayTotal ?? limit
-  questionStart   = Date.now()
+// ── Ciclo de la pregunta ──────────────────────────────────────────────────────
+function loadQuestion(q: Question, index: number, total: number, mine?: MyAnswer | null, closed?: QuestionReveal | null) {
+  currentQuestion.value     = q
+  questionIndex.value       = index
+  totalQuestions.value      = total
+  selectedAnswer.value      = null
+  hasAnswered.value         = false
+  answerResult.value        = null
+  reveal.value              = null
+  pausedRemainingMs.value   = null
+  hiddenOptionIndexes.value = []
+  doublePointsActive.value  = false
+  gameStatus.value          = 'playing'
+  totalTime.value           = q.timeLimit
+  // Sin vencimiento del servidor (payload antiguo): contar desde ahora.
+  deadlineMs.value          = q.deadlineMs ?? serverNow() + q.timeLimit * 1000
+  lastProgressAt            = Date.now()
 
-  timerInterval = setInterval(() => {
-    if (hasAnswered.value) { stopTimer(); return }
-    if (timeLeft.value <= 0) {
-      stopTimer()
-      if (!hasAnswered.value) handleTimeUp()
-      return
+  if (mine && mine.question_id === q.id) {
+    selectedAnswer.value = mine.selected_option_index >= 0 ? mine.selected_option_index : null
+    hasAnswered.value    = true
+    gameStatus.value     = 'answered'
+    answerResult.value   = {
+      success:              true,
+      question_id:          mine.question_id,
+      is_correct:           mine.is_correct,
+      is_late:              mine.is_late,
+      points_earned:        mine.points_earned,
+      correct_option_index: mine.correct_option_index,
+      current_score:        currentScore.value,
     }
-    timeLeft.value--
-  }, 1000)
+  }
+
+  if (closed && closed.question_id === q.id) {
+    applyReveal(closed)
+  }
+
+  nowMs.value = serverNow()
 }
 
-function stopTimer() {
-  if (timerInterval !== null) {
-    clearInterval(timerInterval)
-    timerInterval = null
-  }
+function applyReveal(r: QuestionReveal) {
+  reveal.value      = r
+  hasAnswered.value = true
+  gameStatus.value  = 'reveal'
+  lastProgressAt    = Date.now()
+}
+
+/** Solo aplica un resultado si corresponde a la pregunta en pantalla. */
+function applyResult(questionId: string | undefined, result: AnswerResult) {
+  if (!questionId || questionId !== currentQuestion.value?.id) return
+  answerResult.value = result
+  currentScore.value = result.current_score
 }
 
 function handleTimeUp() {
   hasAnswered.value = true
   gameStatus.value  = 'answered'
   submitAnswer(-1)
-  // Después de 2 s en "respondido sin responder", pasar a "entre preguntas"
-  betweenTimeout = setTimeout(() => {
-    if (gameStatus.value === 'answered') gameStatus.value = 'between'
-  }, 2000)
-}
-
-// ── Preguntas ─────────────────────────────────────────────────────────────────
-function loadQuestion(q: Question, index: number, total: number, lagMs = 0) {
-  if (betweenTimeout !== null) { clearTimeout(betweenTimeout); betweenTimeout = null }
-  stopTimer()
-  currentQuestion.value = q
-  questionIndex.value   = index
-  totalQuestions.value  = total
-  selectedAnswer.value  = null
-  hasAnswered.value     = false
-  answerResult.value    = null
-  gameStatus.value      = 'playing'
-  // Power-ups activos son por-pregunta — se resetean al cargar la siguiente
-  // (los usos consumidos en powerUpsLeft NO se resetean: son por partida).
-  hiddenOptionIndexes.value = []
-  doublePointsActive.value  = false
-  // Compensar latencia de red: descontar milisegundos transcurridos
-  const effectiveLimit = Math.max(1, q.timeLimit - Math.floor(lagMs / 1000))
-  startTimer(effectiveLimit, q.timeLimit)
 }
 
 function selectAnswer(index: number) {
@@ -275,41 +378,34 @@ function selectAnswer(index: number) {
   hasAnswered.value    = true
   gameStatus.value     = 'answered'
   submitAnswer(index)
-  // Después de 3 s mostrando el feedback, pasar a "entre preguntas"
-  betweenTimeout = setTimeout(() => {
-    if (gameStatus.value === 'answered') gameStatus.value = 'between'
-  }, 3000)
 }
 
-// ── Submit al backend ─────────────────────────────────────────────────────────
 async function submitAnswer(optionIndex: number) {
   if (isSubmitting.value || !currentQuestion.value) return
   isSubmitting.value = true
 
-  const responseTimeMs = Math.max(0, Date.now() - questionStart)
-  const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? ''
+  // La respuesta se liga a la pregunta en que se envió: si mientras viaja
+  // llega la siguiente pregunta (el último en responder la desencadena), el
+  // resultado tardío no debe pintarse sobre la pregunta nueva.
+  const questionId = currentQuestion.value.id
+  const startedAt  = currentQuestion.value.startedAtMs ?? (deadlineMs.value ?? serverNow()) - totalTime.value * 1000
 
   try {
     const res = await fetch(getRoute('gameAnswer', { gameId: props.game.id }), {
       method:  'POST',
-      headers: {
-        'Content-Type':     'application/json',
-        'Accept':           'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRF-TOKEN':     csrf,
-      },
+      headers: jsonHeaders(),
       body: JSON.stringify({
-        question_id:           currentQuestion.value.id,
+        question_id:           questionId,
         selected_option_index: optionIndex,
-        response_time_ms:      responseTimeMs,
+        // Informativo: el servidor calcula el tiempo real con su propio reloj.
+        response_time_ms:      Math.max(0, Math.round(serverNow() - startedAt)),
       }),
     })
 
     const data: AnswerResult = await res.json().catch(() => ({ success: false } as any))
 
     if (res.ok && data.success) {
-      answerResult.value = data
-      currentScore.value = data.current_score
+      applyResult(data.question_id ?? questionId, data)
     }
   } catch (err) {
     console.warn('[Play] submitAnswer error:', err)
@@ -318,7 +414,7 @@ async function submitAnswer(optionIndex: number) {
   }
 }
 
-// ── Computed ──────────────────────────────────────────────────────────────────
+// ── Presentación ──────────────────────────────────────────────────────────────
 const optionLetters = ['A', 'B', 'C', 'D']
 const optionColors  = [
   { border: '#a855f7', bg: 'rgba(168,85,247,0.2)',  text: '#c084fc' },
@@ -327,38 +423,69 @@ const optionColors  = [
   { border: '#8b5cf6', bg: 'rgba(139,92,246,0.2)',  text: '#a78bfa' },
 ]
 
-const progress = computed(() =>
-  totalQuestions.value === 0 ? 0 : (questionIndex.value / totalQuestions.value) * 100
+/** Índice correcto conocido: por la revelación o por el resultado propio. */
+const correctIndex = computed<number | null>(() =>
+  reveal.value?.correct_option_index ?? answerResult.value?.correct_option_index ?? null
+)
+
+const isWrongPick = computed(() =>
+  selectedAnswer.value !== null && correctIndex.value !== null && selectedAnswer.value !== correctIndex.value
 )
 
 function optionBorderColor(index: number): string {
-  if (!hasAnswered.value || !answerResult.value) return optionColors[index].border
-  if (index === answerResult.value.correct_option_index) return '#22c55e'  // verde
-  if (index === selectedAnswer.value && !answerResult.value.is_correct)    return '#ef4444'  // rojo
+  if (correctIndex.value === null) return optionColors[index].border
+  if (index === correctIndex.value) return '#22c55e'
+  if (index === selectedAnswer.value && isWrongPick.value) return '#ef4444'
   return optionColors[index].border
 }
 
 function optionBgColor(index: number): string {
-  if (!hasAnswered.value || !answerResult.value) {
+  if (correctIndex.value === null) {
     return selectedAnswer.value === index ? 'rgba(34,211,238,0.3)' : optionColors[index].bg
   }
-  if (index === answerResult.value.correct_option_index) return 'rgba(34,197,94,0.25)'
-  if (index === selectedAnswer.value && !answerResult.value.is_correct) return 'rgba(239,68,68,0.25)'
+  if (index === correctIndex.value) return 'rgba(34,197,94,0.25)'
+  if (index === selectedAnswer.value && isWrongPick.value) return 'rgba(239,68,68,0.25)'
   return optionColors[index].bg
 }
 
+function optionOpacity(index: number): number {
+  if (!hasAnswered.value) return 1
+  if (index === selectedAnswer.value || index === correctIndex.value) return 1
+  return 0.45
+}
+
+/** Porcentaje de jugadores que eligió cada opción (solo en la revelación). */
+function optionShare(index: number): number {
+  if (!reveal.value || reveal.value.answered_count === 0) return 0
+  return Math.round(((reveal.value.distribution[index] ?? 0) / reveal.value.answered_count) * 100)
+}
+
+const revealHeadline = computed(() => {
+  if (!reveal.value) return ''
+  if (answerResult.value?.is_correct) return `¡Correcto! +${answerResult.value.points_earned} pts`
+  if (selectedAnswer.value === null) return 'Se acabó el tiempo'
+  return 'Incorrecto'
+})
+
+const isLastQuestion = computed(() =>
+  reveal.value?.is_last_question ?? (totalQuestions.value > 0 && questionIndex.value >= totalQuestions.value)
+)
+
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
+function onVisibilityChange() {
+  if (document.visibilityState === 'visible') tick()
+}
+
 onMounted(() => {
   setupEcho()
-  if (props.question) {
-    loadQuestion(props.question, props.game.currentQuestion, props.game.totalQuestions)
-  } else {
-    gameStatus.value = 'waiting'
-  }
+  initFromProps(props)
+  tickInterval = setInterval(tick, 250)
+  document.addEventListener('visibilitychange', onVisibilityChange)
 })
 
 onUnmounted(() => {
-  stopTimer()
+  if (tickInterval !== null) clearInterval(tickInterval)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
   teardownEcho()
 })
 
@@ -406,8 +533,8 @@ const formatCurrency = (amount: number) =>
       </div>
     </header>
 
-    <!-- Timer Circular -->
-    <div class="flex justify-center -mt-2 mb-4">
+    <!-- Timer Circular (cuenta hacia el vencimiento que fija el servidor) -->
+    <div v-if="['playing', 'answered', 'paused'].includes(gameStatus) && currentQuestion" class="flex justify-center -mt-2 mb-4">
       <div class="relative w-20 h-20">
         <svg class="w-full h-full transform -rotate-90">
           <circle cx="40" cy="40" r="36" stroke="#1e3a5f" stroke-width="4" fill="none"/>
@@ -470,22 +597,6 @@ const formatCurrency = (amount: number) =>
         <p class="text-blue-300 font-semibold">Esperando la primera pregunta...</p>
       </div>
 
-      <!-- Entre preguntas: esperando que el backend envíe la siguiente -->
-      <div v-else-if="gameStatus === 'between'" class="text-center py-16 space-y-4">
-        <div class="w-16 h-16 mx-auto rounded-full bg-indigo-500/20 border border-indigo-500/50 flex items-center justify-center">
-          <svg class="w-8 h-8 text-indigo-400 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-          </svg>
-        </div>
-        <p class="text-indigo-300 font-semibold">Preparando siguiente pregunta...</p>
-        <p class="text-gray-500 text-sm">Pregunta {{ questionIndex }}/{{ totalQuestions }} completada</p>
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-[#1a1f3a]/80 rounded-full border border-indigo-500/30">
-          <span class="text-sm font-bold text-indigo-400">Puntuación actual:</span>
-          <span class="text-sm font-bold text-white">{{ currentScore }} pts</span>
-        </div>
-      </div>
-
       <!-- Pregunta activa -->
       <template v-else-if="currentQuestion">
         <!-- Tarjeta de pregunta -->
@@ -533,9 +644,9 @@ const formatCurrency = (amount: number) =>
             v-show="!hiddenOptionIndexes.includes(index)"
             :key="index"
             @click="selectAnswer(index)"
-            :disabled="hasAnswered || isSubmitting"
-            class="w-full transition-all duration-200"
-            :style="{ opacity: hasAnswered && selectedAnswer !== index && answerResult?.correct_option_index !== index ? 0.45 : 1 }"
+            :disabled="hasAnswered || isSubmitting || gameStatus !== 'playing'"
+            class="w-full appearance-none bg-transparent border-0 p-0 transition-all duration-200 disabled:cursor-default"
+            :style="{ opacity: optionOpacity(index) }"
           >
             <div
               class="flex items-center gap-3 px-4 py-3 rounded-full border-2 transition-all duration-300"
@@ -552,9 +663,17 @@ const formatCurrency = (amount: number) =>
                 {{ optionLetters[index] }}
               </div>
               <span class="flex-1 text-left font-semibold text-white text-sm md:text-base">{{ option }}</span>
+              <!-- Revelación: porcentaje de la sala que eligió esta opción -->
+              <span v-if="reveal" class="text-xs font-bold text-gray-300 tabular-nums">{{ optionShare(index) }}%</span>
               <!-- Indicador de resultado -->
-              <span v-if="answerResult && index === answerResult.correct_option_index" class="text-green-400 font-bold text-lg">✓</span>
-              <span v-else-if="answerResult && index === selectedAnswer && !answerResult.is_correct" class="text-red-400 font-bold text-lg">✗</span>
+              <span v-if="correctIndex !== null && index === correctIndex" class="text-green-400 font-bold text-lg">✓</span>
+              <span v-else-if="index === selectedAnswer && isWrongPick" class="text-red-400 font-bold text-lg">✗</span>
+            </div>
+            <div v-if="reveal" class="mx-6 mt-1 h-1 rounded-full bg-white/5 overflow-hidden">
+              <div
+                class="h-full rounded-full transition-all duration-700"
+                :style="{ width: optionShare(index) + '%', backgroundColor: index === correctIndex ? '#22c55e' : optionColors[index].border }"
+              />
             </div>
           </button>
         </div>
@@ -574,22 +693,32 @@ const formatCurrency = (amount: number) =>
           </div>
         </div>
 
-        <!-- Feedback de respuesta -->
-        <Transition name="fade">
-          <div v-if="answerResult" class="mt-4 text-center space-y-1">
-            <p v-if="answerResult.is_correct" class="text-green-400 font-bold text-lg animate-bounce">
-              ✅ ¡Correcto! +{{ answerResult.points_earned }} pts
+        <!-- Feedback: respuesta enviada / revelación -->
+        <Transition name="fade" mode="out-in">
+          <div v-if="gameStatus === 'reveal' && reveal" key="reveal" class="mt-4 text-center space-y-1">
+            <p class="font-bold text-lg"
+               :class="answerResult?.is_correct ? 'text-green-400' : selectedAnswer === null ? 'text-yellow-400' : 'text-red-400'">
+              {{ revealHeadline }}
             </p>
-            <p v-else-if="answerResult.is_late" class="text-yellow-400 font-semibold">
-              ⏰ Tiempo agotado
+            <p class="text-gray-300 text-sm">
+              Respuesta correcta: <span class="font-bold text-green-400">{{ optionLetters[reveal.correct_option_index] }}</span>
+              · {{ reveal.answered_count }}/{{ reveal.player_count }} respondieron
             </p>
-            <p v-else class="text-red-400 font-semibold">
-              ❌ Incorrecto
+            <p class="text-gray-400 text-xs">
+              Puntuación: {{ currentScore }} pts ·
+              {{ isLastQuestion ? 'Resultados' : 'Siguiente pregunta' }} en {{ revealLeft }}s
             </p>
-            <p class="text-gray-400 text-xs">Puntuación total: {{ answerResult.current_score }}</p>
           </div>
-          <div v-else-if="hasAnswered && !answerResult" class="mt-4 text-center">
-            <p class="text-cyan-400 font-semibold animate-pulse">Procesando respuesta...</p>
+          <div v-else-if="gameStatus === 'answered'" key="answered" class="mt-4 text-center space-y-1">
+            <template v-if="answerResult">
+              <p v-if="answerResult.is_late" class="text-yellow-400 font-semibold">⏰ Tiempo agotado</p>
+              <p v-else-if="answerResult.is_correct" class="text-green-400 font-bold text-lg">✅ ¡Correcto! +{{ answerResult.points_earned }} pts</p>
+              <p v-else-if="selectedAnswer === null" class="text-yellow-400 font-semibold">⏭️ Pregunta saltada</p>
+              <p v-else class="text-red-400 font-semibold">❌ Incorrecto</p>
+            </template>
+            <p v-else-if="selectedAnswer === null" class="text-yellow-400 font-semibold">⏰ Tiempo agotado</p>
+            <p v-else class="text-cyan-400 font-semibold animate-pulse">Enviando respuesta…</p>
+            <p class="text-gray-400 text-xs">Esperando a los demás jugadores…</p>
           </div>
         </Transition>
       </template>

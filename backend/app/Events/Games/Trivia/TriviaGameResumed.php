@@ -21,6 +21,9 @@ class TriviaGameResumed implements ShouldBroadcastNow
         public readonly string $roomId,
         public readonly string $gameId,
         public readonly int $remainingSeconds,
+        // Nuevo vencimiento (ms epoch del servidor) de la pregunta en curso,
+        // ya corrido por la duración de la pausa. null si no hay pregunta.
+        public readonly ?int $deadlineMs = null,
     ) {
     }
 
@@ -39,6 +42,8 @@ class TriviaGameResumed implements ShouldBroadcastNow
         return [
             'game_id' => $this->gameId,
             'remaining_seconds' => $this->remainingSeconds,
+            'deadline_ms' => $this->deadlineMs,
+            'server_timestamp' => (int) round(microtime(true) * 1000),
         ];
     }
 }

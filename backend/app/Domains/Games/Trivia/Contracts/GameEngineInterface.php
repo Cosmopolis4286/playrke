@@ -48,6 +48,19 @@ interface GameEngineInterface
     public function sendNextQuestion(string $gameId, ?string $expectedQuestionId = null) : ?QuestionDTO;
 
     /**
+     * Cerrar la pregunta activa: deja de aceptar respuestas, revela a la sala
+     * la respuesta correcta y programa la siguiente pregunta. Idempotente:
+     * devuelve false si la pregunta ya no es la activa o ya estaba cerrada.
+     */
+    public function closeQuestion(string $gameId, string $questionId, string $reason) : bool;
+
+    /**
+     * Cerrar la pregunta solo si todos los participantes activos ya
+     * respondieron (o la saltaron).
+     */
+    public function closeQuestionIfEveryoneAnswered(string $gameId, string $questionId) : bool;
+
+    /**
      * Iniciar un nuevo juego en una sala.
      */
     public function startGame(string $roomId, array $playerIds) : GameStateDTO;

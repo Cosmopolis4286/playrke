@@ -185,6 +185,7 @@ class TriviaPauseService
         // estuvo pausado.
         $questionData = $this->stateRepository->getCurrentQuestion($gameId);
         $remainingSeconds = 0;
+        $deadlineMs = null;
 
         if ($questionData && $pauseDurationMs > 0) {
             $questionData['server_timestamp_ms'] = (float) ($questionData['server_timestamp_ms'] ?? 0) + $pauseDurationMs;
@@ -193,6 +194,7 @@ class TriviaPauseService
             $timeLimitMs = (int) ($questionData['time_limit_seconds'] ?? 20) * 1000;
             $elapsedMs = max(0.0, (microtime(true) * 1000) - $questionData['server_timestamp_ms']);
             $remainingSeconds = (int) max(0, ceil(($timeLimitMs - $elapsedMs) / 1000));
+            $deadlineMs = (int) round($questionData['server_timestamp_ms'] + $timeLimitMs);
 
             // Re-despachar el avance automático con el tiempo restante real
             // — el job original despachado antes de pausar ya no sirve (su
@@ -200,14 +202,24 @@ class TriviaPauseService
             // en el momento equivocado: sin este redespacho, la pregunta
             // quedaría sin ninguna red de seguridad tras reanudar).
             $questionId = (string) ($questionData['question_id'] ?? $questionData['id'] ?? '');
-            if ($questionId !== '' && $remainingSeconds > 0) {
-                AdvanceTriviaQuestion::dispatch($gameId, $questionId)
-                    ->delay(now()->addSeconds($remainingSeconds + 2));
+            if ($questionId !== '') {
+                if (! empty($questionData['closed_at_ms'])) {
+                    // Pausada durante la revelación: el avance programado se
+                    // neutralizó al estar en pausa, reprogramarlo.
+                    AdvanceTriviaQuestion::dispatch($gameId, $questionId, AdvanceTriviaQuestion::PHASE_ADVANCE)
+                        ->delay(now()->addSeconds(max(0, (int) config('trivia.game.reveal_seconds', 4))));
+                } else {
+                    // También con 0 s restantes: antes no se re-despachaba nada
+                    // y una pausa en el último segundo dejaba la pregunta
+                    // abierta para siempre.
+                    AdvanceTriviaQuestion::dispatch($gameId, $questionId, AdvanceTriviaQuestion::PHASE_CLOSE)
+                        ->delay(now()->addSeconds($remainingSeconds + max(0, (int) config('trivia.game.close_grace_seconds', 1))));
+                }
             }
         }
 
         try {
-            broadcast(new TriviaGameResumed($state->roomId, $gameId, $remainingSeconds));
+            broadcast(new TriviaGameResumed($state->roomId, $gameId, $remainingSeconds, $deadlineMs));
         } catch (Throwable $e) {
             Log::warning('[TriviaPauseService] broadcast TriviaGameResumed falló: ' . $e->getMessage());
         }
