@@ -3,6 +3,7 @@
 namespace App\Domains\Games\Bingo\ValueObjects;
 
 use InvalidArgumentException;
+use Random\Randomizer;
 
 /**
  * Encapsula todas las constantes estructurales de una variante de bingo.
@@ -413,7 +414,7 @@ final class BingoVariant
             $colsLeft--;
             $minForThis = max(0, $remaining - $maxPerCol * $colsLeft);
             $maxForThis = min($maxPerCol, $remaining);
-            $counts[$i] = rand($minForThis, $maxForThis);
+            $counts[$i] = random_int($minForThis, $maxForThis);
             $remaining -= $counts[$i];
         }
 
@@ -488,8 +489,7 @@ final class BingoVariant
                 return $pending >= $rowsLeftIncludingThis;
             }));
 
-            $optional = array_values(array_diff($available, $mandatory));
-            shuffle($optional);
+            $optional = (new Randomizer)->shuffleArray(array_values(array_diff($available, $mandatory)));
 
             $chosenCols = array_slice(
                 array_merge($mandatory, $optional),
@@ -542,12 +542,13 @@ final class BingoVariant
         return $matrix;
     }
 
-    /** Genera $count números únicos en el rango [$min, $max] */
+    /**
+     * Genera $count números únicos en el rango [$min, $max]. Randomizer usa el
+     * motor Secure (CSPRNG) por defecto: shuffle()/rand() usan Mersenne Twister,
+     * cuyo estado se puede reconstruir observando suficientes salidas.
+     */
     private static function uniqueNumbers(int $min, int $max, int $count) : array
     {
-        $pool = range($min, $max);
-        shuffle($pool);
-
-        return array_slice($pool, 0, $count);
+        return array_slice((new Randomizer)->shuffleArray(range($min, $max)), 0, $count);
     }
 }

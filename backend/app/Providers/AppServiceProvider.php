@@ -59,6 +59,15 @@ class AppServiceProvider extends ServiceProvider
 
         // Rate-limit: verificación de bingo — 10 intentos por minuto por (usuario + sala).
         // Protege contra multi-tab o clics rápidos que salten el guard claimingBingo del cliente.
+        // Lecturas de la partida (estado del sorteo, cartones, jugadores): las
+        // pide el cliente por eventos y al resincronizar, nunca en bucle.
+        // 120/min por jugador y sala no afecta un uso normal y corta el abuso.
+        RateLimiter::for('bingo-game-read', function(Request $request) {
+            $key = ($request->user()?->id ?? $request->ip()) . '|' . $request->route('room');
+
+            return Limit::perMinute(120)->by($key);
+        });
+
         RateLimiter::for('bingo-check-bingo', function(Request $request) {
             $key = ($request->user()?->id ?? 'guest') . '|' . $request->route('room');
 
